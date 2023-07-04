@@ -58,6 +58,7 @@ class GetContentsRequest:
 
 @dataclass
 class DocumentContent:
+    id: str
     url: str
     title: str
     extract: str
