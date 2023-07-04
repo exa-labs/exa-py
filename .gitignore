@@ -1,0 +1,28 @@
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environment
+venv/
+env/
+
+# Distribution files
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook files
+.ipynb_checkpoints/
+
+# macOS specific
+.DS_Store
+
+# PyCharm / IntelliJ IDEA specific
+.idea/
+
+# Visual Studio Code specific
+.vscode/
+
