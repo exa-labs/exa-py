@@ -24,8 +24,8 @@ client = Metaphor(api_key="your-api-key")
 
 response = client.search("funny article about tech culture",
     num_results=5,
-    includeDomains: ['nytimes.com', 'wsj.com'],
-    startPublishedDate: '2023-06-12'
+    includeDomains: ["nytimes.com", "wsj.com"],
+    startPublishedDate: "2023-06-12"
 )
 
 for result in response.results:
@@ -35,7 +35,7 @@ for result in response.results:
 ## Find Similar
 
 ```python
-response = client.find_similar("https://example.com/article", num_results=5)
+response = client.find_similar("https://waitbutwhy.com/2014/05/fermi-paradox.html", num_results=5)
 
 for result in response.results:
     print(result.title, result.url)
