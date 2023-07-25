@@ -20,21 +20,18 @@ client = Metaphor(api_key="your-api-key")
 ```
 
 ## Search Request
-You can perform a search by creating a SearchRequest object and passing it to the search method:
-
 ```python
 
-response = client.search("here is a really interesting AI company", num-+results=5)
+response = client.search("here is a really interesting AI company", num_results=5)
 
 for result in response.results:
     print(result.title, result.url)
 ```
 
 ## Find Similar
-To find documents similar to a given URL, you can use the FindSimilarRequest object:
 
 ```python
-response = client.find_similar("https://example.com/article, num-results=5)
+response = client.find_similar("https://example.com/article, num_results=5)
 
 for result in response.results:
     print(result.title, result.url)
