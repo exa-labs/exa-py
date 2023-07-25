@@ -28,7 +28,7 @@ class SearchRequest:
     start_published_date: Optional[str] = None
     end_published_date: Optional[str] = None
     use_autoprompt: Optional[bool] = None
-    type: Optional[str] = None
+    type: Optional[str] = None # keyword or neural. Default is neural.
 
 @dataclass
 class Result:
