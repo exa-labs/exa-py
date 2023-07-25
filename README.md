@@ -23,10 +23,8 @@ client = Metaphor(api_key="your-api-key")
 You can perform a search by creating a SearchRequest object and passing it to the search method:
 
 ```python
-from metaphor_python import SearchRequest
 
-request = SearchRequest(query="Here is a reaully interesting AI company:", num_results=5)
-response = client.search(request)
+response = client.search("here is a really interesting AI company", num-+results=5)
 
 for result in response.results:
     print(result.title, result.url)
@@ -36,22 +34,15 @@ for result in response.results:
 To find documents similar to a given URL, you can use the FindSimilarRequest object:
 
 ```python
-from metaphor_python import FindSimilarRequest
-
-request = FindSimilarRequest(url="https://example.com/article", num_results=5)
-response = client.find_similar(request)
+response = client.find_similar("https://example.com/article, num-results=5)
 
 for result in response.results:
     print(result.title, result.url)
 ```
 
 ## Retrieve Document Contents
-To retrieve the contents of documents, use the GetContentsRequest object:
-
-from metaphor_python import GetContentsRequest
-
 ```python
-request = GetContentsRequest(ids=["doc1", "doc2"])
+ids = ["doc1", "doc2"]
 response = client.get_contents(request)
 
 for content in response.contents:
