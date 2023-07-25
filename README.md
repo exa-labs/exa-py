@@ -22,7 +22,7 @@ client = Metaphor(api_key="your-api-key")
 ## Search Request
 ```python
 
-response = client.search("here is a really interesting AI company", num_results=5)
+response = client.search("funny article about tech culture", num_results=5, includeDomains: ['nytimes.com', 'wsj.com'], startPublishedDate: '2023-06-12')
 
 for result in response.results:
     print(result.title, result.url)
@@ -31,7 +31,7 @@ for result in response.results:
 ## Find Similar
 
 ```python
-response = client.find_similar("https://example.com/article, num_results=5)
+response = client.find_similar("https://example.com/article", num_results=5)
 
 for result in response.results:
     print(result.title, result.url)
@@ -39,7 +39,7 @@ for result in response.results:
 
 ## Retrieve Document Contents
 ```python
-ids = ["doc1", "doc2"]
+ids = ["8U71IlQ5DUTdsZFherhhYA", "X3wd0PbJmAvhu_DQjDKA7A"]
 response = client.get_contents(request)
 
 for content in response.contents:
