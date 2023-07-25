@@ -22,7 +22,11 @@ client = Metaphor(api_key="your-api-key")
 ## Search Request
 ```python
 
-response = client.search("funny article about tech culture", num_results=5, includeDomains: ['nytimes.com', 'wsj.com'], startPublishedDate: '2023-06-12')
+response = client.search("funny article about tech culture",
+    num_results=5,
+    includeDomains: ['nytimes.com', 'wsj.com'],
+    startPublishedDate: '2023-06-12'
+)
 
 for result in response.results:
     print(result.title, result.url)
