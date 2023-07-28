@@ -57,8 +57,8 @@ def validate_find_similar_options(options: Dict[str, Optional[object]]) -> None:
 class Result:
     title: str
     url: str
-    score: Optional[float]
     id: str
+    score: Optional[float] = None
     published_date: Optional[str] = None
     author: Optional[str] = None
     extract: Optional[str] = None # beta field. returned when findSimilar_and_get_contents is called
