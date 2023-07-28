@@ -57,7 +57,7 @@ def validate_find_similar_options(options: Dict[str, Optional[object]]) -> None:
 class Result:
     title: str
     url: str
-    score: float
+    score: Optional[float]
     id: str
     published_date: Optional[str] = None
     author: Optional[str] = None
