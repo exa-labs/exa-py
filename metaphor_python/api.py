@@ -63,7 +63,7 @@ class Result:
     author: Optional[str] = None
     extract: Optional[str] = None # beta field. returned when findSimilar_and_get_contents is called
 
-    def __init__(self, title, url, score, id, published_date=None, author=None, **kwargs):
+    def __init__(self, title, url, id, score=None, published_date=None, author=None, **kwargs):
         self.title = title
         self.url = url
         self.score = score
