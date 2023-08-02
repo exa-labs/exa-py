@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='metaphor-python',
-    version='0.1.10',
+    version='0.1.11',
     description='A Python package for the Metaphor API.',
     author='Metaphor',
     author_email='hello@metaphor.systems',
