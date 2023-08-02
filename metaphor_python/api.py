@@ -17,7 +17,8 @@ def camel_to_snake(camel_str: str) -> str:
 def to_snake_case(data: dict) -> dict:
     return {camel_to_snake(k): v for k, v in data.items()}
 
-VALID_SEARCH_OPTIONS = {
+SEARCH_OPTIONS_TYPES = {
+    'query': str,
     'num_results': int,
     'include_domains': list,
     'exclude_domains': list,
@@ -29,7 +30,8 @@ VALID_SEARCH_OPTIONS = {
     'type': str
 }
 
-VALID_FIND_SIMILAR_OPTIONS = {
+FIND_SIMILAR_OPTIONS_TYPES = {
+    'url': str,
     'num_results': int,
     'include_domains': list,
     'exclude_domains': list,
@@ -41,17 +43,21 @@ VALID_FIND_SIMILAR_OPTIONS = {
 
 def validate_search_options(options: Dict[str, Optional[object]]) -> None:
     for key, value in options.items():
-        if key not in VALID_SEARCH_OPTIONS:
+        if key not in SEARCH_OPTIONS_TYPES:
             raise ValueError(f"Invalid option: '{key}'")
-        if not isinstance(value, VALID_SEARCH_OPTIONS[key]):
-            raise ValueError(f"Invalid type for option '{key}': Expected {VALID_SEARCH_OPTIONS[key]}, got {type(value)}")
+        if not isinstance(value, SEARCH_OPTIONS_TYPES[key]):
+            raise ValueError(f"Invalid type for option '{key}': Expected {SEARCH_OPTIONS_TYPES[key]}, got {type(value)}")
+        if key in ['include_domains', 'exclude_domains'] and not value:
+            raise ValueError(f"Invalid value for option '{key}': cannot be an empty list")
 
 def validate_find_similar_options(options: Dict[str, Optional[object]]) -> None:
     for key, value in options.items():
-        if key not in VALID_FIND_SIMILAR_OPTIONS:
+        if key not in FIND_SIMILAR_OPTIONS_TYPES:
             raise ValueError(f"Invalid option: '{key}'")
-        if not isinstance(value, VALID_FIND_SIMILAR_OPTIONS[key]):
-            raise ValueError(f"Invalid type for option '{key}': Expected {VALID_FIND_SIMILAR_OPTIONS[key]}, got {type(value)}")
+        if not isinstance(value, FIND_SIMILAR_OPTIONS_TYPES[key]):
+            raise ValueError(f"Invalid type for option '{key}': Expected {FIND_SIMILAR_OPTIONS_TYPES[key]}, got {type(value)}")
+        if key in ['include_domains', 'exclude_domains'] and not value:
+            raise ValueError(f"Invalid value for option '{key}': cannot be an empty list")
 
 @dataclass
 class Result:
@@ -61,7 +67,7 @@ class Result:
     score: Optional[float] = None
     published_date: Optional[str] = None
     author: Optional[str] = None
-    extract: Optional[str] = None # beta field. returned when findSimilar_and_get_contents is called
+    extract: Optional[str] = None
 
     def __init__(self, title, url, id, score=None, published_date=None, author=None, **kwargs):
         self.title = title
@@ -104,29 +110,43 @@ class Metaphor:
         self.base_url = "https://api.metaphor.systems"
         self.headers = {"x-api-key": api_key}
 
-    def search(self, query: str, **options) -> SearchResponse:
+    def search(self, query: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
+               exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
+               end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
+               end_published_date: Optional[str] = None, use_autoprompt: Optional[bool] = None,
+               type: Optional[str] = None) -> SearchResponse:
+        options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
         validate_search_options(options)
         request = {'query': query}
         request.update(to_camel_case(options))
         response = requests.post(f"{self.base_url}/search", json=request, headers=self.headers)
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
         results = [Result(**to_snake_case(result)) for result in response.json()["results"]]
         search_response = SearchResponse(results=results)
         search_response.api = self
         return search_response
 
-    def find_similar(self, url: str, **options) -> SearchResponse:
+    def find_similar(self, url: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
+                     exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
+                     end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
+                     end_published_date: Optional[str] = None) -> SearchResponse:
+        options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
         validate_find_similar_options(options)
         request = {'url': url}
         request.update(to_camel_case(options))
         response = requests.post(f"{self.base_url}/findSimilar", json=request, headers=self.headers)
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
         results = [Result(**to_snake_case(result)) for result in response.json()["results"]]
         find_similar_response = SearchResponse(results=results)
         find_similar_response.api = self
         return find_similar_response
 
     def get_contents(self, ids: List[str]) -> GetContentsResponse:
+        if len(ids) == 0:
+            raise ValueError("ids cannot be empty")
         response = requests.get(f"{self.base_url}/contents", params=to_camel_case({"ids": ids}), headers=self.headers)
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
         return GetContentsResponse([DocumentContent(**to_snake_case(document)) for document in response.json()["contents"]])
