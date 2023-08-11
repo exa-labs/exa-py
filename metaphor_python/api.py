@@ -108,7 +108,7 @@ class SearchResponse:
 class Metaphor:
     def __init__(self, api_key: str):
         self.base_url = "https://api.metaphor.systems"
-        self.headers = {"x-api-key": api_key}
+        self.headers = {"x-api-key": api_key, "User-Agent": "metaphor-python 0.1.12"}
 
     def search(self, query: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
                exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
