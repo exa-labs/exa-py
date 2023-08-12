@@ -76,6 +76,14 @@ class Result:
         self.id = id
         self.published_date = published_date
         self.author = author
+    def __str__(self):
+        return (f"Title: {self.title}\n"
+                f"URL: {self.url}\n"
+                f"ID: {self.id}\n"
+                f"Score: {self.score}\n"
+                f"Published Date: {self.published_date}\n"
+                f"Author: {self.author}\n"
+                f"Extract: {self.extract}")
 
 @dataclass
 class DocumentContent:
@@ -90,9 +98,18 @@ class DocumentContent:
         self.title = title
         self.extract = extract
 
+    def __str__(self):
+        return (f"ID: {self.id}\n"
+                f"URL: {self.url}\n"
+                f"Title: {self.title}\n"
+                f"Extract: {self.extract}")
+
 @dataclass
 class GetContentsResponse:
     contents: List[DocumentContent]
+
+    def __str__(self):
+        return "\n\n".join(str(content) for content in self.contents)
 
 @dataclass
 class SearchResponse:
@@ -104,6 +121,9 @@ class SearchResponse:
             raise Exception("API client is not set. This method should be called on a SearchResponse returned by the 'search' method of 'Metaphor'.")
         ids = [result.id for result in self.results]
         return self.api.get_contents(ids)
+
+    def __str__(self):
+        return "\n\n".join(str(result) for result in self.results)
 
 class Metaphor:
     def __init__(self, api_key: str):

@@ -11,6 +11,7 @@ pip install metaphor-python
 ```
 
 ## Usage
+
 Import the package and initialize the Metaphor client with your API key:
 
 ```python
@@ -20,6 +21,7 @@ client = Metaphor(api_key="your-api-key")
 ```
 
 ## Search Request
+
 ```python
 
 response = client.search("funny article about tech culture",
@@ -42,6 +44,7 @@ for result in response.results:
 ```
 
 ## Retrieve Document Contents
+
 ```python
 ids = ["8U71IlQ5DUTdsZFherhhYA", "X3wd0PbJmAvhu_DQjDKA7A"]
 response = client.get_contents(ids)
@@ -50,25 +53,27 @@ for content in response.contents:
     print(content.title, content.url)
 ```
 
-## Reference 
+## Reference
 
 ### `Metaphor.search()`
+
 This function performs a search on the Metaphor API.
-#### Args:
+
+#### Args
+
 - query (str): The search query.
 - **options**: Additional search options. Valid options are:
-    - `num_results` (int): The number of search results to return.
-    - `include_domains` (list): A list of domains to include in the search.
-    - `exclude_domains` (list): A list of domains to exclude from the search.
-    - `start_crawl_date` (str): The start date for the crawl (in YYYY-MM-DD format).
-    - `end_crawl_date` (str): The end date for the crawl (in YYYY-MM-DD format).
-    - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
-    - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
-    - `use_autoprompt` (bool): Whether to use autoprompt for the search.
-    - `type` (str): The type of document to search for.
+  - `num_results` (int): The number of search results to return.
+  - `include_domains` (list): A list of domains to include in the search.
+  - `exclude_domains` (list): A list of domains to exclude from the search.
+  - `start_crawl_date` (str): The start date for the crawl (in YYYY-MM-DD format).
+  - `end_crawl_date` (str): The end date for the crawl (in YYYY-MM-DD format).
+  - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
+  - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
+  - `use_autoprompt` (bool): Whether to use autoprompt for the search.
+  - `type` (str): The type of document to search for.
 
-
-#### Returns:
+#### Returns
 `SearchResponse`: A dataclass containing the search results.
 
 ### `Metaphor.find_similar()`
@@ -83,7 +88,8 @@ This function performs a search on the Metaphor API.
     - `end_crawl_date` (str): The end date for the crawl (in YYYY-MM-DD format).
     - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
     - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
-#### Returns:
+
+#### Returns
 `SearchResponse`: A dataclass containing the search results.
 
 # Contribution
