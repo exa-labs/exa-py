@@ -26,8 +26,8 @@ client = Metaphor(api_key="your-api-key")
 
 response = client.search("funny article about tech culture",
     num_results=5,
-    include_domains: ["nytimes.com", "wsj.com"],
-    start_published_date: "2023-06-12"
+    include_domains=["nytimes.com", "wsj.com"],
+    start_published_date="2023-06-12"
 )
 
 for result in response.results:
