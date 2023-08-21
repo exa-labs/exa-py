@@ -114,6 +114,7 @@ class GetContentsResponse:
 @dataclass
 class SearchResponse:
     results: List[Result]
+    autoprompt_string: Optional[str] = None
     api: Optional['Metaphor'] = field(default=None, init=False)
 
     def get_contents(self):
@@ -123,12 +124,15 @@ class SearchResponse:
         return self.api.get_contents(ids)
 
     def __str__(self):
-        return "\n\n".join(str(result) for result in self.results)
+        output = "\n\n".join(str(result) for result in self.results)
+        if self.autoprompt_string:
+            output += f"\n\nAutoprompt String: {self.autoprompt_string}"
+        return output
 
 class Metaphor:
     def __init__(self, api_key: str):
         self.base_url = "https://api.metaphor.systems"
-        self.headers = {"x-api-key": api_key, "User-Agent": "metaphor-python 0.1.12"}
+        self.headers = {"x-api-key": api_key, "User-Agent": "metaphor-python 0.1.15"}
 
     def search(self, query: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
                exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
@@ -143,7 +147,8 @@ class Metaphor:
         if response.status_code != 200:
             raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
         results = [Result(**to_snake_case(result)) for result in response.json()["results"]]
-        search_response = SearchResponse(results=results)
+        autoprompt_string = response.json()["autopromptString"] if "autopromptString" in response.json() else None
+        search_response = SearchResponse(results=results, autoprompt_string=autoprompt_string)
         search_response.api = self
         return search_response
 
