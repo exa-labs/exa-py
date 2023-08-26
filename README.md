@@ -71,7 +71,7 @@ This function performs a search on the Metaphor API.
   - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
   - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
   - `use_autoprompt` (bool): Whether to use autoprompt for the search.
-  - `type` (str): The type of document to search for.
+  - `type` (str): The type of search, 'keyword' or 'neural'. Default: neural
 
 #### Returns
 `SearchResponse`: A dataclass containing the search results.
