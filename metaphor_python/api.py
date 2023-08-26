@@ -18,20 +18,20 @@ def to_snake_case(data: dict) -> dict:
     return {camel_to_snake(k): v for k, v in data.items()}
 
 SEARCH_OPTIONS_TYPES = {
-    'query': str,
-    'num_results': int,
-    'include_domains': list,
-    'exclude_domains': list,
-    'start_crawl_date': str,
-    'end_crawl_date': str,
-    'start_published_date': str,
-    'end_published_date': str,
-    'use_autoprompt': bool,
-    'type': str
+    'query': str,  # Declarative suggestion for search.
+    'num_results': int,  # Number of results (Default: 10, Max for basic: 30).
+    'include_domains': list,  # Domains to search from; exclusive with 'exclude_domains'.
+    'exclude_domains': list,  # Domains to omit; exclusive with 'include_domains'.
+    'start_crawl_date': str,  # Results after this crawl date. ISO 8601 format.
+    'end_crawl_date': str,  # Results before this crawl date. ISO 8601 format.
+    'start_published_date': str,  # Results after this publish date; excludes links with no date. ISO 8601 format.
+    'end_published_date': str,  # Results before this publish date; excludes links with no date. ISO 8601 format.
+    'use_autoprompt': bool,  # Convert query to Metaphor (Higher latency, Default: false).
+    'type': str,  # 'keyword' or 'neural' (Default: neural). Choose 'neural' for high-quality, semantically relevant content in popular domains. 'Keyword' is for specific, local, or obscure queries.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
-    'url': str,
+    'url': str, # The url for which you would like to find similar links
     'num_results': int,
     'include_domains': list,
     'exclude_domains': list,
