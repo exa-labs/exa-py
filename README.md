@@ -1,6 +1,19 @@
 # Metaphor Python
 
-An ergonomic way to use Metaphor in python.
+[![pypi](https://img.shields.io/pypi/v/metaphor-python.svg)](https://pypi.python.org/pypi/metaphor-python)
+
+
+The Metaphor Python library provides convenient access to the Metaphor API from
+applications written in the Python language. It includes a pre-defined set of
+classes for API resources that initialize themselves dynamically from API
+responses which makes it compatible with a wide range of versions of the Metaphor
+API.
+
+## Documentation
+
+See the [Python API docs](https://docs.metaphor.systems/reference/getting-started-1).
+
+See [video demonstrations](https://www.youtube.com/watch?v=YfSkX-KzWz0) covering how to use the library.
 
 ## Installation
 
@@ -10,9 +23,15 @@ Install `metaphor-python` via pip:
 pip install metaphor-python
 ```
 
+To install this package from source to make modifications to it, run the following command from the root of the repository:
+
+```bash
+python setup.py install
+```
+
 ## Usage
 
-Import the package and initialize the Metaphor client with your API key:
+Import the package and initialize the Metaphor client with your API key which is available in your [Metaphor Dashboard](https://dashboard.metaphor.systems/overview):
 
 ```python
 from metaphor_python import Metaphor
@@ -34,6 +53,8 @@ for result in response.results:
     print(result.title, result.url)
 ```
 
+You can learn more in our [basic search guide](https://docs.metaphor.systems/reference/search-2).
+
 ## Find Similar
 
 ```python
@@ -42,6 +63,8 @@ response = client.find_similar("https://waitbutwhy.com/2014/05/fermi-paradox.htm
 for result in response.results:
     print(result.title, result.url)
 ```
+
+You can learn more in our [basic finding similar links guide](https://docs.metaphor.systems/reference/search-copy).
 
 ## Retrieve Document Contents
 
@@ -52,6 +75,8 @@ response = client.get_contents(ids)
 for content in response.contents:
     print(content.title, content.url)
 ```
+
+You can learn more in our [basic content retrieval guide](https://docs.metaphor.systems/reference/get-contents-of-webpage).
 
 ## Reference
 
