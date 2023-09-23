@@ -103,6 +103,8 @@ This function performs a search on the Metaphor API.
 
 ### `Metaphor.find_similar()`
 
+This function searches for related links on the Metaphor API.
+
 #### Args:
 - url (str): The base url to find similar links with.
 - **options**: Additional search options. Valid options are:
@@ -116,6 +118,16 @@ This function performs a search on the Metaphor API.
 
 #### Returns
 `SearchResponse`: A dataclass containing the search results.
+
+### `Metaphor.get_contents()`
+
+This function retrieves the contents of documents based on a list of document IDs.
+
+#### Args:
+- ids (List[str]): A list of document IDs to retrieve the contents for.
+
+#### Returns
+`GetContentsResponse`: A dataclass containing the contents of the requested documents.
 
 # Contribution
 Contributions to metaphor-python are very welcome! Feel free to submit pull requests or raise issues.
