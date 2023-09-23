@@ -13,7 +13,7 @@ API.
 
 See the [Python API docs](https://docs.metaphor.systems/reference/getting-started-1).
 
-See [video demonstrations](https://www.youtube.com/watch?v=YfSkX-KzWz0) covering how to use the library.
+See [video demonstration](https://www.youtube.com/watch?v=YfSkX-KzWz0) covering how to use the API.
 
 ## Installation
 
