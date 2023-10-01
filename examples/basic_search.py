@@ -1,6 +1,12 @@
+import os
 from metaphor_python import Metaphor
 
-client = Metaphor("fa0fcc27-312c-4d5e-b06d-f101f9717e91")
+METAPHOR_API_KEY = os.environ.get('METAPHOR_API_KEY')
+
+if not METAPHOR_API_KEY:
+    raise ValueError("METAPHOR_API_KEY environment variable not set!")
+
+client = Metaphor(METAPHOR_API_KEY)
 
 response = client.search("funny article about tech culture",
     num_results=5,
