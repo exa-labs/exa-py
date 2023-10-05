@@ -1,6 +1,6 @@
 # Metaphor Python
 
-An ergonomic way to use Metaphor in python.
+An ergonomic way to use [Metaphor](https://platform.metaphor.systems/) in python.
 
 ## Installation
 
@@ -11,6 +11,9 @@ pip install metaphor-python
 ```
 
 ## Usage
+
+You'll first need to [register for an account](https://dashboard.metaphor.systems/login) and generate an API key. 
+You'll then have 1K requests/month for free to play around.
 
 Import the package and initialize the Metaphor client with your API key:
 
