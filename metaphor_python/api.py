@@ -39,6 +39,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     'end_crawl_date': str,
     'start_published_date': str,
     'end_published_date': str,
+    'exclude_source_domain': bool,
 }
 
 def validate_search_options(options: Dict[str, Optional[object]]) -> None:
@@ -155,7 +156,7 @@ class Metaphor:
     def find_similar(self, url: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
                      exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
                      end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
-                     end_published_date: Optional[str] = None) -> SearchResponse:
+                     end_published_date: Optional[str] = None, exclude_source_domain:Optional[bool] = None) -> SearchResponse:
         options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
         validate_find_similar_options(options)
         request = {'url': url}
