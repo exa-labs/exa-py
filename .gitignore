@@ -26,3 +26,10 @@ build/
 # Visual Studio Code specific
 .vscode/
 
+.coverage
+
+conftest.py
+
+pytest.ini
+
+

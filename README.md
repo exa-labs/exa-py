@@ -53,6 +53,13 @@ for content in response.contents:
     print(content.title, content.url)
 ```
 
+## Filter Results
+```python
+response = client.find_similar("https://waitbutwhy.com/2014/05/fermi-paradox.html", num_results=5, filter_options=('score', 'author'))
+
+print(response.filtered_dict)
+```
+
 ## Reference
 
 ### `Metaphor.search()`
@@ -71,6 +78,7 @@ This function performs a search on the Metaphor API.
   - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
   - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
   - `use_autoprompt` (bool): Whether to use autoprompt for the search.
+  - `filter_options` (tuple): Include **any necessary attributes** for the result. By default, it's set to None.
   - `type` (str): The type of search, 'keyword' or 'neural'. Default: neural
 
 #### Returns
@@ -88,6 +96,7 @@ This function performs a search on the Metaphor API.
     - `end_crawl_date` (str): The end date for the crawl (in YYYY-MM-DD format).
     - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
     - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
+    - `filter_options` (tuple): Include **any necessary attributes** for the result. By default, it's set to None.
 
 #### Returns
 `SearchResponse`: A dataclass containing the search results.

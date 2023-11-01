@@ -1,7 +1,7 @@
 import re
 import requests
-from typing import List, Optional, Dict
-from dataclasses import dataclass, field
+from typing import List, Optional, Dict, Literal, get_args, Tuple
+from dataclasses import dataclass, field, asdict
 
 def snake_to_camel(snake_str: str) -> str:
     components = snake_str.split("_")
@@ -17,6 +17,10 @@ def camel_to_snake(camel_str: str) -> str:
 def to_snake_case(data: dict) -> dict:
     return {camel_to_snake(k): v for k, v in data.items()}
 
+FILTER_OPTIONS = Literal["score", "published_date", "author", "extract"]
+FILTER_OPTIONS_TUPLE: Tuple[FILTER_OPTIONS, ...] = get_args(FILTER_OPTIONS)
+
+
 SEARCH_OPTIONS_TYPES = {
     'query': str,  # Declarative suggestion for search.
     'num_results': int,  # Number of results (Default: 10, Max for basic: 30).
@@ -28,6 +32,7 @@ SEARCH_OPTIONS_TYPES = {
     'end_published_date': str,  # Results before this publish date; excludes links with no date. ISO 8601 format.
     'use_autoprompt': bool,  # Convert query to Metaphor (Higher latency, Default: false).
     'type': str,  # 'keyword' or 'neural' (Default: neural). Choose 'neural' for high-quality, semantically relevant content in popular domains. 'Keyword' is for specific, local, or obscure queries.
+    'filter_options': tuple,
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -40,6 +45,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     'start_published_date': str,
     'end_published_date': str,
     'exclude_source_domain': bool,
+    'filter_options': tuple,
 }
 
 def validate_search_options(options: Dict[str, Optional[object]]) -> None:
@@ -59,6 +65,7 @@ def validate_find_similar_options(options: Dict[str, Optional[object]]) -> None:
             raise ValueError(f"Invalid type for option '{key}': Expected {FIND_SIMILAR_OPTIONS_TYPES[key]}, got {type(value)}")
         if key in ['include_domains', 'exclude_domains'] and not value:
             raise ValueError(f"Invalid value for option '{key}': cannot be an empty list")
+        
 
 @dataclass
 class Result:
@@ -115,6 +122,7 @@ class GetContentsResponse:
 @dataclass
 class SearchResponse:
     results: List[Result]
+    filtered_dict: Optional[List[dict]] = None
     autoprompt_string: Optional[str] = None
     api: Optional['Metaphor'] = field(default=None, init=False)
 
@@ -130,6 +138,20 @@ class SearchResponse:
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
         return output
 
+def filter(input: List[Result], options: FILTER_OPTIONS_TUPLE) -> List[Result]:
+    OPTIONS_LEN = len(options)
+    if OPTIONS_LEN > 4:
+        raise ValueError("The filter options is not available")
+    filtered_result_data_class = []
+    filtered_result_dict = []
+    for res in input:
+        result_dict = asdict(res)
+        filtered_item_dict = {key: result_dict[key] for key in (*options, 'id', 'url', 'title') if key in result_dict}
+        filtered_item = Result(**filtered_item_dict)
+        filtered_result_data_class.append(filtered_item)
+        filtered_result_dict.append(filtered_item_dict)
+    return filtered_result_data_class, filtered_result_dict
+
 class Metaphor:
     def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = "metaphor-python 0.1.16"):
         self.base_url = base_url
@@ -139,25 +161,31 @@ class Metaphor:
                exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
                end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
                end_published_date: Optional[str] = None, use_autoprompt: Optional[bool] = None,
+               filter_options: FILTER_OPTIONS_TUPLE = None,
                type: Optional[str] = None) -> SearchResponse:
-        options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
+        options = {k: v for k, v in locals().items() if k != 'self' and v is not None and k != 'filter_options'}
         validate_search_options(options)
         request = {'query': query}
         request.update(to_camel_case(options))
         response = requests.post(f"{self.base_url}/search", json=request, headers=self.headers)
         if response.status_code != 200:
             raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
+        
         results = [Result(**to_snake_case(result)) for result in response.json()["results"]]
+        if filter_options != None:
+            results = filter(input=results, options=filter_options)
         autoprompt_string = response.json()["autopromptString"] if "autopromptString" in response.json() else None
-        search_response = SearchResponse(results=results, autoprompt_string=autoprompt_string)
+        search_response = SearchResponse(results=results[0], autoprompt_string=autoprompt_string, filtered_dict=results[1])
         search_response.api = self
         return search_response
 
     def find_similar(self, url: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
                      exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
                      end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
-                     end_published_date: Optional[str] = None, exclude_source_domain:Optional[bool] = None) -> SearchResponse:
-        options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
+                     end_published_date: Optional[str] = None, exclude_source_domain:Optional[bool] = None, 
+                     filter_options: FILTER_OPTIONS_TUPLE = None,
+                     ) -> SearchResponse:
+        options = {k: v for k, v in locals().items() if k != 'self' and v is not None and k != "filter_options"}
         validate_find_similar_options(options)
         request = {'url': url}
         request.update(to_camel_case(options))
@@ -165,7 +193,9 @@ class Metaphor:
         if response.status_code != 200:
             raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
         results = [Result(**to_snake_case(result)) for result in response.json()["results"]]
-        find_similar_response = SearchResponse(results=results)
+        if filter_options != None:
+            results = filter(input=results, options=filter_options)
+        find_similar_response = SearchResponse(results=results[0], filtered_dict=results[1])
         find_similar_response.api = self
         return find_similar_response
 
