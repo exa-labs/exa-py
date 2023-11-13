@@ -70,7 +70,7 @@ class Result:
     author: Optional[str] = None
     extract: Optional[str] = None
 
-    def __init__(self, title: str, url: str, id: str, score: Optional[float] = None, published_date: Optional[str] =None, author: Optional[str] = None, **kwargs):
+    def __init__(self, title: str, url: str, id: str, score: Optional[float] = None, published_date: Optional[str] = None, author: Optional[str] = None, **kwargs):
         self.title = title
         self.url = url
         self.score = score
@@ -94,7 +94,7 @@ class DocumentContent:
     extract: str
     author: Optional[str] = None
 
-    def __init__(self, id: str, url: str, title: str, extract: str, author: Optional[str], **kwargs):
+    def __init__(self, id: str, url: str, title: str, extract: str, author: Optional[str] = None, **kwargs):
         self.id = id
         self.url = url
         self.title = title
