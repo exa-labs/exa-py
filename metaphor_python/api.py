@@ -174,7 +174,7 @@ class Metaphor:
 
     def get_contents(self, ids: List[str]) -> GetContentsResponse:
         if len(ids) == 0:
-            raise ValueError("ids cannot be empty")
+            return GetContentsResponse([])
         response = requests.get(f"{self.base_url}/contents", params=to_camel_case({"ids": ids}), headers=self.headers)
         if response.status_code != 200:
             raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
