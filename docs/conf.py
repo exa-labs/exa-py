@@ -17,7 +17,7 @@ author = 'Jeffrey Wang, Hubert Yuan'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = [ 'sphinx.ext.autodoc', 'sphinx_markdown_builder' ]
+extensions = [ 'sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx_markdown_builder' ]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
