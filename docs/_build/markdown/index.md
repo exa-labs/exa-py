@@ -8,9 +8,17 @@ contain the root `toctree` directive. -->
 # Contents:
 
 * [metaphor_python package](metaphor_python.md)
-  * [Submodules](metaphor_python.md#submodules)
-  * [metaphor_python.api module](metaphor_python.md#module-metaphor_python.api)
-  * [Module contents](metaphor_python.md#module-metaphor_python)
+  * [`DocumentContent`](metaphor_python.md#metaphor_python.api.DocumentContent)
+  * [`GetContentsResponse`](metaphor_python.md#metaphor_python.api.GetContentsResponse)
+  * [`Metaphor`](metaphor_python.md#metaphor_python.api.Metaphor)
+  * [`Result`](metaphor_python.md#metaphor_python.api.Result)
+  * [`SearchResponse`](metaphor_python.md#metaphor_python.api.SearchResponse)
+  * [`camel_to_snake()`](metaphor_python.md#metaphor_python.api.camel_to_snake)
+  * [`snake_to_camel()`](metaphor_python.md#metaphor_python.api.snake_to_camel)
+  * [`to_camel_case()`](metaphor_python.md#metaphor_python.api.to_camel_case)
+  * [`to_snake_case()`](metaphor_python.md#metaphor_python.api.to_snake_case)
+  * [`validate_find_similar_options()`](metaphor_python.md#metaphor_python.api.validate_find_similar_options)
+  * [`validate_search_options()`](metaphor_python.md#metaphor_python.api.validate_search_options)
 
 # Indices and tables
 

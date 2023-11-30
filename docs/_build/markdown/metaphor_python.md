@@ -1,12 +1,6 @@
 # metaphor_python package
 
-## Submodules
-
-## metaphor_python.api module
-
 ### *class* metaphor_python.api.DocumentContent(id: str, url: str, title: str, extract: str, author: str | None = None, \*\*kwargs)
-
-Bases: `object`
 
 A class representing the content of a document.
 
@@ -57,8 +51,6 @@ If available, the author of the content.
 
 ### *class* metaphor_python.api.GetContentsResponse(contents: List[[DocumentContent](#metaphor_python.api.DocumentContent)])
 
-Bases: `object`
-
 A class representing the response for getting contents of documents.
 
 #### contents
@@ -71,8 +63,6 @@ A list of document contents.
 #### contents*: List[[DocumentContent](#metaphor_python.api.DocumentContent)]*
 
 ### *class* metaphor_python.api.Metaphor(api_key: str, base_url: str = 'https://api.metaphor.systems', user_agent: str = 'metaphor-python 0.1.21')
-
-Bases: `object`
 
 A client for interacting with the Metaphor Search API.
 
@@ -96,14 +86,14 @@ Find similar links to the link provided.
 
 * **Parameters:**
   * **url** (*str*) – The URL for which to find similar links.
-  * **num_results** (*int**,* *optional*) – Number of search results to return. Defaults to 10.
-  * **include_domains** (*List**[**str**]**,* *optional*) – List of domains to include in the search.
-  * **exclude_domains** (*List**[**str**]**,* *optional*) – List of domains to exclude in the search.
-  * **start_crawl_date** (*str**,* *optional*) – Results will only include links crawled after this date.
-  * **end_crawl_date** (*str**,* *optional*) – Results will only include links crawled before this date.
-  * **start_published_date** (*str**,* *optional*) – Results will only include links with a published date after this date.
-  * **end_published_date** (*str**,* *optional*) – Results will only include links with a published date before this date.
-  * **exclude_source_domain** (*bool**,* *optional*) – If true, exclude links from the base domain of the input URL. Defaults to True.
+  * **num_results** (*int, optional*) – Number of search results to return. Defaults to 10.
+  * **include_domains** (*List[str], optional*) – List of domains to include in the search.
+  * **exclude_domains** (*List[str], optional*) – List of domains to exclude in the search.
+  * **start_crawl_date** (*str, optional*) – Results will only include links crawled after this date.
+  * **end_crawl_date** (*str, optional*) – Results will only include links crawled before this date.
+  * **start_published_date** (*str, optional*) – Results will only include links with a published date after this date.
+  * **end_published_date** (*str, optional*) – Results will only include links with a published date before this date.
+  * **exclude_source_domain** (*bool, optional*) – If true, exclude links from the base domain of the input URL. Defaults to True.
 * **Returns:**
   The response containing search results.
 * **Return type:**
@@ -114,7 +104,7 @@ Find similar links to the link provided.
 Retrieve contents of documents based on a list of document IDs.
 
 * **Parameters:**
-  **ids** (*List**[**str**]*) – An array of document IDs obtained from either /search or /findSimilar endpoints.
+  **ids** (*List[str]*) – An array of document IDs obtained from either /search or /findSimilar endpoints.
 * **Returns:**
   The response containing document contents.
 * **Return type:**
@@ -126,23 +116,21 @@ Perform a search with a Metaphor prompt-engineered query and retrieve a list of 
 
 * **Parameters:**
   * **query** (*str*) – The query string.
-  * **num_results** (*int**,* *optional*) – Number of search results to return. Defaults to 10.
-  * **include_domains** (*List**[**str**]**,* *optional*) – List of domains to include in the search.
-  * **exclude_domains** (*List**[**str**]**,* *optional*) – List of domains to exclude in the search.
-  * **start_crawl_date** (*str**,* *optional*) – Results will only include links crawled after this date.
-  * **end_crawl_date** (*str**,* *optional*) – Results will only include links crawled before this date.
-  * **start_published_date** (*str**,* *optional*) – Results will only include links with a published date after this date.
-  * **end_published_date** (*str**,* *optional*) – Results will only include links with a published date before this date.
-  * **use_autoprompt** (*bool**,* *optional*) – If true, convert query to a Metaphor query. Defaults to False.
-  * **type** (*str**,* *optional*) – The type of search, ‘keyword’ or ‘neural’. Defaults to “neural”.
+  * **num_results** (*int, optional*) – Number of search results to return. Defaults to 10.
+  * **include_domains** (*List[str], optional*) – List of domains to include in the search.
+  * **exclude_domains** (*List[str], optional*) – List of domains to exclude in the search.
+  * **start_crawl_date** (*str, optional*) – Results will only include links crawled after this date.
+  * **end_crawl_date** (*str, optional*) – Results will only include links crawled before this date.
+  * **start_published_date** (*str, optional*) – Results will only include links with a published date after this date.
+  * **end_published_date** (*str, optional*) – Results will only include links with a published date before this date.
+  * **use_autoprompt** (*bool, optional*) – If true, convert query to a Metaphor query. Defaults to False.
+  * **type** (*str, optional*) – The type of search, ‘keyword’ or ‘neural’. Defaults to “neural”.
 * **Returns:**
   The response containing search results and optional autoprompt string.
 * **Return type:**
   [SearchResponse](#metaphor_python.api.SearchResponse)
 
 ### *class* metaphor_python.api.Result(title: str, url: str, id: str, score: float | None = None, published_date: str | None = None, author: str | None = None, \*\*kwargs)
-
-Bases: `object`
 
 A class representing a search result.
 
@@ -203,8 +191,6 @@ If available, the author of the content.
 #### url*: str*
 
 ### *class* metaphor_python.api.SearchResponse(results: List[[Result](#metaphor_python.api.Result)], autoprompt_string: str | None = None)
-
-Bases: `object`
 
 A class representing the response for a search operation.
 
@@ -288,7 +274,7 @@ Convert keys in a dictionary from camelCase to snake_case.
 Validate find similar options against expected types and constraints.
 
 * **Parameters:**
-  **options** (*Dict**[**str**,* *Optional**[**object**]**]*) – The find similar options to validate.
+  **options** (*Dict[str, Optional[object]]*) – The find similar options to validate.
 * **Raises:**
   **ValueError** – If an invalid option or option type is provided.
 
@@ -297,8 +283,6 @@ Validate find similar options against expected types and constraints.
 Validate search options against expected types and constraints.
 
 * **Parameters:**
-  **options** (*Dict**[**str**,* *Optional**[**object**]**]*) – The search options to validate.
+  **options** (*Dict[str, Optional[object]]*) – The search options to validate.
 * **Raises:**
   **ValueError** – If an invalid option or option type is provided.
-
-## Module contents
