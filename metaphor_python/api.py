@@ -229,7 +229,7 @@ class Metaphor:
         headers (dict): The headers to include in API requests.
     """
 
-    def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = "metaphor-python 0.1.22"):
+    def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = "metaphor-python 0.1.23"):
         """Initialize the Metaphor client with the provided API key and optional base URL and user agent.
 
         Args:
