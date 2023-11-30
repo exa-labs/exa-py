@@ -28,6 +28,7 @@ SEARCH_OPTIONS_TYPES = {
     'end_published_date': str,  # Results before this publish date; excludes links with no date. ISO 8601 format.
     'use_autoprompt': bool,  # Convert query to Metaphor (Higher latency, Default: false).
     'type': str,  # 'keyword' or 'neural' (Default: neural). Choose 'neural' for high-quality, semantically relevant content in popular domains. 'Keyword' is for specific, local, or obscure queries.
+    'category': str, # A data category to focus on, with higher comprehensivity and data cleanliness. Currently, the only category is company.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -40,6 +41,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     'start_published_date': str,
     'end_published_date': str,
     'exclude_source_domain': bool,
+    'category': str, # A data category to focus on, with higher comprehensivity and data cleanliness. Currently, the only category is company.
 }
 
 def validate_search_options(options: Dict[str, Optional[object]]) -> None:
@@ -134,7 +136,7 @@ class SearchResponse:
         return output
 
 class Metaphor:
-    def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = "metaphor-python 0.1.21"):
+    def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = "metaphor-python 0.1.22"):
         self.base_url = base_url
         self.headers = {"x-api-key": api_key, "User-Agent": user_agent}
 
@@ -142,7 +144,7 @@ class Metaphor:
                exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
                end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
                end_published_date: Optional[str] = None, use_autoprompt: Optional[bool] = None,
-               type: Optional[str] = None) -> SearchResponse:
+               type: Optional[str] = None, category: Optional[str] = None) -> SearchResponse:
         options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
         validate_search_options(options)
         request = {'query': query}
@@ -159,7 +161,7 @@ class Metaphor:
     def find_similar(self, url: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
                      exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
                      end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
-                     end_published_date: Optional[str] = None, exclude_source_domain:Optional[bool] = None) -> SearchResponse:
+                     end_published_date: Optional[str] = None, exclude_source_domain:Optional[bool] = None, category: Optional[str] = None) -> SearchResponse:
         options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
         validate_find_similar_options(options)
         request = {'url': url}
