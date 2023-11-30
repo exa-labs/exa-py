@@ -24,7 +24,7 @@ client = Metaphor(api_key="your-api-key")
 
 ```python
 
-response = client.search("funny article about tech culture",
+response = client.search("funny article about silicon valley tech culture",
     num_results=5,
     include_domains=["nytimes.com", "wsj.com"],
     start_published_date="2023-06-12"
