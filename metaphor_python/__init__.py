@@ -4,4 +4,5 @@ from .api import (
     DocumentContent,
     GetContentsResponse,
     Metaphor,
+    AsyncMetaphor
 )

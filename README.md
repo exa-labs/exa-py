@@ -14,12 +14,6 @@ pip install metaphor-python
 
 Import the package and initialize the Metaphor client with your API key:
 
-```python
-from metaphor_python import Metaphor
-
-client = Metaphor(api_key="your-api-key")
-```
-
 ## Search Request
 
 ```python
@@ -51,6 +45,29 @@ response = client.get_contents(ids)
 
 for content in response.contents:
     print(content.title, content.url)
+```
+
+## Async usage
+
+```python
+from metaphor_python import AsyncMetaphor
+
+client = AsyncMetaphor(api_key="your-api-key")
+response = await client.search("funny article about silicon valley tech culture",
+    num_results=5,
+    include_domains=["nytimes.com", "wsj.com"],
+    start_published_date="2023-06-12"
+)
+await AsyncMetaphor.close()
+```
+
+Or
+
+```
+import aiohttp
+
+async with aiohttp.ClientSession() as session:
+    
 ```
 
 ## Reference
