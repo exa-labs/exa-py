@@ -55,6 +55,8 @@ for content in response.contents:
 
 ## Async usage
 
+The API is the same as `Metaphor`, just import `AsyncMetaphor` instead and use `await`.
+
 ```python
 from metaphor_python import AsyncMetaphor
 
@@ -64,7 +66,6 @@ response = await client.search("funny article about silicon valley tech culture"
     include_domains=["nytimes.com", "wsj.com"],
     start_published_date="2023-06-12"
 )
-await AsyncMetaphor.close()
 ```
 
 Or
