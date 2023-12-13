@@ -14,6 +14,12 @@ pip install metaphor-python
 
 Import the package and initialize the Metaphor client with your API key:
 
+```python
+from metaphor_python import Metaphor
+
+client = Metaphor(api_key="your-api-key")
+```
+
 ## Search Request
 
 ```python
