@@ -51,6 +51,8 @@ def to_snake_case(data: dict) -> dict:
 
 SEARCH_OPTIONS_TYPES = {
     'query': str,  # Declarative suggestion for search.
+    'snippet_query': str, # Query that the snippet search will use, as opposed to the regular search query. Defaults to the regular query.
+    'snippet_length': int, # Number of sentences for each snippet, if snippet search being used. Default 6.
     'num_results': int,  # Number of results (Default: 10, Max for basic: 10).
     'include_domains': list,  # Domains to search from; exclusive with 'exclude_domains'.
     'exclude_domains': list,  # Domains to omit; exclusive with 'include_domains'.
@@ -129,14 +131,18 @@ class Result:
     published_date: Optional[str] = None
     author: Optional[str] = None
     extract: Optional[str] = None
+    snippet: Optional[str] = None
+    snippet_score: Optional[float] = None
 
-    def __init__(self, title: str, url: str, id: str, score: Optional[float] = None, published_date: Optional[str] = None, author: Optional[str] = None, **kwargs):
+    def __init__(self, title: str, url: str, id: str, score: Optional[float] = None, published_date: Optional[str] = None, author: Optional[str] = None, snippet: Optional[str] = None, snippet_score: Optional[float] = None, **kwargs):
         self.title = title
         self.url = url
         self.score = score
         self.id = id
         self.published_date = published_date
         self.author = author
+        self.snippet = snippet
+        self.snippet_score = snippet_score
     def __str__(self):
         return (f"Title: {self.title}\n"
                 f"URL: {self.url}\n"
@@ -144,7 +150,9 @@ class Result:
                 f"Score: {self.score}\n"
                 f"Published Date: {self.published_date}\n"
                 f"Author: {self.author}\n"
-                f"Extract: {self.extract}")
+                f"Extract: {self.extract}\n"
+                f"Snippet: {self.snippet}\n"
+                f"Snippet Score: {self.snippet_score}")
 
 @dataclass
 class DocumentContent:
@@ -274,6 +282,43 @@ class Metaphor:
         search_response = SearchResponse(results=results, autoprompt_string=autoprompt_string)
         search_response.api = self
         return search_response
+
+    def snippet_search(self, query: str, snippet_query: Optional[str] = None, snippet_length: Optional[int] = None, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
+               exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
+               end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
+               end_published_date: Optional[str] = None, use_autoprompt: Optional[bool] = None,
+               type: Optional[str] = None, category: Optional[str] = None) -> SearchResponse:
+        """Perform a search with a Metaphor prompt-engineered query and retrieve a list of relevant results along with snippets from the results. Results are reordered by snippet relevance to query.
+
+        Args:
+            query (str): The query string.
+            snippet_query (str, optional): Query that the snippet search will use, as opposed to the regular search query. Defaults to the regular query.
+            snippet_length (int, optional): Number of sentences for each snippet. Default 6.
+            num_results (int, optional): Number of search results to return. Defaults to 10.
+            include_domains (List[str], optional): List of domains to include in the search.
+            exclude_domains (List[str], optional): List of domains to exclude in the search.
+            start_crawl_date (str, optional): Results will only include links crawled after this date.
+            end_crawl_date (str, optional): Results will only include links crawled before this date.
+            start_published_date (str, optional): Results will only include links with a published date after this date.
+            end_published_date (str, optional): Results will only include links with a published date before this date.
+            use_autoprompt (bool, optional): If true, convert query to a Metaphor query. Defaults to False.
+            type (str, optional): The type of search, 'keyword' or 'neural'. Defaults to "neural".
+            category (str, optional): A data category to focus on, with higher comprehensivity and data cleanliness. Currently, the only category is company.
+        Returns:
+            SearchResponse: The response containing search results and optional autoprompt string.
+        """
+        options = {k: v for k, v in locals().items() if k != 'self' and v is not None}
+        validate_search_options(options)
+        request = {'query': query}
+        request.update(to_camel_case(options))
+        response = requests.post(f"{self.base_url}/search/snippet", json=request, headers=self.headers)
+        if response.status_code != 200:
+            raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
+        results = [Result(**to_snake_case(result)) for result in response.json()["results"]]
+        autoprompt_string = response.json()["autopromptString"] if "autopromptString" in response.json() else None
+        search_response = SearchResponse(results=results, autoprompt_string=autoprompt_string)
+        search_response.api = self
+        return search_response 
 
     def find_similar(self, url: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
                      exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
