@@ -53,6 +53,30 @@ for content in response.contents:
     print(content.title, content.url)
 ```
 
+## Async usage
+
+The API is the same as `Metaphor`, just import `AsyncMetaphor` instead and use `await`.
+
+```python
+from metaphor_python import AsyncMetaphor
+
+client = AsyncMetaphor(api_key="your-api-key")
+response = await client.search("funny article about silicon valley tech culture",
+    num_results=5,
+    include_domains=["nytimes.com", "wsj.com"],
+    start_published_date="2023-06-12"
+)
+```
+
+Or
+
+```
+import aiohttp
+
+async with aiohttp.ClientSession() as session:
+    
+```
+
 ## Reference
 
 ### `Metaphor.search()`

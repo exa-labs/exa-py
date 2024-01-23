@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='metaphor-python',
-    version='0.1.23',
+    version='0.1.24',
     description='A Python package for the Metaphor API.',
     author='Metaphor',
     author_email='hello@metaphor.systems',
@@ -10,6 +10,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'requests',
+        'httpx',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -20,5 +21,8 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
     ],
 )

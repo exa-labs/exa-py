@@ -1,5 +1,6 @@
 import re
 import requests
+import httpx
 from typing import List, Optional, Dict
 from dataclasses import dataclass, field
 
@@ -221,6 +222,8 @@ class SearchResponse:
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
         return output
 
+DEFAULT_USER_AGENT = "metaphor-python 0.1.24"
+
 class Metaphor:
     """A client for interacting with the Metaphor Search API.
 
@@ -229,7 +232,7 @@ class Metaphor:
         headers (dict): The headers to include in API requests.
     """
 
-    def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = "metaphor-python 0.1.23"):
+    def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = DEFAULT_USER_AGENT):
         """Initialize the Metaphor client with the provided API key and optional base URL and user agent.
 
         Args:
@@ -322,3 +325,77 @@ class Metaphor:
         if response.status_code != 200:
             raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
         return GetContentsResponse([DocumentContent(**to_snake_case(document)) for document in response.json()["contents"]])
+
+
+class AsyncMetaphor(Metaphor):
+    """An async client for interacting with the Metaphor Search API.
+
+    Attributes:
+        base_url (str): The base URL for the Metaphor API.
+        headers (dict): The headers to include in API requests.
+        async_client (httpx.AsyncClient): The httpx client to use.
+    """
+
+    def __init__(self, api_key: str, base_url: str = "https://api.metaphor.systems", user_agent: str = DEFAULT_USER_AGENT, async_client: httpx.AsyncClient = None):
+        super().__init__(api_key, base_url, user_agent)
+        self.async_client = async_client
+
+    async def search(self, query: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
+               exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
+               end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
+               end_published_date: Optional[str] = None, use_autoprompt: Optional[bool] = None,
+               type: Optional[str] = None, category: Optional[str] = None,
+               async_client: httpx.AsyncClient = None) -> SearchResponse:
+        if async_client is None:
+            if self.async_client is None:
+                self.async_client = httpx.AsyncClient()
+            async_client = self.async_client
+        options = {k: v for k, v in locals().items() if k not in ('self', 'async_client') and v is not None}
+        validate_search_options(options)
+        request = {'query': query}
+        request.update(to_camel_case(options))
+        response = await async_client.post(f"{self.base_url}/search", json=request, headers=self.headers)
+        if response.status_code != 200:
+            raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
+        response_as_json = response.json()
+        results = [Result(**to_snake_case(result)) for result in response_as_json["results"]]
+        autoprompt_string = response_as_json["autopromptString"] if "autopromptString" in response_as_json else None
+        search_response = SearchResponse(results=results, autoprompt_string=autoprompt_string)
+        search_response.api = self
+        return search_response
+
+    async def find_similar(self, url: str, num_results: Optional[int] = None, include_domains: Optional[List[str]] = None,
+                     exclude_domains: Optional[List[str]] = None, start_crawl_date: Optional[str] = None,
+                     end_crawl_date: Optional[str] = None, start_published_date: Optional[str] = None,
+                     end_published_date: Optional[str] = None, exclude_source_domain:Optional[bool] = None,
+                     category: Optional[str] = None, async_client: httpx.AsyncClient = None) -> SearchResponse:
+        if async_client is None:
+            if self.async_client is None:
+                self.async_client = httpx.AsyncClient()
+            async_client = self.async_client
+        options = {k: v for k, v in locals().items() if k not in ('self', 'async_client') and v is not None}
+        validate_find_similar_options(options)
+        request = {'url': url}
+        request.update(to_camel_case(options))
+        response = await async_client.post(f"{self.base_url}/findSimilar", json=request, headers=self.headers)
+        if response.status_code != 200:
+            raise Exception(f"Request failed with status code {response.status_code}. Message: {response.text}")
+        response_as_json = response.json()
+        results = [Result(**to_snake_case(result)) for result in response_as_json["results"]]
+        find_similar_response = SearchResponse(results=results)
+        find_similar_response.api = self
+        return find_similar_response
+
+    async def get_contents(self, ids: List[str], async_client: httpx.AsyncClient = None) -> GetContentsResponse:
+        if len(ids) == 0:
+            return GetContentsResponse([])
+        if async_client is None:
+            if self.async_client is None:
+                self.async_client = httpx.AsyncClient()
+            async_client = self.async_client
+        response = await async_client.get(f"{self.base_url}/contents", params=to_camel_case({"ids": ids}), headers=self.headers)
+        if response.status_code != 200:
+            raise Exception(f"Request failed with status code {response.status}. Message: {response.text}")
+        response_as_json = response.json()
+        return GetContentsResponse([DocumentContent(**to_snake_case(document)) for document in response_as_json["contents"]])
+
