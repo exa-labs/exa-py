@@ -26,3 +26,4 @@ build/
 # Visual Studio Code specific
 .vscode/
 
+.mypy_cache

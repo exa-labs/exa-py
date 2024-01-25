@@ -1,14 +1,14 @@
 import os
-from metaphor_python import Metaphor
+from exa_py import Exa
 
-METAPHOR_API_KEY = os.environ.get('METAPHOR_API_KEY')
+EXA_API_KEY = os.environ.get('EXA_API_KEY')
 
-if not METAPHOR_API_KEY:
-    raise ValueError("METAPHOR_API_KEY environment variable not set!")
+if not EXA_API_KEY:
+    raise ValueError("EXA_API_KEY environment variable not set!")
 
-client = Metaphor(METAPHOR_API_KEY)
+exa = Exa(EXA_API_KEY)
 
-response = client.search("funny article about tech culture",
+response = exa.search("funny article about tech culture",
     num_results=5,
     use_autoprompt=True,
     include_domains=["nytimes.com", "wsj.com"],

@@ -1,30 +1,31 @@
-# Metaphor Python
+# Exa
 
-An ergonomic way to use Metaphor in python.
+Exa (formerly Metaphor) API in Python
+
+Note: This API is basically the same as `metaphor-python` but reflects new
+features associated with Metaphor's rename to Exa. New site is https://exa.ai
 
 ## Installation
 
-Install `metaphor-python` via pip:
-
 ```bash
-pip install metaphor-python
+pip install exa_py
 ```
 
 ## Usage
 
-Import the package and initialize the Metaphor client with your API key:
+Import the package and initialize the Exa client with your API key:
 
 ```python
-from metaphor_python import Metaphor
+from exa_py import Exa
 
-client = Metaphor(api_key="your-api-key")
+exa = Exa(api_key="your-api-key")
 ```
 
 ## Search Request
 
 ```python
 
-response = client.search("funny article about silicon valley tech culture",
+response = exa.search("funny article about silicon valley tech culture",
     num_results=5,
     include_domains=["nytimes.com", "wsj.com"],
     start_published_date="2023-06-12"
@@ -37,7 +38,7 @@ for result in response.results:
 ## Find Similar
 
 ```python
-response = client.find_similar("https://waitbutwhy.com/2014/05/fermi-paradox.html", num_results=5)
+response = exa.find_similar("https://waitbutwhy.com/2014/05/fermi-paradox.html", num_results=5)
 
 for result in response.results:
     print(result.title, result.url)
@@ -47,7 +48,7 @@ for result in response.results:
 
 ```python
 ids = ["8U71IlQ5DUTdsZFherhhYA", "X3wd0PbJmAvhu_DQjDKA7A"]
-response = client.get_contents(ids)
+response = exa.get_contents(ids)
 
 for content in response.contents:
     print(content.title, content.url)
@@ -55,9 +56,9 @@ for content in response.contents:
 
 ## Reference
 
-### `Metaphor.search()`
+### `exa.search()`
 
-This function performs a search on the Metaphor API.
+This function performs a search on the Exa API.
 
 #### Args
 
@@ -76,7 +77,7 @@ This function performs a search on the Metaphor API.
 #### Returns
 `SearchResponse`: A dataclass containing the search results.
 
-### `Metaphor.find_similar()`
+### `exa.find_similar()`
 
 #### Args:
 - url (str): The base url to find similar links with.
@@ -93,5 +94,4 @@ This function performs a search on the Metaphor API.
 `SearchResponse`: A dataclass containing the search results.
 
 # Contribution
-Contributions to metaphor-python are very welcome! Feel free to submit pull requests or raise issues.
-
+Contributions to exa-py are very welcome! Feel free to submit pull requests or raise issues.

@@ -18,7 +18,7 @@ To play with this code, first we need a [Metaphor API key](https://dashboard.met
 ```python
 from google.colab import userdata # comment this out if you're not using Colab
 
-METAPHOR_API_KEY = userdata.get('METAPHOR_API_KEY') # replace with your api key, or add to Colab Secrets
+EXA_API_KEY = userdata.get('EXA_API_KEY') # replace with your api key, or add to Colab Secrets
 OPENAI_API_KEY = userdata.get('OPENAI_API_KEY') # replace with your api key, or add to Colab Secrets
 ```
 
@@ -62,7 +62,7 @@ import openai
 from metaphor_python import Metaphor
 
 openai.api_key = OPENAI_API_KEY
-metaphor = Metaphor(METAPHOR_API_KEY)
+metaphor = Metaphor(EXA_API_KEY)
 
 SYSTEM_MESSAGE = "You are a helpful assistant that generates search queries based on user questions. Only generate one search query."
 USER_QUESTION = "What's the recent news in physics this week?"
