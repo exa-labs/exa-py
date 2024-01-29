@@ -21,77 +21,54 @@ from exa_py import Exa
 exa = Exa(api_key="your-api-key")
 ```
 
-## Search Request
-
+## Common requests
 ```python
+  from exa_py import Exa
 
-response = exa.search("funny article about silicon valley tech culture",
-    num_results=5,
-    include_domains=["nytimes.com", "wsj.com"],
-    start_published_date="2023-06-12"
-)
+  # instantiate the Exa client
+  exa = Exa("YOUR API KEY")
 
-for result in response.results:
-    print(result.title, result.url)
+  # basic search
+  results = exa.search("This is a Exa query:")
+
+  # autoprompted search
+  results = exa.search("autopromptable query", use_autoprompt=True)
+
+  # search with date filters
+  results = exa.search("This is a Exa query:", start_published_date="2019-01-01", end_published_date="2019-01-31")
+
+  # search with domain filters
+  results = exa.search("This is a Exa query:", include_domains=["www.cnn.com", "www.nytimes.com"])
+
+  # search and get text contents
+  results = exa.search_and_contents("This is a Exa query:")
+
+  # search and get highlights
+  results = exa.search_and_contents("This is a Exa query:", highlights=True)
+
+  # search and get contents with contents options
+  results = exa.search_and_contents("This is a Exa query:", 
+                                    text={"include_html_tags": True, "max_characters": 1000}, 
+                                    highlights={"highlights_per_url": 2, "num_sentences": 1, "query": "This is the highlight query:"})
+                                    
+  # find similar documents
+  results = exa.find_similar("https://example.com")
+
+  # find similar excluding source domain
+  results = exa.find_similar("https://example.com", exclude_source_domain=True)
+
+  # find similar with contents
+  results = exa.find_similar_and_contents("https://example.com", text=True, highlights=True)
+
+  # get text contents
+  results = exa.get_contents(["ids"])
+
+  # get highlights
+  results = exa.get_contents(["ids"], highlights=True)
+
+  # get contents with contents options
+  results = exa.get_contents(["ids"], 
+                             text={"include_html_tags": True, "max_characters": 1000}, 
+                             highlights={"highlights_per_url": 2, "num_sentences": 1, "query": "This is the highlight query:"})
 ```
 
-## Find Similar
-
-```python
-response = exa.find_similar("https://waitbutwhy.com/2014/05/fermi-paradox.html", num_results=5)
-
-for result in response.results:
-    print(result.title, result.url)
-```
-
-## Retrieve Document Contents
-
-```python
-ids = ["8U71IlQ5DUTdsZFherhhYA", "X3wd0PbJmAvhu_DQjDKA7A"]
-response = exa.get_contents(ids)
-
-for content in response.contents:
-    print(content.title, content.url)
-```
-
-## Reference
-
-### `exa.search()`
-
-This function performs a search on the Exa API.
-
-#### Args
-
-- query (str): The search query.
-- **options**: Additional search options. Valid options are:
-  - `num_results` (int): The number of search results to return.
-  - `include_domains` (list): A list of domains to include in the search.
-  - `exclude_domains` (list): A list of domains to exclude from the search.
-  - `start_crawl_date` (str): The start date for the crawl (in YYYY-MM-DD format).
-  - `end_crawl_date` (str): The end date for the crawl (in YYYY-MM-DD format).
-  - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
-  - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
-  - `use_autoprompt` (bool): Whether to use autoprompt for the search.
-  - `type` (str): The type of search, 'keyword' or 'neural'. Default: neural
-
-#### Returns
-`SearchResponse`: A dataclass containing the search results.
-
-### `exa.find_similar()`
-
-#### Args:
-- url (str): The base url to find similar links with.
-- **options**: Additional search options. Valid options are:
-    - `num_results` (int): The number of search results to return.
-    - `include_domains` (list): A list of domains to include in the search.
-    - `exclude_domains` (list): A list of domains to exclude from the search.
-    - `start_crawl_date` (str): The start date for the crawl (in YYYY-MM-DD format).
-    - `end_crawl_date` (str): The end date for the crawl (in YYYY-MM-DD format).
-    - `start_published_date` (str): The start date for when the document was published (in YYYY-MM-DD format).
-    - `end_published_date` (str): The end date for when the document was published (in YYYY-MM-DD format).
-
-#### Returns
-`SearchResponse`: A dataclass containing the search results.
-
-# Contribution
-Contributions to exa-py are very welcome! Feel free to submit pull requests or raise issues.
