@@ -23,16 +23,15 @@ exa = Exa(api_key="your-api-key")
 
 ## Common requests
 ```python
-  from exa_py import Exa
-
-  # instantiate the Exa client
-  exa = Exa("YOUR API KEY")
 
   # basic search
   results = exa.search("This is a Exa query:")
 
   # autoprompted search
   results = exa.search("autopromptable query", use_autoprompt=True)
+
+  # keyword search (non-neural)
+  results = exa.search("Google-style query", type="keyword")
 
   # search with date filters
   results = exa.search("This is a Exa query:", start_published_date="2019-01-01", end_published_date="2019-01-31")
