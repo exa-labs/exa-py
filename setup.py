@@ -13,6 +13,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "requests",
+        "typing-extensions",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
