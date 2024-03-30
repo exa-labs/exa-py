@@ -426,7 +426,7 @@ class Exa:
                 data["autopromptString"] if "autopromptString" in data else None
             ),
             filters=SearchFilters(
-                **to_snake_case(data["filters"]) if "filters" in data else None
+                **to_snake_case(data["filters"]) if "filters" in data else {}
             ),
         )
 
@@ -522,7 +522,7 @@ class Exa:
                 data["autopromptString"] if "autopromptString" in data else None
             ),
             filters=SearchFilters(
-                **to_snake_case(data["filters"]) if "filters" in data else None
+                **to_snake_case(data["filters"]) if "filters" in data else {}
             ),
         )
 
@@ -574,7 +574,7 @@ class Exa:
                 data["autopromptString"] if "autopromptString" in data else None
             ),
             filters=SearchFilters(
-                **to_snake_case(data["filters"]) if "filters" in data else None
+                **to_snake_case(data["filters"]) if "filters" in data else {}
             ),
         )
 
@@ -602,7 +602,7 @@ class Exa:
                 data["autopromptString"] if "autopromptString" in data else None
             ),
             filters=SearchFilters(
-                **to_snake_case(data["filters"]) if "filters" in data else None
+                **to_snake_case(data["filters"]) if "filters" in data else {}
             ),
         )
 
@@ -694,6 +694,6 @@ class Exa:
                 data["autopromptString"] if "autopromptString" in data else None
             ),
             filters=SearchFilters(
-                **to_snake_case(data["filters"]) if "filters" in data else None
+                **(to_snake_case(data["filters"]) if "filters" in data else {})
             ),
         )
