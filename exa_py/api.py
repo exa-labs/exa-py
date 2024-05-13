@@ -1,10 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import dataclasses
+from functools import wraps
 import re
 import requests
 from typing import (
     Callable,
+    Iterable,
     List,
     Optional,
     Dict,

@@ -3,8 +3,6 @@ from typing import Any, Callable
 from openai import OpenAI
 
 
-from exa_py.api import SearchResponse
-
 
 def maybe_get_query(completion) -> str | None:
     """Extract query from completion if it exists."""
@@ -41,7 +39,7 @@ def add_message_to_messages(completion, messages, exa_result) -> list[dict]:
     return messages
 
 
-def format_exa_result(exa_result: SearchResponse, max_len: int=-1):
+def format_exa_result(exa_result, max_len: int=-1):
     """Format exa result for pasting into chat."""
     print("Formatting exa result")
     str = [
