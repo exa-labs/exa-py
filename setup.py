@@ -16,6 +16,9 @@ setup(
         "typing-extensions",
         "openai"
     ],
+    extras_require={
+        "openai": ["openai"]
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",

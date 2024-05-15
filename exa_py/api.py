@@ -32,6 +32,7 @@ from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 from openai._types import Headers, Query, Body
 from openai.types.chat import completion_create_params
 from exa_py.utils import (
+    ExaOpenAICompletion,
     add_message_to_messages,
     format_exa_result,
     maybe_get_query,
@@ -736,7 +737,7 @@ class Exa:
             use_autoprompt: Optional[bool] = True,
             type: Optional[str] = None,
             category: Optional[str] = None,
-            result_max_len: int = 512,
+            result_max_len: int = 2048,
         ):
             exa_kwargs = {
                 "num_results": num_results,
@@ -801,7 +802,7 @@ class Exa:
         max_len,
         create_kwargs,
         exa_kwargs,
-    ):
+    ) -> ExaOpenAICompletion:
         tools = [
             {
                 "type": "function",
@@ -824,13 +825,12 @@ class Exa:
 
         create_kwargs["tools"] = tools
 
-        print(create_kwargs)
         completion = create_fn(messages=messages, **create_kwargs)
     
         query = maybe_get_query(completion)
 
         if not query:
-            return completion
+            return ExaOpenAICompletion.from_completion(completion=completion, exa_result=None)
 
         exa_result = self.search_and_contents(query, **exa_kwargs)
         exa_str = format_exa_result(exa_result, max_len=max_len)
@@ -839,4 +839,7 @@ class Exa:
         create_kwargs["tool_choice"] = "none"
         completion = create_fn(messages=new_messages, **create_kwargs)
 
-        return completion
+        exa_completion = ExaOpenAICompletion.from_completion(
+            completion=completion, exa_result=exa_result
+        )
+        return exa_completion
