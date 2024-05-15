@@ -795,6 +795,8 @@ class Exa:
         print("Wrapping OpenAI client with Exa functionality.", type(create_with_rag))
         client.chat.completions.create = create_with_rag # type: ignore
 
+        return client
+
     def _create_with_tool(
         self,
         create_fn: Callable,
