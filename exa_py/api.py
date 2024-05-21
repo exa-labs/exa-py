@@ -1,9 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import dataclasses
+from functools import wraps
 import re
 import requests
 from typing import (
+    Callable,
+    Iterable,
     List,
     Optional,
     Dict,
@@ -14,6 +17,28 @@ from typing import (
     Literal,
 )
 from typing_extensions import TypedDict
+
+import httpx
+from openai import NOT_GIVEN, NotGiven, OpenAI
+from openai.types.chat.chat_completion_stream_options_param import (
+    ChatCompletionStreamOptionsParam,
+)
+from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
+from openai.types.chat_model import ChatModel
+from openai.types.chat.chat_completion_tool_choice_option_param import (
+    ChatCompletionToolChoiceOptionParam,
+)
+from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
+from openai._types import Headers, Query, Body
+from openai.types.chat import completion_create_params
+from exa_py.utils import (
+    ExaOpenAICompletion,
+    add_message_to_messages,
+    format_exa_result,
+    maybe_get_query,
+)
+
+
 
 
 def snake_to_camel(snake_str: str) -> str:
@@ -646,3 +671,177 @@ class Exa:
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
         )
+    def wrap(self, client: OpenAI):
+        """Wrap an OpenAI client with Exa functionality.
+
+        After wrapping, any call to `client.chat.completions.create` will be intercepted and enhanced with Exa functionality.
+
+        To disable Exa functionality for a specific call, set `use_exa="none"` in the call to `client.chat.completions.create`.
+
+        Args:
+            client (OpenAI): The OpenAI client to wrap.
+
+        Returns:
+            OpenAI: The wrapped OpenAI client.
+        """
+
+        func = client.chat.completions.create
+
+        @wraps(func)
+        def create_with_rag(
+            # Mandatory OpenAI args
+            messages: Iterable[ChatCompletionMessageParam],
+            model: Union[str, ChatModel],
+            # Optional OpenAI args
+            frequency_penalty: Optional[float] | NotGiven = NOT_GIVEN,
+            function_call: completion_create_params.FunctionCall | NotGiven = NOT_GIVEN,
+            functions: (
+                Iterable[completion_create_params.Function] | NotGiven
+            ) = NOT_GIVEN,
+            logit_bias: Optional[Dict[str, int]] | NotGiven = NOT_GIVEN,
+            logprobs: Optional[bool] | NotGiven = NOT_GIVEN,
+            max_tokens: Optional[int] | NotGiven = NOT_GIVEN,
+            n: Optional[int] | NotGiven = NOT_GIVEN,
+            presence_penalty: Optional[float] | NotGiven = NOT_GIVEN,
+            response_format: (
+                completion_create_params.ResponseFormat | NotGiven
+            ) = NOT_GIVEN,
+            seed: Optional[int] | NotGiven = NOT_GIVEN,
+            stop: Union[Optional[str], List[str]] | NotGiven = NOT_GIVEN,
+            stream: Optional[Literal[False]] | NotGiven = NOT_GIVEN,
+            stream_options: (
+                Optional[ChatCompletionStreamOptionsParam] | NotGiven
+            ) = NOT_GIVEN,
+            temperature: Optional[float] | NotGiven = NOT_GIVEN,
+            tool_choice: ChatCompletionToolChoiceOptionParam | NotGiven = NOT_GIVEN,
+            tools: Iterable[ChatCompletionToolParam] | NotGiven = NOT_GIVEN,
+            top_logprobs: Optional[int] | NotGiven = NOT_GIVEN,
+            top_p: Optional[float] | NotGiven = NOT_GIVEN,
+            user: str | NotGiven = NOT_GIVEN,
+            # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+            # The extra values given here take precedence over values defined on the client or passed to this method.
+            extra_headers: Headers | None = None,
+            extra_query: Query | None = None,
+            extra_body: Body | None = None,
+            timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+            # Exa args
+            use_exa: Optional[Literal["required", "none", "auto"]] = "auto",
+            highlights: Union[HighlightsContentsOptions, Literal[True], None] = None,
+            num_results: Optional[int] = 3,
+            include_domains: Optional[List[str]] = None,
+            exclude_domains: Optional[List[str]] = None,
+            start_crawl_date: Optional[str] = None,
+            end_crawl_date: Optional[str] = None,
+            start_published_date: Optional[str] = None,
+            end_published_date: Optional[str] = None,
+            use_autoprompt: Optional[bool] = True,
+            type: Optional[str] = None,
+            category: Optional[str] = None,
+            result_max_len: int = 2048,
+        ):
+            exa_kwargs = {
+                "num_results": num_results,
+                "include_domains": include_domains,
+                "exclude_domains": exclude_domains,
+                "highlights": highlights,
+                "start_crawl_date": start_crawl_date,
+                "end_crawl_date": end_crawl_date,
+                "start_published_date": start_published_date,
+                "end_published_date": end_published_date,
+                "use_autoprompt": use_autoprompt,
+                "type": type,
+                "category": category,
+            }
+
+            create_kwargs = {
+                "model": model,
+                "frequency_penalty": frequency_penalty,
+                "function_call": function_call,
+                "functions": functions,
+                "logit_bias": logit_bias,
+                "logprobs": logprobs,
+                "max_tokens": max_tokens,
+                "n": n,
+                "presence_penalty": presence_penalty,
+                "response_format": response_format,
+                "seed": seed,
+                "stop": stop,
+                "stream": stream,
+                "stream_options": stream_options,
+                "temperature": temperature,
+                "tool_choice": tool_choice,
+                "tools": tools,
+                "top_logprobs": top_logprobs,
+                "top_p": top_p,
+                "user": user,
+                "extra_headers": extra_headers,
+                "extra_query": extra_query,
+                "extra_body": extra_body,
+                "timeout": timeout,
+            }
+
+            if use_exa != "none":
+                assert tools is NOT_GIVEN, "Tool use is not supported with Exa"
+                create_kwargs["tool_choice"] = use_exa
+
+            return self._create_with_tool(
+                create_fn=func,
+                messages=list(messages),
+                max_len=result_max_len,
+                create_kwargs=create_kwargs,
+                exa_kwargs=exa_kwargs,
+            )
+
+        print("Wrapping OpenAI client with Exa functionality.", type(create_with_rag))
+        client.chat.completions.create = create_with_rag # type: ignore
+
+        return client
+
+    def _create_with_tool(
+        self,
+        create_fn: Callable,
+        messages: List[ChatCompletionMessageParam],
+        max_len,
+        create_kwargs,
+        exa_kwargs,
+    ) -> ExaOpenAICompletion:
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "search",
+                    "description": "Search the web for relevant information.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The query to search for.",
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                },
+            }
+        ]
+
+        create_kwargs["tools"] = tools
+
+        completion = create_fn(messages=messages, **create_kwargs)
+    
+        query = maybe_get_query(completion)
+
+        if not query:
+            return ExaOpenAICompletion.from_completion(completion=completion, exa_result=None)
+
+        exa_result = self.search_and_contents(query, **exa_kwargs)
+        exa_str = format_exa_result(exa_result, max_len=max_len)
+        new_messages = add_message_to_messages(completion, messages, exa_str)
+        # For now, don't allow recursive tool calls
+        create_kwargs["tool_choice"] = "none"
+        completion = create_fn(messages=new_messages, **create_kwargs)
+
+        exa_completion = ExaOpenAICompletion.from_completion(
+            completion=completion, exa_result=exa_result
+        )
+        return exa_completion
