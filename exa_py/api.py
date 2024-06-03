@@ -19,7 +19,7 @@ from typing import (
 from typing_extensions import TypedDict
 
 import httpx
-from openai import NOT_GIVEN, NotGiven, OpenAI
+from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
 from exa_py.utils import (
