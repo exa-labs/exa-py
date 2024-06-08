@@ -293,21 +293,59 @@ T = TypeVar("T")
 
 
 @dataclass
+class SearchFilters:
+    """A class representing the filters for a search operation.
+
+    Attributes:
+        include_domains (List[str], optional): List of domains to include in the search.
+        exclude_domains (List[str], optional): List of domains to exclude in the search.
+        start_crawl_date (str, optional): Results will only include links crawled after this date.
+        end_crawl_date (str, optional): Results will only include links crawled before this date.
+        start_published_date (str, optional): Results will only include links with a published date after this date.
+        end_published_date (str, optional): Results will only include links with a published date before this date.
+    """
+
+    include_domains: Optional[List[str]] = None
+    exclude_domains: Optional[List[str]] = None
+    start_crawl_date: Optional[str] = None
+    end_crawl_date: Optional[str] = None
+    start_published_date: Optional[str] = None
+    end_published_date: Optional[str] = None
+    category: Optional[str] = None
+
+    def __str__(self):
+        return (
+            f"Include Domains: {self.include_domains}\n"
+            f"Exclude Domains: {self.exclude_domains}\n"
+            f"Start Crawl Date: {self.start_crawl_date}\n"
+            f"End Crawl Date: {self.end_crawl_date}\n"
+            f"Start Published Date: {self.start_published_date}\n"
+            f"End Published Date: {self.end_published_date}\n"
+            f"Category: {self.category}\n"
+        )
+
+
+@dataclass
 class SearchResponse(Generic[T]):
     """A class representing the response for a search operation.
 
     Attributes:
         results (List[Result]): A list of search results.
         autoprompt_string (str, optional): The Exa query created by the autoprompt functionality.
+        filters (SearchFilters, optional): The filters applied to the search operation.
     """
 
     results: List[T]
     autoprompt_string: Optional[str]
+    filters: Optional[SearchFilters]
 
     def __str__(self):
+
         output = "\n\n".join(str(result) for result in self.results)
         if self.autoprompt_string:
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
+        if self.filters:
+            output += f"\n\nFilters: \n{self.filters}"
         return output
 
 
@@ -399,8 +437,13 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/search", options)
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
+            results=[Result(**to_snake_case(result)) for result in data["results"]],
+            autoprompt_string=(
+                data["autopromptString"] if "autopromptString" in data else None
+            ),
+            filters=SearchFilters(
+                **to_snake_case(data["filters"]) if "filters" in data else {}
+            ),
         )
 
     @overload
@@ -418,8 +461,7 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def search_and_contents(
@@ -437,8 +479,7 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def search_and_contents(
@@ -456,8 +497,7 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithHighlights]: ...
 
     @overload
     def search_and_contents(
@@ -476,8 +516,7 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlights]: ...
 
     def search_and_contents(self, query: str, **kwargs):
         options = {
@@ -494,16 +533,20 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/search", options)
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
+            results=[Result(**to_snake_case(result)) for result in data["results"]],
+            autoprompt_string=(
+                data["autopromptString"] if "autopromptString" in data else None
+            ),
+            filters=SearchFilters(
+                **to_snake_case(data["filters"]) if "filters" in data else {}
+            ),
         )
 
     @overload
     def get_contents(
         self,
         ids: Union[str, List[str], List[_Result]],
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def get_contents(
@@ -511,8 +554,7 @@ class Exa:
         ids: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def get_contents(
@@ -520,8 +562,7 @@ class Exa:
         ids: Union[str, List[str], List[_Result]],
         *,
         highlights: Union[HighlightsContentsOptions, Literal[True]],
-    ) -> SearchResponse[ResultWithHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithHighlights]: ...
 
     @overload
     def get_contents(
@@ -530,8 +571,7 @@ class Exa:
         *,
         text: Union[TextContentsOptions, Literal[True]],
         highlights: Union[HighlightsContentsOptions, Literal[True]],
-    ) -> SearchResponse[ResultWithTextAndHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlights]: ...
 
     def get_contents(self, ids: Union[str, List[str], List[_Result]], **kwargs):
         options = {
@@ -545,8 +585,13 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/contents", options)
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
+            results=[Result(**to_snake_case(result)) for result in data["results"]],
+            autoprompt_string=(
+                data["autopromptString"] if "autopromptString" in data else None
+            ),
+            filters=SearchFilters(
+                **to_snake_case(data["filters"]) if "filters" in data else {}
+            ),
         )
 
     def find_similar(
@@ -568,8 +613,13 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
+            results=[Result(**to_snake_case(result)) for result in data["results"]],
+            autoprompt_string=(
+                data["autopromptString"] if "autopromptString" in data else None
+            ),
+            filters=SearchFilters(
+                **to_snake_case(data["filters"]) if "filters" in data else {}
+            ),
         )
 
     @overload
@@ -586,8 +636,7 @@ class Exa:
         end_published_date: Optional[str] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def find_similar_and_contents(
@@ -604,8 +653,7 @@ class Exa:
         end_published_date: Optional[str] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def find_similar_and_contents(
@@ -622,8 +670,7 @@ class Exa:
         end_published_date: Optional[str] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithHighlights]: ...
 
     @overload
     def find_similar_and_contents(
@@ -641,8 +688,7 @@ class Exa:
         end_published_date: Optional[str] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlights]: ...
 
     def find_similar_and_contents(self, url: str, **kwargs):
         options = {
@@ -659,8 +705,13 @@ class Exa:
         options = nest_fields(options, ["text", "highlights"], "contents")
         data = self.request("/findSimilar", options)
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
+            results=[Result(**to_snake_case(result)) for result in data["results"]],
+            autoprompt_string=(
+                data["autopromptString"] if "autopromptString" in data else None
+            ),
+            filters=SearchFilters(
+                **(to_snake_case(data["filters"]) if "filters" in data else {})
+            ),
         )
     def wrap(self, client: OpenAI):
         """Wrap an OpenAI client with Exa functionality.
