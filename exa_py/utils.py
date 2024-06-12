@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Union
 from openai.types.chat import ChatCompletion
 
 from typing import TYPE_CHECKING 
@@ -7,8 +7,6 @@ if TYPE_CHECKING:
     from exa_py.api import ResultWithText, SearchResponse
 
 
-
-from typing import Union
 
 def maybe_get_query(completion) -> Union[str, None]:
     """Extract query from completion if it exists."""
