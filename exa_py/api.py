@@ -18,7 +18,6 @@ from typing import (
 )
 from typing_extensions import TypedDict
 
-import httpx
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
@@ -28,8 +27,6 @@ from exa_py.utils import (
     format_exa_result,
     maybe_get_query,
 )
-
-
 
 
 def snake_to_camel(snake_str: str) -> str:
@@ -123,6 +120,7 @@ CONTENTS_OPTIONS_TYPES = {
     "ids": [list],
     "text": [dict, bool],
     "highlights": [dict, bool],
+    "summary": [dict, bool],
 }
 
 
@@ -172,6 +170,14 @@ class HighlightsContentsOptions(TypedDict, total=False):
     num_sentences: int
     highlights_per_url: int
 
+class SummaryContentsOptions(TypedDict, total=False):
+    """A class representing the options that you can specify when requesting summary
+
+    Attributes:
+        query (str): The query string for the summary. Summary will bias towards answering the query.
+    """
+
+    query: str
 
 @dataclass
 class _Result:
@@ -213,11 +219,13 @@ class Result(_Result):
         text (str, optional): The text of the search result page.
         highlights (List[str], optional): The highlights of the search result.
         highlight_scores (List[float], optional): The scores of the highlights of the search result.
+        summary (str, optional): The summary of the search result.
     """
 
     text: Optional[str] = None
     highlights: Optional[List[str]] = None
     highlight_scores: Optional[List[float]] = None
+    summary: Optional[str] = None
 
     def __str__(self):
         base_str = super().__str__()
@@ -225,6 +233,7 @@ class Result(_Result):
             f"Text: {self.text}\n"
             f"Highlights: {self.highlights}\n"
             f"Highlight Scores: {self.highlight_scores}\n"
+            f"Summary: {self.summary}\n"
         )
 
 
@@ -288,6 +297,86 @@ class ResultWithTextAndHighlights(_Result):
             f"Highlight Scores: {self.highlight_scores}\n"
         )
 
+@dataclass
+class ResultWithSummary(_Result):
+    """
+    A class representing a search result with summary present.
+
+    Attributes:
+        summary (str): The summary of the search result.
+    """
+
+    summary: str = dataclasses.field(default_factory=str)
+
+    def __str__(self):
+        base_str = super().__str__()
+        return base_str + f"Summary: {self.summary}\n"
+
+@dataclass
+class ResultWithTextAndSummary(_Result):
+    """
+    A class representing a search result with text and summary present.
+
+    Attributes:
+        text (str): The text of the search result page.
+        summary (str): The summary of the search result.
+    """
+
+    text: str = dataclasses.field(default_factory=str)
+    summary: str = dataclasses.field(default_factory=str)
+
+    def __str__(self):
+        base_str = super().__str__()
+        return base_str + f"Text: {self.text}\n" + f"Summary: {self.summary}\n"
+
+@dataclass
+class ResultWithHighlightsAndSummary(_Result):
+    """
+    A class representing a search result with highlights and summary present.
+
+    Attributes:
+        highlights (List[str]): The highlights of the search result.
+        highlight_scores (List[float]): The scores of the highlights of the search result.
+        summary (str): The summary of the search result.
+    """
+
+    highlights: List[str] = dataclasses.field(default_factory=list)
+    highlight_scores: List[float] = dataclasses.field(default_factory=list)
+    summary: str = dataclasses.field(default_factory=str)
+
+    def __str__(self):
+        base_str = super().__str__()
+        return base_str + (
+            f"Highlights: {self.highlights}\n"
+            f"Highlight Scores: {self.highlight_scores}\n"
+            f"Summary: {self.summary}\n"
+        )
+
+@dataclass
+class ResultWithTextAndHighlightsAndSummary(_Result):
+    """
+    A class representing a search result with text, highlights, and summary present.
+
+    Attributes:
+        text (str): The text of the search result page.
+        highlights (List[str]): The highlights of the search result.
+        highlight_scores (List[float]): The scores of the highlights of the search result.
+        summary (str): The summary of the search result.
+    """
+
+    text: str = dataclasses.field(default_factory=str)
+    highlights: List[str] = dataclasses.field(default_factory=list)
+    highlight_scores: List[float] = dataclasses.field(default_factory=list)
+    summary: str = dataclasses.field(default_factory=str)
+
+    def __str__(self):
+        base_str = super().__str__()
+        return base_str + (
+            f"Text: {self.text}\n"
+            f"Highlights: {self.highlights}\n"
+            f"Highlight Scores: {self.highlight_scores}\n"
+            f"Summary: {self.summary}\n"
+        )
 
 T = TypeVar("T")
 
@@ -479,18 +568,98 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
+    @overload
+    def search_and_contents(
+        self,
+        query: str,
+        *,
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithSummary]:
+        ...
+
+    @overload
+    def search_and_contents(
+        self,
+        query: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithTextAndSummary]:
+        ...
+
+    @overload
+    def search_and_contents(
+        self,
+        query: str,
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
+        ...
+
+    @overload
+    def search_and_contents(
+        self,
+        query: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
+        ...
+
     def search_and_contents(self, query: str, **kwargs):
         options = {
             k: v
             for k, v in {"query": query, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options:
+        if "text" not in options and "highlights" not in options and "summary" not in options:
             options["text"] = True
         validate_search_options(
             options, {**SEARCH_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES}
         )
-        options = nest_fields(options, ["text", "highlights"], "contents")
+        options = nest_fields(options, ["text", "highlights", "summary"], "contents")
         options = to_camel_case(options)
         data = self.request("/search", options)
         return SearchResponse(
@@ -533,13 +702,53 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
+    @overload
+    def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        summary: Union[SummaryContentsOptions, Literal[True]],
+    ) -> SearchResponse[ResultWithSummary]:
+        ...
+
+    @overload
+    def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+    ) -> SearchResponse[ResultWithTextAndSummary]:
+        ...
+
+    @overload
+    def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
+        ...
+
+    @overload
+    def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
+        ...
+
     def get_contents(self, ids: Union[str, List[str], List[_Result]], **kwargs):
         options = {
             k: v
             for k, v in {"ids": ids, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options:
+        if "text" not in options and "highlights" not in options and "summary" not in options:
             options["text"] = True
         validate_search_options(options, {**CONTENTS_OPTIONS_TYPES})
         options = to_camel_case(options)
@@ -644,6 +853,82 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
+    @overload
+    def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithSummary]:
+        ...
+
+    @overload
+    def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithTextAndSummary]:
+        ...
+
+    @overload
+    def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
+        ...
+
+    @overload
+    def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
+        ...
+
     def find_similar_and_contents(self, url: str, **kwargs):
         options = {
             k: v
@@ -656,12 +941,13 @@ class Exa:
             options, {**FIND_SIMILAR_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES}
         )
         options = to_camel_case(options)
-        options = nest_fields(options, ["text", "highlights"], "contents")
+        options = nest_fields(options, ["text", "highlights", "summary"], "contents")
         data = self.request("/findSimilar", options)
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
         )
+
     def wrap(self, client: OpenAI):
         """Wrap an OpenAI client with Exa functionality.
 
@@ -767,7 +1053,7 @@ class Exa:
         create_kwargs["tools"] = tools
 
         completion = create_fn(messages=messages, **create_kwargs)
-    
+
         query = maybe_get_query(completion)
 
         if not query:
