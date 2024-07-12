@@ -1,15 +1,11 @@
-from exa_py import Exa
+## run pip install exa_py openai to install the two necessary packages
 import openai
-import os
-
+from exa_py import Exa
+import textwrap
 from datetime import datetime, timedelta
 
-EXA_API_KEY = os.environ.get("EXA_API_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-exa = Exa(EXA_API_KEY)
-openai.api_key = OPENAI_API_KEY
-openai.api_type = "openai"
+openai.api_key = "Paste your OpenAI API key here"
+exa = Exa("Paste your Exa API key here")
 
 SYSTEM_MESSAGE = "You are a helpful assistant that generates search queries based on user questions. Only generate one search query."
 USER_QUESTION = "What's the recent news in physics this week?"
@@ -22,17 +18,16 @@ completion = openai.chat.completions.create(
     ],
 )
 
-search_query = completion.choices[0].message.content if completion.choices[0].message.content else ''
+search_query = completion.choices[0].message.content
 
 print("Search query:")
 print(search_query)
-
 
 one_week_ago = (datetime.now() - timedelta(days=7))
 date_cutoff = one_week_ago.strftime("%Y-%m-%d")
 
 search_response = exa.search_and_contents(
-    search_query, use_autoprompt=True, start_published_date=date_cutoff, text=True
+    search_query, use_autoprompt=True, start_published_date=date_cutoff
 )
 
 urls = [result.url for result in search_response.results]
@@ -40,7 +35,10 @@ print("URLs:")
 for url in urls:
     print(url)
 
-first_article_result = search_response.results[0]
+results = search_response.results
+result_item = results[0]
+print(f"{len(results)} items total, printing the first one:")
+print(result_item.text)
 
 SYSTEM_MESSAGE = "You are a helpful assistant that briefly summarizes the content of a webpage. Summarize the users input."
 
@@ -48,12 +46,12 @@ completion = openai.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[
         {"role": "system", "content": SYSTEM_MESSAGE},
-        {"role": "user", "content": first_article_result.text[:1000]},
+        {"role": "user", "content": result_item.text},
     ],
 )
 
 summary = completion.choices[0].message.content
 
-print(f"Summary for {first_article_result.url}:")
-print(first_article_result.title)
-print(summary)
+print(f"Summary for {urls[0]}:")
+print(result_item.title)
+print(textwrap.fill(summary, 80))
