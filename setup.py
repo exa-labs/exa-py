@@ -14,7 +14,7 @@ setup(
     install_requires=[
         "requests",
         "typing-extensions",
-        "openai>=1.10.0"
+        "openai>=1.20.0"
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
