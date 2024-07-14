@@ -2,13 +2,13 @@ import json
 from typing import Optional
 from openai.types.chat import ChatCompletion
 
-from typing import TYPE_CHECKING 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from exa_py.api import ResultWithText, SearchResponse
 
 
 
-def maybe_get_query(completion) -> str | None:
+def maybe_get_query(completion) -> Optional[str]:
     """Extract query from completion if it exists."""
     if completion.choices[0].message.tool_calls:
         for tool_call in completion.choices[0].message.tool_calls:
