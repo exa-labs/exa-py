@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Union
 from openai.types.chat import ChatCompletion
 
 from typing import TYPE_CHECKING 
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 
-def maybe_get_query(completion) -> str | None:
+def maybe_get_query(completion) -> Union[str, None]:
     """Extract query from completion if it exists."""
     if completion.choices[0].message.tool_calls:
         for tool_call in completion.choices[0].message.tool_calls:
