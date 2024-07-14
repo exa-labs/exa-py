@@ -2,7 +2,7 @@ import json
 from typing import Optional
 from openai.types.chat import ChatCompletion
 
-from typing import TYPE_CHECKING 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from exa_py.api import ResultWithText, SearchResponse
 
