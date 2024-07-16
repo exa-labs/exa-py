@@ -96,8 +96,8 @@ SEARCH_OPTIONS_TYPES = {
     ],  # Results before this publish date; excludes links with no date. ISO 8601 format.
     "include_text": [
         list
-    ],  # list of strings that must be present in webpage text of results
-    "exclude_text": [list],  # list of strings that must not be present in webpage text of results
+    ],  # list of strings that must be present in webpage text of results. Currently, only one string is supported, up to 5 words.
+    "exclude_text": [list],  # list of strings that must not be present in webpage text of result. Currently, only one string is supported, up to 5 words.
     "use_autoprompt": [bool],  # Convert query to Exa (Higher latency, Default: false).
     "type": [
         str
@@ -485,8 +485,8 @@ class Exa:
             end_crawl_date (str, optional): Results will only include links crawled before this date.
             start_published_date (str, optional): Results will only include links with a published date after this date.
             end_published_date (str, optional): Results will only include links with a published date before this date.
-            include_text (List[str], optional): List of strings that must be present in the webpage text of results.
-            exclude_text (List[str], optional): List of strings that must not be present in the webpage text of results.
+            include_text (List[str], optional): List of strings that must be present in the webpage text of results. Currently, only one string is supported, up to 5 words.
+            exclude_text (List[str], optional): List of strings that must not be present in the webpage text of results. Currently, only one string is supported, up to 5 words.
             use_autoprompt (bool, optional): If true, convert query to a Exa query. Defaults to False.
             type (str, optional): The type of search, 'keyword' or 'neural'. Defaults to "neural".
             category (str, optional): A data category to focus on, with higher comprehensivity and data cleanliness. Currently, the only category is company.
