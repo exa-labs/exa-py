@@ -94,6 +94,10 @@ SEARCH_OPTIONS_TYPES = {
     "end_published_date": [
         str
     ],  # Results before this publish date; excludes links with no date. ISO 8601 format.
+    "include_text": [
+        list
+    ],  # list of strings that must be present in webpage text of results
+    "exclude_text": [list],  # list of strings that must not be present in webpage text of results
     "use_autoprompt": [bool],  # Convert query to Exa (Higher latency, Default: false).
     "type": [
         str
@@ -112,6 +116,8 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "end_crawl_date": [str],
     "start_published_date": [str],
     "end_published_date": [str],
+    "include_text": [list],
+    "exclude_text": [list],
     "exclude_source_domain": [bool],
     "category": [str],
 }
@@ -462,6 +468,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -477,6 +485,8 @@ class Exa:
             end_crawl_date (str, optional): Results will only include links crawled before this date.
             start_published_date (str, optional): Results will only include links with a published date after this date.
             end_published_date (str, optional): Results will only include links with a published date before this date.
+            include_text (List[str], optional): List of strings that must be present in the webpage text of results.
+            exclude_text (List[str], optional): List of strings that must not be present in the webpage text of results.
             use_autoprompt (bool, optional): If true, convert query to a Exa query. Defaults to False.
             type (str, optional): The type of search, 'keyword' or 'neural'. Defaults to "neural".
             category (str, optional): A data category to focus on, with higher comprehensivity and data cleanliness. Currently, the only category is company.
@@ -504,6 +514,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -523,6 +535,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -542,6 +556,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -562,6 +578,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -581,6 +599,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -601,6 +621,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -621,6 +643,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -642,6 +666,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -769,6 +795,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[_Result]:
@@ -793,6 +821,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithText]:
@@ -811,6 +841,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithText]:
@@ -829,6 +861,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithHighlights]:
@@ -848,6 +882,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
@@ -866,6 +902,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithSummary]:
@@ -885,6 +923,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
@@ -904,6 +944,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
@@ -924,6 +966,8 @@ class Exa:
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
         end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
@@ -979,6 +1023,8 @@ class Exa:
             end_crawl_date: Optional[str] = None,
             start_published_date: Optional[str] = None,
             end_published_date: Optional[str] = None,
+            include_text: Optional[List[str]] = None,
+            exclude_text: Optional[List[str]] = None,
             use_autoprompt: Optional[bool] = True,
             type: Optional[str] = None,
             category: Optional[str] = None,
@@ -995,6 +1041,8 @@ class Exa:
                 "end_crawl_date": end_crawl_date,
                 "start_published_date": start_published_date,
                 "end_published_date": end_published_date,
+                "include_text": include_text,
+                "exclude_text": exclude_text,
                 "use_autoprompt": use_autoprompt,
                 "type": type,
                 "category": category,
