@@ -41,9 +41,9 @@ def snake_to_camel(snake_str: str) -> str:
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
 
-
 def to_camel_case(data: dict) -> dict:
-    """Convert keys in a dictionary from snake_case to camelCase.
+    """
+    Convert keys in a dictionary from snake_case to camelCase recursively.
 
     Args:
         data (dict): The dictionary with keys in snake_case format.
@@ -51,8 +51,11 @@ def to_camel_case(data: dict) -> dict:
     Returns:
         dict: The dictionary with keys converted to camelCase format.
     """
-    return {snake_to_camel(k): v for k, v in data.items() if v is not None}
-
+    return {
+        snake_to_camel(k): to_camel_case(v) if isinstance(v, dict) else v
+        for k, v in data.items()
+        if v is not None
+    }
 
 def camel_to_snake(camel_str: str) -> str:
     """Convert camelCase string to snake_case.
@@ -66,9 +69,9 @@ def camel_to_snake(camel_str: str) -> str:
     snake_str = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", camel_str)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", snake_str).lower()
 
-
 def to_snake_case(data: dict) -> dict:
-    """Convert keys in a dictionary from camelCase to snake_case.
+    """
+    Convert keys in a dictionary from camelCase to snake_case recursively.
 
     Args:
         data (dict): The dictionary with keys in camelCase format.
@@ -76,8 +79,10 @@ def to_snake_case(data: dict) -> dict:
     Returns:
         dict: The dictionary with keys converted to snake_case format.
     """
-    return {camel_to_snake(k): v for k, v in data.items()}
-
+    return {
+        camel_to_snake(k): to_snake_case(v) if isinstance(v, dict) else v
+        for k, v in data.items()
+    }
 
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
@@ -430,7 +435,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.0.16",
+        user_agent: str = "exa-py 1.0.17",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
