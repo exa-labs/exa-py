@@ -411,7 +411,7 @@ class SearchResponse(Generic[T]):
         if self.autoprompt_string:
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
         if self.resolved_search_type:
-            output += f"\n\Resolved Search Type: {self.resolved_search_type}"
+            output += f"\nResolved Search Type: {self.resolved_search_type}"
 
         return output
 
