@@ -399,15 +399,20 @@ class SearchResponse(Generic[T]):
     Attributes:
         results (List[Result]): A list of search results.
         autoprompt_string (str, optional): The Exa query created by the autoprompt functionality.
+        resolved_search_type (str, optional): What "auto" saerch resolved to. "neural" or "keyword".
     """
 
     results: List[T]
     autoprompt_string: Optional[str]
+    resolved_search_type: Optional[str]
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
         if self.autoprompt_string:
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
+        if self.resolved_search_type:
+            output += f"\n\Resolved Search Type: {self.resolved_search_type}"
+
         return output
 
 
@@ -435,7 +440,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.0.17",
+        user_agent: str = "exa-py 1.0.18",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -505,6 +510,7 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
         )
 
     @overload
@@ -696,6 +702,7 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
         )
 
     @overload
@@ -787,6 +794,7 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
         )
 
     def find_similar(
@@ -812,6 +820,7 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
         )
 
     @overload
@@ -995,6 +1004,7 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
         )
 
     def wrap(self, client: OpenAI):
