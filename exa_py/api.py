@@ -399,7 +399,7 @@ class SearchResponse(Generic[T]):
     Attributes:
         results (List[Result]): A list of search results.
         autoprompt_string (str, optional): The Exa query created by the autoprompt functionality.
-        resolved_search_type (str, optional): What "auto" saerch resolved to. "neural" or "keyword".
+        resolved_search_type (str, optional): What "auto" search resolved to. "neural" or "keyword".
     """
 
     results: List[T]
