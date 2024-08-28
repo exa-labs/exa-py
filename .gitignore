@@ -27,3 +27,5 @@ build/
 .vscode/
 
 .mypy_cache
+
+.env

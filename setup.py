@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="exa_py",
-    version="1.0.18",
+    version="1.0.18b1",
     description="Python SDK for Exa API.",
     long_description_content_type="text/markdown",
     long_description=open("README.md").read(),
@@ -21,7 +21,6 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Typing :: Typed",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",

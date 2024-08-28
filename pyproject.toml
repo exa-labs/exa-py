@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "exa-py"
+version = "1.0.18"
+description = "Python SDK for Exa API."
+authors = ["Exa AI <hello@exa.ai>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.32.3"
+typing-extensions = "^4.12.2"
+openai = "^1.10"
+
+
+[tool.poetry.group.dev.dependencies]
+python-dotenv = "^1.0.1"
+setuptools = "^74.0.0"
+docutils = "^0.21.2"
+twine = "^5.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

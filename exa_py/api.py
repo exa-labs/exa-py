@@ -27,6 +27,12 @@ from exa_py.utils import (
     format_exa_result,
     maybe_get_query,
 )
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+is_beta = os.getenv("IS_BETA") == "True"
 
 
 def snake_to_camel(snake_str: str) -> str:
@@ -132,7 +138,17 @@ CONTENTS_OPTIONS_TYPES = {
     "text": [dict, bool],
     "highlights": [dict, bool],
     "summary": [dict, bool],
+    "metadata": [dict, bool],
+    
 }
+
+if is_beta:
+    # the livecrawl options
+    LIVECRAWL_OPTIONS = Literal["always", "fallback", "never"]
+    
+    CONTENTS_OPTIONS_TYPES["livecrawl_timeout"] = [int]
+    CONTENTS_OPTIONS_TYPES["livecrawl"] = [LIVECRAWL_OPTIONS]
+    CONTENTS_OPTIONS_TYPES["filter_empty_results"] = [bool]
 
 
 def validate_search_options(
@@ -530,6 +546,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -551,6 +570,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -572,6 +594,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -594,6 +619,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -615,6 +643,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -637,6 +668,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -659,6 +693,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -682,6 +719,9 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
@@ -709,6 +749,9 @@ class Exa:
     def get_contents(
         self,
         ids: Union[str, List[str], List[_Result]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -718,6 +761,9 @@ class Exa:
         ids: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -727,6 +773,9 @@ class Exa:
         ids: Union[str, List[str], List[_Result]],
         *,
         highlights: Union[HighlightsContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -737,6 +786,9 @@ class Exa:
         *,
         text: Union[TextContentsOptions, Literal[True]],
         highlights: Union[HighlightsContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -746,6 +798,9 @@ class Exa:
         ids: Union[str, List[str], List[_Result]],
         *,
         summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -756,6 +811,9 @@ class Exa:
         *,
         text: Union[TextContentsOptions, Literal[True]],
         summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -766,6 +824,9 @@ class Exa:
         *,
         highlights: Union[HighlightsContentsOptions, Literal[True]],
         summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -777,6 +838,9 @@ class Exa:
         text: Union[TextContentsOptions, Literal[True]],
         highlights: Union[HighlightsContentsOptions, Literal[True]],
         summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
@@ -839,6 +903,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -859,6 +926,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -879,6 +949,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -900,6 +973,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -920,6 +996,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -941,6 +1020,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -962,6 +1044,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -984,6 +1069,9 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
