@@ -142,12 +142,12 @@ CONTENTS_OPTIONS_TYPES = {
     
 }
 
+# the livecrawl options
+LIVECRAWL_OPTIONS = Literal["always", "fallback", "never"]
+CONTENTS_OPTIONS_TYPES["livecrawl_timeout"] = [int]
+CONTENTS_OPTIONS_TYPES["livecrawl"] = [LIVECRAWL_OPTIONS]
+
 if is_beta:
-    # the livecrawl options
-    LIVECRAWL_OPTIONS = Literal["always", "fallback", "never"]
-    
-    CONTENTS_OPTIONS_TYPES["livecrawl_timeout"] = [int]
-    CONTENTS_OPTIONS_TYPES["livecrawl"] = [LIVECRAWL_OPTIONS]
     CONTENTS_OPTIONS_TYPES["filter_empty_results"] = [bool]
 
 
