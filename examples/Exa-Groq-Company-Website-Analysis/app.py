@@ -8,7 +8,7 @@ st.title("Company Website Analysis Tool with Exa and Groq")
 # Input fields for EXA and GROQ API keys and company URL
 EXA_API_KEY = st.text_input("EXA API Key", type="password")
 GROQ_API_KEY = st.text_input("GROQ API Key - This demo uses llama-3.1-8b-instant", type="password")
-input_url = st.text_input("Company URL", placeholder="huggingface.co")
+input_url = st.text_input("Company URL", placeholder="exa.ai")
 
 # Sliders for Groq model settings
 max_tokens = st.slider("Max Tokens", min_value=1024, max_value=8000, value=4096, step=256)
