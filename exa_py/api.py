@@ -415,11 +415,13 @@ class SearchResponse(Generic[T]):
     Attributes:
         results (List[Result]): A list of search results.
         autoprompt_string (str, optional): The Exa query created by the autoprompt functionality.
+        auto_date (str, optional): The date the autoprompt determines for filtering results to the ones you want.
         resolved_search_type (str, optional): What "auto" search resolved to. "neural" or "keyword".
     """
 
     results: List[T]
     autoprompt_string: Optional[str]
+    auto_date: Optional[str]
     resolved_search_type: Optional[str]
 
     def __str__(self):
@@ -526,6 +528,7 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
         )
 
@@ -742,6 +745,7 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
         )
 
