@@ -418,8 +418,8 @@ class SearchResponse(Generic[T]):
 
     results: List[T]
     autoprompt_string: Optional[str]
-    auto_date: Optional[str]
     resolved_search_type: Optional[str]
+    auto_date: Optional[str]
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
@@ -525,8 +525,8 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
-            data["autoDate"] if "autoDate" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
         )
 
     @overload
@@ -860,6 +860,7 @@ class Exa:
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
         )
 
     def find_similar(
@@ -886,6 +887,7 @@ class Exa:
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
         )
 
     @overload
@@ -1094,6 +1096,7 @@ class Exa:
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
         )
 
     def wrap(self, client: OpenAI):
