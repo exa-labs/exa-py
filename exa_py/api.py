@@ -27,10 +27,7 @@ from exa_py.utils import (
     format_exa_result,
     maybe_get_query,
 )
-from dotenv import load_dotenv
 import os
-
-load_dotenv()
 
 is_beta = os.getenv("IS_BETA") == "True"
 
