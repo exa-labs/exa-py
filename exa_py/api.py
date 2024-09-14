@@ -143,10 +143,11 @@ CONTENTS_OPTIONS_TYPES = {
 LIVECRAWL_OPTIONS = Literal["always", "fallback", "never"]
 CONTENTS_OPTIONS_TYPES["livecrawl_timeout"] = [int]
 CONTENTS_OPTIONS_TYPES["livecrawl"] = [LIVECRAWL_OPTIONS]
+CONTENTS_OPTIONS_TYPES["filter_empty_results"] = [bool]
 
-if is_beta:
-    CONTENTS_OPTIONS_TYPES["filter_empty_results"] = [bool]
-
+# FOR BETA OPTIONS
+# if is_beta:
+    
 
 def validate_search_options(
     options: Dict[str, Optional[object]], expected: dict
