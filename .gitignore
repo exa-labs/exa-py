@@ -29,3 +29,5 @@ build/
 .mypy_cache
 
 .env
+
+test/

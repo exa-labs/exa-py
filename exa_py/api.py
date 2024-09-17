@@ -15,6 +15,8 @@ from typing import (
     overload,
     Union,
     Literal,
+    get_origin,
+    get_args
 )
 from typing_extensions import TypedDict
 
@@ -130,20 +132,19 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "category": [str],
 }
 
+# the livecrawl options
+LIVECRAWL_OPTIONS = Literal["always", "fallback", "never"]
+
 CONTENTS_OPTIONS_TYPES = {
     "ids": [list],
     "text": [dict, bool],
     "highlights": [dict, bool],
     "summary": [dict, bool],
     "metadata": [dict, bool],
-    
+    "livecrawl_timeout": [int],
+    "livecrawl": [LIVECRAWL_OPTIONS],
+    "filter_empty_results": [bool],
 }
-
-# the livecrawl options
-LIVECRAWL_OPTIONS = Literal["always", "fallback", "never"]
-CONTENTS_OPTIONS_TYPES["livecrawl_timeout"] = [int]
-CONTENTS_OPTIONS_TYPES["livecrawl"] = [LIVECRAWL_OPTIONS]
-CONTENTS_OPTIONS_TYPES["filter_empty_results"] = [bool]
 
 # FOR BETA OPTIONS
 # if is_beta:
@@ -164,11 +165,20 @@ def validate_search_options(
     for key, value in options.items():
         if key not in expected:
             raise ValueError(f"Invalid option: '{key}'")
-        if not any(isinstance(value, t) for t in expected[key]):
+        if value is None:
+            continue
+        expected_types = expected[key]
+        if not any(is_valid_type(value, t) for t in expected_types):
             raise ValueError(
-                f"Invalid type for option '{key}': Expected one of {expected[key]}, got {type(value)}"
+                f"Invalid value for option '{key}': {value}. Expected one of {expected_types}"
             )
 
+def is_valid_type(value, expected_type):
+    if get_origin(expected_type) is Literal:
+        return value in get_args(expected_type)
+    if isinstance(expected_type, type):
+        return isinstance(value, expected_type)
+    return False  # For any other case
 
 class TextContentsOptions(TypedDict, total=False):
     """A class representing the options that you can specify when requesting text
