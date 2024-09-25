@@ -148,7 +148,7 @@ CONTENTS_OPTIONS_TYPES = {
 
 # FOR BETA OPTIONS
 # if is_beta:
-    
+
 
 def validate_search_options(
     options: Dict[str, Optional[object]], expected: dict
@@ -1171,10 +1171,6 @@ class Exa:
                 **openai_kwargs,
             }
 
-            if use_exa != "none":
-                assert "tools" not in create_kwargs, "Tool use is not supported with Exa"
-                create_kwargs["tool_choice"] = use_exa
-
             return self._create_with_tool(
                 create_fn=func,
                 messages=list(messages),
@@ -1228,8 +1224,6 @@ class Exa:
         exa_result = self.search_and_contents(query, **exa_kwargs)
         exa_str = format_exa_result(exa_result, max_len=max_len)
         new_messages = add_message_to_messages(completion, messages, exa_str)
-        # For now, don't allow recursive tool calls
-        create_kwargs["tool_choice"] = "none"
         completion = create_fn(messages=new_messages, **create_kwargs)
 
         exa_completion = ExaOpenAICompletion.from_completion(
