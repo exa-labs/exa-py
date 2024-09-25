@@ -2,9 +2,9 @@ name: Run Examples
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   test:
@@ -16,10 +16,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
@@ -29,6 +25,6 @@ jobs:
       - name: Run examples
         run: |
           # We'll add commands to run examples in the next step
-          poetry run python exa-py/examples/basic_search.py
-          poetry run python exa-py/examples/newssummarizer/summarizer.py
-          poetry run python exa-py/examples/rag/Exa_RAG.py
+          poetry run python examples/basic_search.py
+          poetry run python examples/newssummarizer/summarizer.py
+          poetry run python examples/rag/Exa_RAG.py
