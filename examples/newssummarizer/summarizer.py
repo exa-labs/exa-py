@@ -4,8 +4,9 @@ from exa_py import Exa
 import textwrap
 from datetime import datetime, timedelta
 
-openai.api_key = "Paste your OpenAI API key here"
-exa = Exa("Paste your Exa API key here")
+import os
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+exa = Exa(os.environ.get("EXA_API_KEY"))
 
 SYSTEM_MESSAGE = "You are a helpful assistant that generates search queries based on user questions. Only generate one search query."
 USER_QUESTION = "What's the recent news in physics this week?"
