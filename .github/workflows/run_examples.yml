@@ -1,0 +1,34 @@
+name: Run Examples
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+      - name: Install dependencies
+        run: |
+          poetry install
+      - name: Run examples
+        run: |
+          # We'll add commands to run examples in the next step
+          poetry run python exa-py/examples/basic_search.py
+          poetry run python exa-py/examples/newssummarizer/summarizer.py
+          poetry run python exa-py/examples/rag/Exa_RAG.py

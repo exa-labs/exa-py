@@ -14,8 +14,11 @@
 
 # Now, import the Exa class and pass your API key to it.
 from exa_py import Exa
+import os
 
-my_exa_api_key = "YOUR_API_KEY_HERE"
+my_exa_api_key = os.environ.get("EXA_API_KEY")
+if not my_exa_api_key:
+    raise ValueError("EXA_API_KEY environment variable not set")
 exa = Exa(my_exa_api_key)
 
 
@@ -26,8 +29,11 @@ exa = Exa(my_exa_api_key)
 
 # Set up OpenAI' SDK
 from openai import OpenAI
+import os
 
-openai_api_key = "YOUR_API_KEY_HERE"
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY environment variable not set")
 openai_client = OpenAI(api_key=openai_api_key)
 
 
@@ -46,7 +52,7 @@ questions = [
 # - LLMs don't have knowledge past when their training was stopped, so they can't know about recent events
 # - If an LLM doesn't know the answer, it will often 'hallucinate' a correct-sounding response, and it can be difficult and inconvenient to distinguish these from correct answers
 # - Because of the opaque manner of generation and the problems mentioned above, it is difficult to trust an LLM's responses when accuracy is [important](https://www.forbes.com/sites/mollybohannon/2023/06/08/lawyer-used-chatgpt-in-court-and-cited-fake-cases-a-judge-is-considering-sanctions/?sh=27194eb67c7f)
-# 
+#
 # Robust retrieval helps solve all of these issues by providing a quality sources of ground truth for the LLM (and their human users) to leverage. Let's use Exa to get some information about our questions:
 
 # In[4]:
@@ -81,7 +87,7 @@ responses = []
 for question, info in zip(questions, info_for_llm):
   system_prompt = "You are RAG researcher. Read the provided contexts and, if relevant, use them to answer the user's question."
   user_prompt = f"""Sources: {info}
-  
+
   Question: {question}"""
 
   completion = openai_client.chat.completions.create(
