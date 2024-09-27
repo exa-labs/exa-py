@@ -1,3 +1,1 @@
-from .api import (
-    Exa
-)
+from .api import Exa as Exa
