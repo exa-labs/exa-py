@@ -30,6 +30,7 @@ from exa_py.utils import (
     maybe_get_query,
 )
 import os
+import aiohttp
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -1230,3 +1231,648 @@ class Exa:
             completion=completion, exa_result=exa_result
         )
         return exa_completion
+
+
+class AsyncExa:
+    def __init__(
+        self,
+        api_key: Optional[str],
+        base_url: str = "https://api.exa.ai",
+        user_agent: str = "exa-py 1.1.8",
+    ):
+        if api_key is None:
+            import os
+
+            api_key = os.environ.get("EXA_API_KEY")
+            if api_key is None:
+                raise ValueError(
+                    "API key must be provided as argument or in EXA_API_KEY environment variable"
+                )
+        self.base_url = base_url
+        self.headers = {"x-api-key": api_key, "User-Agent": user_agent}
+
+    async def request(self, endpoint: str, data):
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self.base_url + endpoint, json=data, headers=self.headers) as response:
+                if response.status != 200:
+                    raise ValueError(
+                        f"Request failed with status code {response.status}: {await response.text()}"
+                    )
+                return await response.json()
+
+    async def search(
+        self,
+        query: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[_Result]:
+        """Perform a search with a Exa prompt-engineered query and retrieve a list of relevant results.
+
+        Args:
+            query (str): The query string.
+            num_results (int, optional): Number of search results to return. Defaults to 10.
+            include_domains (List[str], optional): List of domains to include in the search.
+            exclude_domains (List[str], optional): List of domains to exclude in the search.
+            start_crawl_date (str, optional): Results will only include links crawled after this date.
+            end_crawl_date (str, optional): Results will only include links crawled before this date.
+            start_published_date (str, optional): Results will only include links with a published date after this date.
+            end_published_date (str, optional): Results will only include links with a published date before this date.
+            include_text (List[str], optional): List of strings that must be present in the webpage text of results. Currently, only one string is supported, up to 5 words.
+            exclude_text (List[str], optional): List of strings that must not be present in the webpage text of results. Currently, only one string is supported, up to 5 words.
+            use_autoprompt (bool, optional): If true, convert query to a Exa query. Defaults to False.
+            type (str, optional): The type of search, 'keyword' or 'neural'. Defaults to "neural".
+            category (str, optional): A data category to focus on, with higher comprehensivity and data cleanliness. Currently, the only category is company.
+        Returns:
+            SearchResponse: The response containing search results and optional autoprompt string.
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        validate_search_options(options, SEARCH_OPTIONS_TYPES)
+        options = to_camel_case(options)
+        data = await self.request("/search", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
+        )
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithText]:
+        ...
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithText]:
+        ...
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithHighlights]:
+        ...
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlights]:
+        ...
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithSummary]:
+        ...
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndSummary]:
+        ...
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
+        ...
+
+    @overload
+    async def search_and_contents(
+        self,
+        query: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
+        ...
+
+    async def search_and_contents(self, query: str, **kwargs):
+        options = {
+            k: v
+            for k, v in {"query": query, **kwargs}.items()
+            if k != "self" and v is not None
+        }
+        if "text" not in options and "highlights" not in options and "summary" not in options:
+            options["text"] = True
+        validate_search_options(
+            options, {**SEARCH_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES}
+        )
+        options = nest_fields(options, ["text", "highlights", "summary"], "contents")
+        options = to_camel_case(options)
+        data = await self.request("/search", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data["autopromptString"] if "autopromptString" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+        )
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithText]:
+        ...
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithText]:
+        ...
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithHighlights]:
+        ...
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlights]:
+        ...
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithSummary]:
+        ...
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndSummary]:
+        ...
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
+        ...
+
+    @overload
+    async def get_contents(
+        self,
+        ids: Union[str, List[str], List[_Result]],
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
+        ...
+
+    async def get_contents(self, ids: Union[str, List[str], List[_Result]], **kwargs):
+        options = {
+            k: v
+            for k, v in {"ids": ids, **kwargs}.items()
+            if k != "self" and v is not None
+        }
+        if "text" not in options and "highlights" not in options and "summary" not in options:
+            options["text"] = True
+        validate_search_options(options, {**CONTENTS_OPTIONS_TYPES})
+        options = to_camel_case(options)
+        data = await self.request("/contents", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
+        )
+
+    async def find_similar(
+        self,
+        url: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+    ) -> SearchResponse[_Result]:
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
+        options = to_camel_case(options)
+        data = await self.request("/findSimilar", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
+        )
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithText]:
+        ...
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithText]:
+        ...
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithHighlights]:
+        ...
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlights]:
+        ...
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithSummary]:
+        ...
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndSummary]:
+        ...
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
+        ...
+
+    @overload
+    async def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        highlights: Union[HighlightsContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
+        ...
+
+    async def find_similar_and_contents(self, url: str, **kwargs):
+        options = {
+            k: v
+            for k, v in {"url": url, **kwargs}.items()
+            if k != "self" and v is not None
+        }
+        if "text" not in options and "highlights" not in options:
+            options["text"] = True
+        validate_search_options(
+            options, {**FIND_SIMILAR_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES}
+        )
+        options = to_camel_case(options)
+        options = nest_fields(options, ["text", "highlights", "summary"], "contents")
+        data = await self.request("/findSimilar", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
+        )
