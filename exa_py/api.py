@@ -233,6 +233,7 @@ class _Result:
     score: Optional[float] = None
     published_date: Optional[str] = None
     author: Optional[str] = None
+    image: Optional[str] = None
 
     def __str__(self):
         return (
@@ -242,6 +243,7 @@ class _Result:
             f"Score: {self.score}\n"
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
+            f"Image: {self.image}\n"
         )
 
 
