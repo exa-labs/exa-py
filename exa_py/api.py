@@ -233,7 +233,6 @@ class _Result:
     score: Optional[float] = None
     published_date: Optional[str] = None
     author: Optional[str] = None
-    image: Optional[str] = None
 
     def __str__(self):
         return (
@@ -243,7 +242,6 @@ class _Result:
             f"Score: {self.score}\n"
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
-            f"Image: {self.image}\n"
         )
 
 
@@ -468,7 +466,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.2.0",
+        user_agent: str = "exa-py 1.2.1",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
