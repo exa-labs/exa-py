@@ -471,7 +471,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.3.0-beta",
+        user_agent: str = "exa-py 1.3.1-beta",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
