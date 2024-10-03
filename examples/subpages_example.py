@@ -4,29 +4,34 @@ import os
 # Initialize the Exa client
 exa = Exa(os.environ.get("EXA_API_KEY"))
 
-# Fetch content from tesla.com, including 3 subpages
+# Fetch content from tesla.com, including 20 subpages
 response = exa.get_contents(
-    ids=["https://www.tesla.com"],
-    subpages=3,
-    subpage_target=["vehicles", "energy", "shop"],
+    ids=["firecrawl.dev"],
+    subpages=10,
+    # subpage_target= // specific subpage targets if you have any
     text=True,
-    metadata=True
+    livecrawl="always"
 )
 
 # Print the results
 for result in response.results:
-    print(f"URL: {result.url}")
+    print("=" * 80)
+    print(f"Main URL: {result.url}")
     print(f"Title: {result.title}")
-    print(f"Text snippet: {result.text[:200]}...")  # Print first 200 characters of text
-    print("---")
+    print("-" * 40)
+    print("Text snippet:")
+    print(f"{result.text[:500]}...")  # Print first 500 characters of text
+    print("\n")
 
     # Print subpage information if available
     if hasattr(result, 'subpages'):
         print("Subpages:")
-        for subpage in result.subpages:
-            print(f"  Subpage URL: {subpage.url}")
-            print(f"  Subpage Title: {subpage.title}")
-            print(f"  Subpage Text snippet: {subpage.text[:100]}...")  # Print first 100 characters of subpage text
-            print("  ---")
+        for i, subpage in enumerate(result.subpages, 1):
+            print(f"  Subpage {i}:")
+            print(f"  URL: {subpage.url}")
+            print(f"  Title: {subpage.title}")
+            print("  Text snippet:")
+            print(f"  {subpage.text[:600]}...")  # Print first 200 characters of subpage text
+            print("  " + "-" * 30)
 
     print("\n")
