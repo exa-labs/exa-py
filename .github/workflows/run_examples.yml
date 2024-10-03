@@ -24,7 +24,10 @@ jobs:
           poetry install
       - name: Run examples
         run: |
-          # We'll add commands to run examples in the next step
-          poetry run python examples/basic_search.py
-          poetry run python examples/newssummarizer/summarizer.py
-          poetry run python examples/rag/Exa_RAG.py
+          for file in $(find examples -name "*.py" -type f); do
+            echo "Running example: $file"
+            echo "----------------------------------------"
+            poetry run python "$file"
+            echo "----------------------------------------"
+            echo ""
+          done
