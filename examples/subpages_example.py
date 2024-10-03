@@ -4,7 +4,6 @@ import os
 # Initialize the Exa client
 exa = Exa(os.environ.get("EXA_API_KEY"))
 
-# Fetch content from tesla.com, including 20 subpages
 response = exa.get_contents(
     ids=["firecrawl.dev"],
     subpages=4,
