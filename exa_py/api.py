@@ -147,8 +147,8 @@ CONTENTS_OPTIONS_TYPES = {
 }
 
 CONTENTS_ENDPOINT_OPTIONS_TYPES = {
-    "subpages": [int],
-    "subpage_target": [str, list]
+    "subpages": [int], # Number of subpages to get contents for; these will appear as additional content results
+    "subpage_target": [str, list]  # Specific subpage(s) to get contents for
 }
 
 # FOR BETA OPTIONS
