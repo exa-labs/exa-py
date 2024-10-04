@@ -233,6 +233,7 @@ class _Result:
     score: Optional[float] = None
     published_date: Optional[str] = None
     author: Optional[str] = None
+    image: Optional[str] = None
 
     def __init__(self, **kwargs):
         self.url = kwargs['url']
@@ -241,6 +242,7 @@ class _Result:
         self.score = kwargs.get('score')
         self.published_date = kwargs.get('published_date')
         self.author = kwargs.get('author')
+        self.image = kwargs.get('image')
 
     def __str__(self):
         return (
