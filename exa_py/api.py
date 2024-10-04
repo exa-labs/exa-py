@@ -252,6 +252,7 @@ class _Result:
             f"Score: {self.score}\n"
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
+            f"Image: {self.image}\n"
         )
 
 
