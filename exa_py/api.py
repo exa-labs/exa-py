@@ -238,6 +238,16 @@ class _Result:
     score: Optional[float] = None
     published_date: Optional[str] = None
     author: Optional[str] = None
+    image: Optional[str] = None
+
+    def __init__(self, **kwargs):
+        self.url = kwargs['url']
+        self.id = kwargs['id']
+        self.title = kwargs.get('title')
+        self.score = kwargs.get('score')
+        self.published_date = kwargs.get('published_date')
+        self.author = kwargs.get('author')
+        self.image = kwargs.get('image')
 
     def __str__(self):
         return (
@@ -247,6 +257,7 @@ class _Result:
             f"Score: {self.score}\n"
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
+            f"Image: {self.image}\n"
         )
 
 
@@ -471,7 +482,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.3.1-beta",
+        user_agent: str = "exa-py 1.4.1-beta",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
