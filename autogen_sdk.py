@@ -65,8 +65,8 @@ def generate_new_sdk(old_spec, new_spec):
     # Extract the new SDK from the response
     new_sdk = extract_new_sdk(generated_text)
 
-    save_to_file(new_sdk, file_name="new_sdk.txt")
-    save_to_file2(new_sdk, file_name="api3.py")
+    # save_to_file(new_sdk, file_name="new_sdk.txt")
+    save_to_file2(new_sdk, file_name="exa_py/api3.py")
 
     # Print the response from GPT-4 (4o)
     # print(f" The new sdk is: {new_sdk}")
