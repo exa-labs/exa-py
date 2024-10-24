@@ -1,0 +1,43 @@
+name: Autogenerate SDK and Create PR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - exa-py/old_openapi.yaml
+      - exa-py/new_openapi.yaml
+  workflow_dispatch:
+
+jobs:
+  generate-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11' # Use the Python version your project requires
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run autogen_sdk to update api3.py
+        env:
+          OPENAPI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
+        run: |
+          python exa-py/autogen_sdk.py
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: 'Auto-generate SDK and update api3.py'
+          title: 'Auto-generate SDK and update api3.py'
+          body: 'This PR contains the updated `api3.py` file based on changes in `old_openapi.yaml` and `new_openapi.yaml`.'
+          branch: 'auto-generate-sdk'
+          labels: 'autogen, sdk'
+
