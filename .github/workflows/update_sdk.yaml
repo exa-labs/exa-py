@@ -27,6 +27,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run autogen_sdk to update api3.py
+        env:
+          OPENAPI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
         run: |
           python exa-py/autogen_sdk.py
 
