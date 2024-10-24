@@ -31,6 +31,3 @@ build/
 .env
 
 test/
-
-new_openapi.yaml
-old_openapi.yaml
