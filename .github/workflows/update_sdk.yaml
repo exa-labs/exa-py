@@ -35,9 +35,9 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          commit-message: 'Auto-generate SDK and update api3.py'
-          title: 'Auto-generate SDK and update api3.py'
-          body: 'This PR contains the updated `api3.py` file based on changes in `old_openapi.yaml` and `new_openapi.yaml`.'
+          commit-message: 'Auto-generate SDK and update api.py'
+          title: 'Auto-generate SDK and update api.py'
+          body: 'This PR contains the updated `api.py` file based on changes in `old_openapi.yaml` and `new_openapi.yaml`.'
           branch: 'auto-generate-sdk'
           labels: 'autogen, sdk'
 
