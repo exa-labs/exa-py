@@ -30,7 +30,7 @@ jobs:
         run: |
           python autogen_sdk.py
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
