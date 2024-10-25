@@ -30,7 +30,7 @@ jobs:
         env:
           OPENAPI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
         run: |
-          python exa-py/autogen_sdk.py
+          python autogen_sdk.py
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
