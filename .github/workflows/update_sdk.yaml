@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run autogen_sdk to update api3.py
+      - name: Run autogen_sdk to update api.py
         run: |
           python autogen_sdk.py
         env:
