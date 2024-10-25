@@ -1,5 +1,5 @@
 from openai import OpenAI
-import anthropic
+# import anthropic
 import difflib
 from dotenv import load_dotenv
 import os
