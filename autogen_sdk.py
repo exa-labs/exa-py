@@ -61,9 +61,9 @@ def generate_new_sdk(old_spec, new_spec):
     save_to_file(new_sdk, file_name="exa_py/api.py")
 
     # Explore the difference
-    diff = difflib.unified_diff(old_sdk.splitlines(), new_sdk.splitlines(), fromfile="old_sdk.txt", tofile="new_sdk.txt")
-    with open("diffs.txt", 'w') as diff_file:
-        diff_file.write("\n".join(diff))
+    # diff = difflib.unified_diff(old_sdk.splitlines(), new_sdk.splitlines(), fromfile="old_sdk.txt", tofile="new_sdk.txt")
+    # with open("diffs.txt", 'w') as diff_file:
+    #     diff_file.write("\n".join(diff))
 
 
 def main():
