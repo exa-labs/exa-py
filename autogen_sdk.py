@@ -9,7 +9,7 @@ load_dotenv()
 
 # Connect to OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-claude = anthropic.Client(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# claude = anthropic.Client(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 def read_file(file_path):
     with open(file_path, 'r') as file:
