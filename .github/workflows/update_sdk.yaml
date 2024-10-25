@@ -27,11 +27,11 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run autogen_sdk to update api3.py
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
         run: |
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
           python autogen_sdk.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
