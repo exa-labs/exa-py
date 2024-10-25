@@ -35,7 +35,7 @@ def save_to_file(sdk_content, file_name="unnamed.txt"):
     with open(file_name, 'w') as file:
         file.write(sdk_content)
 
-def save_to_file2(sdk_content, file_name="api2.py"):
+def save_to_file2(sdk_content, file_name):
     """
     Saves the generated SDK content to a specified file
     """
@@ -66,7 +66,7 @@ def generate_new_sdk(old_spec, new_spec):
     new_sdk = extract_new_sdk(generated_text)
 
     # save_to_file(new_sdk, file_name="new_sdk.txt")
-    save_to_file2(new_sdk, file_name="exa_py/api3.py")
+    save_to_file2(new_sdk, file_name="exa_py/api.py")
 
     # Print the response from GPT-4 (4o)
     # print(f" The new sdk is: {new_sdk}")
