@@ -28,7 +28,7 @@ jobs:
 
       - name: Run autogen_sdk to update api3.py
         env:
-          OPENAPI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAPI_API_KEY }}
         run: |
           python autogen_sdk.py
 
