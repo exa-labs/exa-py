@@ -37,7 +37,7 @@ def save_to_file(sdk_content, file_name):
 def generate_new_sdk(old_spec, new_spec):
 
     old_sdk = read_file("exa_py/api.py")
-    prompt = f"The old spec is: {old_spec} \n\n The new spec is: {new_spec} \n\n The old sdk is: {old_sdk} \n\n Please generate a new sdk following the format of the old sdk but using the changes from the new spec. The new SDK MUST follow the same format as the old sdk. In your response, wrap the new sdk in $$$. The new SDK MUST start and end with $$$. Do NOT use backticks in your response. Do not wrap the file in anything else inside $$$. Make sure to retain a similar level of comments, updating them to reflect the new changes in the SDK. Do not completely remove comments."
+    prompt = f"You are going to develop an SDK for an OpenAPI specification ussing the old spec, new spec, and old sdk. The old spec is: {old_spec} \n\n The new spec is: {new_spec} \n\n The old sdk is: {old_sdk} \n\n Please generate a new sdk following the format of the old sdk but using the changes from the new spec. Use the old SDK as reference, but feel free to change the SDK to be more efficient. In your response, wrap the new sdk in $$$. The new SDK MUST start and end with $$$. Do NOT use backticks in your response. Do not wrap the file in anything else inside $$$. Make sure to retain a similar level of comments, updating them to reflect the new changes in the SDK. Do not completely remove comments. You must keep the old classes and methods. Do not just tell me what would be kept."
 
     # Make the call to the model
     message = client.messages.create(
