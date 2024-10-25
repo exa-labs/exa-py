@@ -46,7 +46,7 @@ def save_to_file2(sdk_content, file_name="api2.py"):
 def generate_new_sdk(old_spec, new_spec):
 
     old_sdk = read_file("exa_py/api.py")
-    prompt = f"The old spec is: {old_spec} \n\n The new spec is: {new_spec} \n\n The old sdk is: {old_sdk} \n\n Please generate a new sdk following the format of the old sdk but using the changes from the new spec. The new SDK MUST follow the same format as the old sdk. In your response, wrap the new sdk in $$$. The new SDK MUST start and end with $$$."
+    prompt = f"The old spec is: {old_spec} \n\n The new spec is: {new_spec} \n\n The old sdk is: {old_sdk} \n\n Please generate a new sdk following the format of the old sdk but using the changes from the new spec. The new SDK MUST follow the same format as the old sdk. In your response, wrap the new sdk in $$$. The new SDK MUST start and end with $$$. Do NOT use backticks in your response. Do not include python ~~~ in your response or wrap the file in anything else inside $$$"
 
     # Make the call to the model
     response = client.chat.completions.create(
