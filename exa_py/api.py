@@ -240,7 +240,7 @@ class _Result:
         published_date (str, optional): An estimate of the creation date, from parsing HTML content.
         author (str, optional): If available, the author of the content.
         image (str, optional): If available, a URL to an image associated with the content.
-        subpages (List[_Result], optional): If available, a list of subpages associated with this result.
+        subpages (List[_Result], optional): If available, a list of Exa contents results for a page's subpages (e.g. tesla.com --subpage--> shop.tesla.com)
         extras (Dict, optional): Additional metadata associated with the result; currently supports returning links in the text content
     """
 
