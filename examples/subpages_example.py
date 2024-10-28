@@ -6,18 +6,31 @@ exa = Exa(os.environ.get("EXA_API_KEY"))
 
 response = exa.get_contents(
     ids=["firecrawl.dev"],
-    subpages=4,
     # subpage_target= // specific subpage targets if you have any
-    text=True,
-    # livecrawl="always"
+    subpages=2,
+    livecrawl="always"
 )
 
-# Print the results
-for result in response.results:
-    print("=" * 80)
-    print(f"Main URL: {result.url}")
-    print(f"Title: {result.title}")
-    print("-" * 40)
-    print("Text snippet:")
-    print(f"{result.text[:500]}...")  # Print first 500 characters of text
-    print("\n")
+print(response)
+
+
+print("SEARCH AND CONTENTS SUBPAGES")
+
+response = exa.search_and_contents(
+    "canonical url of tesla motors",
+    subpages=2,
+    num_results=1,
+)
+
+print(response)
+
+print("FIND SIMILAR AND CONTENTS SUBPAGES")
+
+response = exa.find_similar_and_contents(
+    "tesla.com",
+    subpages=2,
+    text=True,
+    num_results=1,
+)
+
+print(response)
