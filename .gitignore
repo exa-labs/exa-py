@@ -31,3 +31,5 @@ build/
 .env
 
 test/
+
+.aider*

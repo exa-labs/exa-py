@@ -148,7 +148,7 @@ CONTENTS_OPTIONS_TYPES = {
 
 CONTENTS_ENDPOINT_OPTIONS_TYPES = {
     "subpages": [int], # Number of subpages to get contents for; these will appear as additional content results
-    "subpage_target": [str, list]  # Specific subpage(s) to get contents for
+    "extras": [dict], # Additional options for
 }
 
 # FOR BETA OPTIONS
@@ -219,6 +219,15 @@ class SummaryContentsOptions(TypedDict, total=False):
 
     query: str
 
+class ExtrasOptions(TypedDict, total=False):
+    """A class representing the options that you can specify when requesting summary
+
+    Attributes:
+        query (str): The query string for the summary. Summary will bias towards answering the query.
+    """
+
+    links: int
+
 @dataclass
 class _Result:
     """A class representing the base fields of a search result.
@@ -230,6 +239,9 @@ class _Result:
         score (float, optional): A number from 0 to 1 representing similarity between the query/url and the result.
         published_date (str, optional): An estimate of the creation date, from parsing HTML content.
         author (str, optional): If available, the author of the content.
+        image (str, optional): If available, a URL to an image associated with the content.
+        subpages (List[_Result], optional): If available, a list of Exa contents results for a page's subpages (e.g. tesla.com --subpage--> shop.tesla.com)
+        extras (Dict, optional): Additional metadata associated with the result; currently supports returning links in the text content
     """
 
     url: str
@@ -239,6 +251,8 @@ class _Result:
     published_date: Optional[str] = None
     author: Optional[str] = None
     image: Optional[str] = None
+    subpages: Optional[List[_Result]] = None
+    extras: Optional[Dict] = None
 
     def __init__(self, **kwargs):
         self.url = kwargs['url']
@@ -248,6 +262,8 @@ class _Result:
         self.published_date = kwargs.get('published_date')
         self.author = kwargs.get('author')
         self.image = kwargs.get('image')
+        self.subpages = kwargs.get('subpages')
+        self.extras = kwargs.get("extras")
 
     def __str__(self):
         return (
@@ -258,6 +274,8 @@ class _Result:
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
             f"Image: {self.image}\n"
+            f"Extras {self.extras}\n"
+            f"Subpages: {self.subpages}\n"
         )
 
 
@@ -277,6 +295,13 @@ class Result(_Result):
     highlights: Optional[List[str]] = None
     highlight_scores: Optional[List[float]] = None
     summary: Optional[str] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.text = kwargs.get('text')
+        self.highlights = kwargs.get('highlights')
+        self.highlight_scores = kwargs.get('highlight_scores')
+        self.summary = kwargs.get('summary')
 
     def __str__(self):
         base_str = super().__str__()
@@ -299,6 +324,10 @@ class ResultWithText(_Result):
 
     text: str = dataclasses.field(default_factory=str)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.text = kwargs['text']
+
     def __str__(self):
         base_str = super().__str__()
         return base_str + f"Text: {self.text}\n"
@@ -316,6 +345,12 @@ class ResultWithHighlights(_Result):
 
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.highlights = kwargs['highlights']
+        self.highlight_scores = kwargs['highlight_scores']
+
 
     def __str__(self):
         base_str = super().__str__()
@@ -340,6 +375,12 @@ class ResultWithTextAndHighlights(_Result):
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
 
+    def __init__(self, **kwargs):
+        super.__init__(**kwargs)
+        self.text = kwargs['text']
+        self.highlights = kwargs['highlights']
+        self.highlight_scores = kwargs['highlight_scores']
+
     def __str__(self):
         base_str = super().__str__()
         return base_str + (
@@ -359,6 +400,10 @@ class ResultWithSummary(_Result):
 
     summary: str = dataclasses.field(default_factory=str)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.summary = kwargs['summary']
+
     def __str__(self):
         base_str = super().__str__()
         return base_str + f"Summary: {self.summary}\n"
@@ -375,6 +420,11 @@ class ResultWithTextAndSummary(_Result):
 
     text: str = dataclasses.field(default_factory=str)
     summary: str = dataclasses.field(default_factory=str)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.text = kwargs['text']
+        self.summary = kwargs['summary']
 
     def __str__(self):
         base_str = super().__str__()
@@ -394,6 +444,12 @@ class ResultWithHighlightsAndSummary(_Result):
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
     summary: str = dataclasses.field(default_factory=str)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.highlights = kwargs['highlights']
+        self.highlight_scores = kwargs['highlight_scores']
+        self.summary = kwargs['summary']
 
     def __str__(self):
         base_str = super().__str__()
@@ -419,6 +475,13 @@ class ResultWithTextAndHighlightsAndSummary(_Result):
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
     summary: str = dataclasses.field(default_factory=str)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.text = kwargs['text']
+        self.highlights = kwargs['highlights']
+        self.highlight_scores = kwargs['highlight_scores']
+        self.summary = kwargs['summary']
 
     def __str__(self):
         base_str = super().__str__()
@@ -482,7 +545,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.4.1-beta",
+        user_agent: str = "exa-py 1.5.0",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -576,6 +639,8 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        subpages: Optional[int] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -597,9 +662,11 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        subpages: Optional[int] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -622,8 +689,10 @@ class Exa:
         type: Optional[str] = None,
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
+        subpages: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -647,8 +716,10 @@ class Exa:
         type: Optional[str] = None,
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
+        subpages: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -671,8 +742,10 @@ class Exa:
         type: Optional[str] = None,
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
+        subpages: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -695,9 +768,11 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        subpages: Optional[int] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -721,8 +796,10 @@ class Exa:
         type: Optional[str] = None,
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
+        subpages: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -748,7 +825,9 @@ class Exa:
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        subpages: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
@@ -758,12 +837,12 @@ class Exa:
             for k, v in {"query": query, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options and "summary" not in options:
+        if "text" not in options and "highlights" not in options and "summary" not in options and "subpages" not in options and "extras" not in options:
             options["text"] = True
         validate_search_options(
-            options, {**SEARCH_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES}
+            options, {**SEARCH_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES}
         )
-        options = nest_fields(options, ["text", "highlights", "summary"], "contents")
+        options = nest_fields(options, ["text", "highlights", "summary", "subpages", "livecrawl", "livecrawl_timeout", "extras"], "contents")
         options = to_camel_case(options)
         data = self.request("/search", options)
         return SearchResponse(
@@ -781,7 +860,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -795,7 +874,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -809,7 +888,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -824,7 +903,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -838,7 +917,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -853,7 +932,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -868,7 +947,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -884,7 +963,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
@@ -894,7 +973,7 @@ class Exa:
             for k, v in {"ids": ids, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options and "summary" not in options:
+        if "text" not in options and "highlights" not in options and "summary" not in options and "extras" not in options and "subpages" not in options:
             options["text"] = True
         validate_search_options(options, {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES})
         options = to_camel_case(options)
@@ -950,8 +1029,10 @@ class Exa:
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
+        subpages: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -973,8 +1054,10 @@ class Exa:
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
+        subpages: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -995,9 +1078,11 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        subpages: Optional[int] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -1020,8 +1105,10 @@ class Exa:
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
+        subpages: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -1044,7 +1131,9 @@ class Exa:
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        subpages: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -1068,7 +1157,9 @@ class Exa:
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        subpages: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -1092,7 +1183,9 @@ class Exa:
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        subpages: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -1117,7 +1210,9 @@ class Exa:
         category: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        subpages: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
+        extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
@@ -1127,13 +1222,13 @@ class Exa:
             for k, v in {"url": url, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options:
+        if "text" not in options and "highlights" not in options and "summary" not in options and "extras" not in options and "subpages" not in options:
             options["text"] = True
         validate_search_options(
-            options, {**FIND_SIMILAR_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES}
+            options, {**FIND_SIMILAR_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES}
         )
         options = to_camel_case(options)
-        options = nest_fields(options, ["text", "highlights", "summary"], "contents")
+        options = nest_fields(options, ["text", "highlights", "summary", "subpages", "livecrawl", "livecrawl_timeout", "extras"], "contents")
         data = self.request("/findSimilar", options)
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
