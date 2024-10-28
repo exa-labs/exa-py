@@ -147,8 +147,8 @@ CONTENTS_OPTIONS_TYPES = {
 }
 
 CONTENTS_ENDPOINT_OPTIONS_TYPES = {
-    "subpages": [int], # Number of subpages to get contents for; these will appear as additional content results
-    "extras": [dict], # Additional options for
+    "subpages": [int],
+    "extras": [dict],
 }
 
 # FOR BETA OPTIONS
