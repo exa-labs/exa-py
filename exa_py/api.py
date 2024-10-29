@@ -546,7 +546,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.5.0",
+        user_agent: str = "exa-py 1.5.1",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -844,7 +844,7 @@ class Exa:
             for k, v in {"query": query, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options and "summary" not in options:
+        if "text" not in options and "highlights" not in options and "summary" not in options and "extras" not in options:
             options["text"] = True
         validate_search_options(
             options, {**SEARCH_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES}
@@ -988,7 +988,7 @@ class Exa:
             for k, v in {"ids": ids, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options and "summary" not in options:
+        if "text" not in options and "highlights" not in options and "summary" not in options and "extras" not in options:
             options["text"] = True
         validate_search_options(options, {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES})
         options = to_camel_case(options)
