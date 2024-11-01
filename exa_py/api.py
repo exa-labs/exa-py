@@ -148,7 +148,7 @@ CONTENTS_OPTIONS_TYPES = {
 
 CONTENTS_ENDPOINT_OPTIONS_TYPES = {
     "subpages": [int],
-    "subpage_target": [str],
+    "subpage_target": [str, list],
     "extras": [dict],
 }
 
