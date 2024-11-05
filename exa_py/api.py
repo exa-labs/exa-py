@@ -133,7 +133,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
 }
 
 # the livecrawl options
-LIVECRAWL_OPTIONS = Literal["always", "fallback", "never"]
+LIVECRAWL_OPTIONS = Literal["always", "fallback", "never", "auto"]
 
 CONTENTS_OPTIONS_TYPES = {
     "ids": [list],
