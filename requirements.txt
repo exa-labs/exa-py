@@ -1,0 +1,3 @@
+openai==1.52.2
+anthropic
+python-dotenv==1.0.0
