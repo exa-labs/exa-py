@@ -228,6 +228,7 @@ class ExtrasOptions(TypedDict, total=False):
     """
 
     links: int
+    image_links: int
 
 @dataclass
 class _Result:
@@ -242,7 +243,7 @@ class _Result:
         author (str, optional): If available, the author of the content.
         image (str, optional): If available, a URL to an image associated with the content.
         subpages (List[_Result], optional): If available, a list of Exa contents results for a page's subpages (e.g. tesla.com --subpage--> shop.tesla.com)
-        extras (Dict, optional): Additional metadata associated with the result; currently supports returning links in the text content
+        extras (Dict, optional): Additional metadata associated with the result; currently supports returning links and image links extracted from the text content
     """
 
     url: str
@@ -252,6 +253,7 @@ class _Result:
     published_date: Optional[str] = None
     author: Optional[str] = None
     image: Optional[str] = None
+    favicon: Optional[str] = None
     subpages: Optional[List[_Result]] = None
     extras: Optional[Dict] = None
 
@@ -263,6 +265,7 @@ class _Result:
         self.published_date = kwargs.get('published_date')
         self.author = kwargs.get('author')
         self.image = kwargs.get('image')
+        self.favicon = kwargs.get('favicon')
         self.subpages = kwargs.get('subpages')
         self.extras = kwargs.get("extras")
 
@@ -546,7 +549,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.6.0",
+        user_agent: str = "exa-py 1.7.0",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
