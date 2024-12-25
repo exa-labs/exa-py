@@ -111,10 +111,10 @@ SEARCH_OPTIONS_TYPES = {
     "use_autoprompt": [bool],  # Convert query to Exa (Higher latency, Default: false).
     "type": [
         str
-    ],  # 'keyword' or 'neural' (Default: neural). Choose 'neural' for high-quality, semantically relevant content in popular domains. 'Keyword' is for specific, local, or obscure queries.
+    ],  # 'keyword', 'neural', or 'auto' (Default: auto). Choose 'neural' for high-quality, semantically relevant content in popular domains. 'Keyword' is for specific, local, or obscure queries.
     "category": [
         str
-    ],  # A data category to focus on, with higher comprehensivity and data cleanliness. Currently, the only category is company.
+    ],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -144,6 +144,9 @@ CONTENTS_OPTIONS_TYPES = {
     "livecrawl_timeout": [int],
     "livecrawl": [LIVECRAWL_OPTIONS],
     "filter_empty_results": [bool],
+    "subpages": [int],
+    "subpage_target": [str, list],
+    "extras": [dict],
 }
 
 CONTENTS_ENDPOINT_OPTIONS_TYPES = {
@@ -221,10 +224,11 @@ class SummaryContentsOptions(TypedDict, total=False):
     query: str
 
 class ExtrasOptions(TypedDict, total=False):
-    """A class representing the options that you can specify when requesting summary
+    """A class representing the extra options that can be requested for contents
 
     Attributes:
-        query (str): The query string for the summary. Summary will bias towards answering the query.
+        links (int): The number of links to return from the content.
+        image_links (int): The number of image links to return from the content.
     """
 
     links: int
@@ -242,6 +246,7 @@ class _Result:
         published_date (str, optional): An estimate of the creation date, from parsing HTML content.
         author (str, optional): If available, the author of the content.
         image (str, optional): If available, a URL to an image associated with the content.
+        favicon (str, optional): If available, a URL to the favicon of the domain.
         subpages (List[_Result], optional): If available, a list of Exa contents results for a page's subpages (e.g. tesla.com --subpage--> shop.tesla.com)
         extras (Dict, optional): Additional metadata associated with the result; currently supports returning links and image links extracted from the text content
     """
@@ -278,7 +283,8 @@ class _Result:
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
             f"Image: {self.image}\n"
-            f"Extras {self.extras}\n"
+            f"Favicon: {self.favicon}\n"
+            f"Extras: {self.extras}\n"
             f"Subpages: {self.subpages}\n"
         )
 
@@ -371,7 +377,7 @@ class ResultWithTextAndHighlights(_Result):
 
     Attributes:
         text (str): The text of the search result page.
-        highlights (List[str): The highlights of the search result.
+        highlights (List[str]): The highlights of the search result.
         highlight_scores (List[float]): The scores of the highlights of the search result.
     """
 
@@ -380,7 +386,7 @@ class ResultWithTextAndHighlights(_Result):
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
 
     def __init__(self, **kwargs):
-        super.__init__(**kwargs)
+        super().__init__(**kwargs)
         self.text = kwargs['text']
         self.highlights = kwargs['highlights']
         self.highlight_scores = kwargs['highlight_scores']
@@ -507,7 +513,7 @@ class SearchResponse(Generic[T]):
         results (List[Result]): A list of search results.
         autoprompt_string (str, optional): The Exa query created by the autoprompt functionality.
         auto_date (str, optional): The date the autoprompt determines for filtering results to the ones you want.
-        resolved_search_type (str, optional): What "auto" search resolved to. "neural" or "keyword".
+        resolved_search_type (str, optional): For auto searches, indicates which search type was selected ("neural" or "keyword").
     """
 
     results: List[T]
@@ -549,7 +555,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.7.1",
+        user_agent: str = "exa-py 1.7.2",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
