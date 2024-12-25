@@ -855,8 +855,8 @@ class Exa:
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
-            data["autoDate"] if "autoDate" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
         )
 
     @overload
