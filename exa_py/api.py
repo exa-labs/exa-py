@@ -100,13 +100,13 @@ SEARCH_OPTIONS_TYPES = {
     "exclude_domains": [list],  # Domains to omit; exclusive with 'include_domains'.
     "start_crawl_date": [str],  # Results after this crawl date. ISO 8601 format.
     "end_crawl_date": [str],  # Results before this crawl date. ISO 8601 format.
-    "start_published_date": [str],  # Results after this publish date; excludes links with no date.
-    "end_published_date": [str],  # Results before this publish date; excludes links with no date.
+    "start_published_date": [str],  # Results after this publish date; excludes links with no date. ISO 8601 format.
+    "end_published_date": [str],  # Results before this publish date; excludes links with no date. ISO 8601 format.
     "include_text": [list],  # Must be present in webpage text. (One string, up to 5 words)
     "exclude_text": [list],  # Must not be present in webpage text. (One string, up to 5 words)
     "use_autoprompt": [bool],  # Convert query to Exa. (Default: false)
-    "type": [str],  # 'keyword' or 'neural' (Default: neural).
-    "category": [str],  # e.g. 'company'
+    "type": [str],  # 'keyword', 'neural', or 'auto' (Default: auto).'neural' uses embeddings search, 'keyword' is SERP and 'auto' decides the best search type based on your query
+    "category": [str],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
     "flags": [list],   # Experimental flags array for Exa usage.
 }
 
@@ -130,7 +130,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
 LIVECRAWL_OPTIONS = Literal["always", "fallback", "never", "auto"]
 
 CONTENTS_OPTIONS_TYPES = {
-    "ids": [list],
+    "urls": [list],
     "text": [dict, bool],
     "highlights": [dict, bool],
     "summary": [dict, bool],
@@ -216,7 +216,6 @@ class SummaryContentsOptions(TypedDict, total=False):
 
     query: str
 
-
 class ExtrasOptions(TypedDict, total=False):
     """A class representing additional extraction fields (e.g. links, images)"""
 
@@ -273,7 +272,8 @@ class _Result:
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
             f"Image: {self.image}\n"
-            f"Extras {self.extras}\n"
+            f"Favicon: {self.favicon}\n"
+            f"Extras: {self.extras}\n"
             f"Subpages: {self.subpages}\n"
         )
 
@@ -548,7 +548,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.7.2",
+        user_agent: str = "exa-py 1.7.3",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -894,7 +894,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -908,7 +908,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
@@ -924,7 +924,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         highlights: Union[HighlightsContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
@@ -940,7 +940,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         highlights: Union[HighlightsContentsOptions, Literal[True]],
@@ -957,7 +957,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         summary: Union[SummaryContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
@@ -973,7 +973,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         summary: Union[SummaryContentsOptions, Literal[True]],
@@ -990,7 +990,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         highlights: Union[HighlightsContentsOptions, Literal[True]],
         summary: Union[SummaryContentsOptions, Literal[True]],
@@ -1007,7 +1007,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         highlights: Union[HighlightsContentsOptions, Literal[True]],
@@ -1021,16 +1021,13 @@ class Exa:
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
-
-    def get_contents(self, ids: Union[str, List[str], List[_Result]], **kwargs):
-        options = {k: v for k, v in {"ids": ids, **kwargs}.items() if v is not None}
-        # Default to 'text' if none of text/highlights/summary are specified
-        if (
-            "text" not in options
-            and "highlights" not in options
-            and "summary" not in options
-            and "extras" not in options
-        ):
+    def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
+        options = {
+            k: v
+            for k, v in {"urls": urls, **kwargs}.items()
+            if k != "self" and v is not None
+        }
+        if "text" not in options and "highlights" not in options and "summary" not in options and "extras" not in options:
             options["text"] = True
 
         validate_search_options(
