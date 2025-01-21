@@ -136,7 +136,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
 LIVECRAWL_OPTIONS = Literal["always", "fallback", "never", "auto"]
 
 CONTENTS_OPTIONS_TYPES = {
-    "ids": [list],
+    "urls": [list],
     "text": [dict, bool],
     "highlights": [dict, bool],
     "summary": [dict, bool],
@@ -555,7 +555,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.7.2",
+        user_agent: str = "exa-py 3",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -871,7 +871,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -884,7 +884,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
@@ -899,7 +899,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         highlights: Union[HighlightsContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
@@ -914,7 +914,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         highlights: Union[HighlightsContentsOptions, Literal[True]],
@@ -930,7 +930,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         summary: Union[SummaryContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
@@ -945,7 +945,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         summary: Union[SummaryContentsOptions, Literal[True]],
@@ -961,7 +961,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         highlights: Union[HighlightsContentsOptions, Literal[True]],
         summary: Union[SummaryContentsOptions, Literal[True]],
@@ -977,7 +977,7 @@ class Exa:
     @overload
     def get_contents(
         self,
-        ids: Union[str, List[str], List[_Result]],
+        urls: Union[str, List[str], List[_Result]],
         *,
         text: Union[TextContentsOptions, Literal[True]],
         highlights: Union[HighlightsContentsOptions, Literal[True]],
@@ -991,10 +991,10 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
-    def get_contents(self, ids: Union[str, List[str], List[_Result]], **kwargs):
+    def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
         options = {
             k: v
-            for k, v in {"ids": ids, **kwargs}.items()
+            for k, v in {"urls": urls, **kwargs}.items()
             if k != "self" and v is not None
         }
         if "text" not in options and "highlights" not in options and "summary" not in options and "extras" not in options:
