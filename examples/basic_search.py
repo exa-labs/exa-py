@@ -10,9 +10,8 @@ exa = Exa(EXA_API_KEY)
 
 response = exa.search("funny article about tech culture",
     num_results=5,
-    use_autoprompt=True,
     include_domains=["nytimes.com", "wsj.com"],
-    start_published_date="2023-06-12"
+    start_published_date="2023-06-12",
 )
 
 print(response)
