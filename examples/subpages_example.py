@@ -9,7 +9,7 @@ load_dotenv()
 exa = Exa(os.environ.get("EXA_API_KEY"))
 
 response = exa.get_contents(
-    ids=["firecrawl.dev"],
+    urls=["firecrawl.dev"],
     # subpage_target= // specific subpage targets if you have any
     subpages=2,
     livecrawl="always"

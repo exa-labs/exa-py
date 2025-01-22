@@ -60,13 +60,13 @@ exa = Exa(api_key="your-api-key")
   results = exa.find_similar_and_contents("https://example.com", text=True, highlights=True)
 
   # get text contents
-  results = exa.get_contents(["ids"])
+  results = exa.get_contents(["urls"])
 
   # get highlights
-  results = exa.get_contents(["ids"], highlights=True)
+  results = exa.get_contents(["urls"], highlights=True)
 
   # get contents with contents options
-  results = exa.get_contents(["ids"], 
+  results = exa.get_contents(["urls"], 
                              text={"include_html_tags": True, "max_characters": 1000}, 
                              highlights={"highlights_per_url": 2, "num_sentences": 1, "query": "This is the highlight query:"})
 
