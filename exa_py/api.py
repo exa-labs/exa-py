@@ -30,6 +30,7 @@ from exa_py.utils import (
     maybe_get_query,
 )
 import os
+from typing import Iterator
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -502,6 +503,57 @@ class ResultWithTextAndHighlightsAndSummary(_Result):
             f"Summary: {self.summary}\n"
         )
 
+@dataclass
+class AnswerResult:
+    """A class representing a source result for an answer.
+
+    Attributes:
+        title (str): The title of the search result.
+        url (str): The URL of the search result.
+        id (str): The temporary ID for the document.
+        published_date (str, optional): An estimate of the creation date, from parsing HTML content.
+        author (str, optional): If available, the author of the content.
+    """
+
+    url: str
+    id: str
+    title: Optional[str] = None
+    published_date: Optional[str] = None
+    author: Optional[str] = None
+
+    def __init__(self, **kwargs):
+        self.url = kwargs['url']
+        self.id = kwargs['id']
+        self.title = kwargs.get('title')
+        self.published_date = kwargs.get('published_date')
+        self.author = kwargs.get('author')
+
+    def __str__(self):
+        return (
+            f"Title: {self.title}\n"
+            f"URL: {self.url}\n"
+            f"ID: {self.id}\n"
+            f"Published Date: {self.published_date}\n"
+            f"Author: {self.author}\n"
+        )
+
+@dataclass
+class AnswerResponse:
+    """A class representing the response for an answer operation.
+
+    Attributes:
+        answer (str): The generated answer.
+        sources (List[AnswerResult]): A list of sources used to generate the answer.
+    """
+
+    answer: str
+    sources: List[AnswerResult]
+
+    def __str__(self):
+        output = f"Answer: {self.answer}\n\nSources:\n"
+        output += "\n\n".join(str(source) for source in self.sources)
+        return output
+
 T = TypeVar("T")
 
 
@@ -575,11 +627,15 @@ class Exa:
         self.headers = {"x-api-key": api_key, "User-Agent": user_agent}
 
     def request(self, endpoint: str, data):
+        if data.get("stream"):
+            res = requests.post(self.base_url + endpoint, json=data, headers=self.headers, stream=True)
+            if res.status_code != 200:
+                raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
+            return (line.decode('utf-8') for line in res.iter_lines() if line)
+            
         res = requests.post(self.base_url + endpoint, json=data, headers=self.headers)
         if res.status_code != 200:
-            raise ValueError(
-                f"Request failed with status code {res.status_code}: {res.text}"
-            )
+            raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
         return res.json()
 
     def search(
@@ -1389,3 +1445,50 @@ class Exa:
             completion=completion, exa_result=exa_result
         )
         return exa_completion
+
+    @overload
+    def answer(
+        self,
+        query: str,
+        *,
+        expanded_queries_limit: Optional[int] = 1,
+        stream: Optional[bool] = False,
+        include_text: Optional[bool] = False,
+    ) -> Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]:
+        ...
+
+    def answer(
+        self,
+        query: str,
+        *,
+        expanded_queries_limit: Optional[int] = 1,
+        stream: Optional[bool] = False,
+        include_text: Optional[bool] = False,
+    ) -> Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]:
+        """Generate an answer to a query using Exa's search and LLM capabilities.
+
+        Args:
+            query (str): The query to answer.
+            expanded_queries_limit (int, optional): Maximum number of query variations (0-4). Defaults to 1.
+            stream (bool, optional): Whether to stream the response. Defaults to False.
+            include_text (bool, optional): Whether to include full text in the results. Defaults to False.
+
+        Returns:
+            Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]: Either an AnswerResponse object containing the answer and sources,
+            or an iterator that yields either answer chunks or sources when streaming is enabled.
+        """
+        options = {
+            k: v
+            for k, v in locals().items()
+            if k != "self" and v is not None
+        }
+        options = to_camel_case(options)
+        response = self.request("/answer", options)
+        
+        if stream:
+            return response
+            
+        return AnswerResponse(
+            response["answer"],
+            [AnswerResult(**to_snake_case(result)) for result in response["sources"]]
+        )

@@ -69,5 +69,18 @@ exa = Exa(api_key="your-api-key")
   results = exa.get_contents(["ids"], 
                              text={"include_html_tags": True, "max_characters": 1000}, 
                              highlights={"highlights_per_url": 2, "num_sentences": 1, "query": "This is the highlight query:"})
+
+  # basic answer
+  response = exa.answer("This is a query to answer a question")
+
+  # answer with expanded queries and full text
+  response = exa.answer("This is a query to answer a question", expanded_queries_limit=3, include_text=True)
+
+  # answer with streaming
+  response = exa.answer("This is a query to answer with streaming:", stream=True)
+
+  # Print each chunk as it arrives when answer streaming is enabled
+  for chunk in response:
+    print(chunk)
 ```
 
