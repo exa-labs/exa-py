@@ -1,5 +1,9 @@
+from dotenv import load_dotenv
 from exa_py import Exa
 import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Initialize the Exa client
 exa = Exa(os.environ.get("EXA_API_KEY"))
