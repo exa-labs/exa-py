@@ -58,11 +58,13 @@ def to_camel_case(data: dict) -> dict:
     Returns:
         dict: The dictionary with keys converted to camelCase format.
     """
-    return {
-        snake_to_camel(k): to_camel_case(v) if isinstance(v, dict) else v
-        for k, v in data.items()
-        if v is not None
-    }
+    if isinstance(data, dict):
+        return {
+            snake_to_camel(k): to_camel_case(v) if isinstance(v, dict) else v
+            for k, v in data.items()
+            if v is not None
+        }
+    return data
 
 
 def camel_to_snake(camel_str: str) -> str:
@@ -88,10 +90,12 @@ def to_snake_case(data: dict) -> dict:
     Returns:
         dict: The dictionary with keys converted to snake_case format.
     """
-    return {
-        camel_to_snake(k): to_snake_case(v) if isinstance(v, dict) else v
-        for k, v in data.items()
-    }
+    if isinstance(data, dict):
+        return {
+            camel_to_snake(k): to_snake_case(v) if isinstance(v, dict) else v
+            for k, v in data.items()
+        }
+    return data
 
 
 SEARCH_OPTIONS_TYPES = {
@@ -106,9 +110,10 @@ SEARCH_OPTIONS_TYPES = {
     "include_text": [list],  # Must be present in webpage text. (One string, up to 5 words)
     "exclude_text": [list],  # Must not be present in webpage text. (One string, up to 5 words)
     "use_autoprompt": [bool],  # Convert query to Exa. (Default: false)
-    "type": [str],  # 'keyword', 'neural', or 'auto' (Default: auto).'neural' uses embeddings search, 'keyword' is SERP and 'auto' decides the best search type based on your query
+    "type": [str],  # 'keyword', 'neural', or 'auto' (Default: auto)
     "category": [str],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
-    "flags": [list],   # Experimental flags array for Exa usage.
+    "flags": [list],  # Experimental flags array for Exa usage.
+    "moderation": [bool],  # If true, moderate search results for safety.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -124,7 +129,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "exclude_text": [list],
     "exclude_source_domain": [bool],
     "category": [str],
-    "flags": [list],   # Experimental flags array for Exa usage.
+    "flags": [list],  # Experimental flags array for Exa usage.
 }
 
 # the livecrawl options
@@ -198,7 +203,7 @@ class HighlightsContentsOptions(TypedDict, total=False):
     """A class representing the options that you can specify when requesting highlights
 
     Attributes:
-        query (str): The query string for the highlights. 
+        query (str): The query string for the highlights.
         num_sentences (int): Size of highlights to return, in sentences. Default: 5
         highlights_per_url (int): Number of highlights to return per URL. Default: 1
     """
@@ -216,6 +221,7 @@ class SummaryContentsOptions(TypedDict, total=False):
     """
 
     query: str
+
 
 class ExtrasOptions(TypedDict, total=False):
     """A class representing additional extraction fields (e.g. links, images)"""
@@ -495,6 +501,7 @@ class ResultWithTextAndHighlightsAndSummary(_Result):
             f"Summary: {self.summary}\n"
         )
 
+
 @dataclass
 class AnswerResult:
     """A class representing a source result for an answer.
@@ -514,11 +521,11 @@ class AnswerResult:
     author: Optional[str] = None
 
     def __init__(self, **kwargs):
-        self.url = kwargs['url']
-        self.id = kwargs['id']
-        self.title = kwargs.get('title')
-        self.published_date = kwargs.get('published_date')
-        self.author = kwargs.get('author')
+        self.url = kwargs["url"]
+        self.id = kwargs["id"]
+        self.title = kwargs.get("title")
+        self.published_date = kwargs.get("published_date")
+        self.author = kwargs.get("author")
 
     def __str__(self):
         return (
@@ -528,6 +535,7 @@ class AnswerResult:
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
         )
+
 
 @dataclass
 class AnswerResponse:
@@ -545,6 +553,7 @@ class AnswerResponse:
         output = f"Answer: {self.answer}\n\nSources:\n"
         output += "\n\n".join(str(source) for source in self.sources)
         return output
+
 
 T = TypeVar("T")
 
@@ -599,7 +608,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.8.3",
+        user_agent: str = "exa-py 1.8.4",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -619,12 +628,25 @@ class Exa:
         self.headers = {"x-api-key": api_key, "User-Agent": user_agent}
 
     def request(self, endpoint: str, data):
+        """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
+
+        Args:
+            endpoint (str): The API endpoint (path).
+            data (dict): The JSON payload to send.
+
+        Returns:
+            Union[dict, Iterator[str]]: If streaming, returns an iterator of strings (line-by-line).
+            Otherwise, returns the JSON-decoded response as a dict.
+
+        Raises:
+            ValueError: If the request fails (non-200 status code).
+        """
         if data.get("stream"):
             res = requests.post(self.base_url + endpoint, json=data, headers=self.headers, stream=True)
             if res.status_code != 200:
                 raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
-            return (line.decode('utf-8') for line in res.iter_lines() if line)
-            
+            return (line.decode("utf-8") for line in res.iter_lines() if line)
+
         res = requests.post(self.base_url + endpoint, json=data, headers=self.headers)
         if res.status_code != 200:
             raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
@@ -647,6 +669,7 @@ class Exa:
         type: Optional[str] = None,
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
     ) -> SearchResponse[_Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -665,6 +688,7 @@ class Exa:
             type (str, optional): 'keyword' or 'neural' (default 'neural').
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
+            moderation (bool, optional): If True, the search results will be moderated for safety.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -697,12 +721,13 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -724,12 +749,13 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         subpages: Optional[int] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -753,11 +779,12 @@ class Exa:
         category: Optional[str] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -780,13 +807,14 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
-        livecrawl_timeout: Optional[int] = None,
-        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -810,11 +838,12 @@ class Exa:
         category: Optional[str] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -839,11 +868,12 @@ class Exa:
         category: Optional[str] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -868,11 +898,12 @@ class Exa:
         category: Optional[str] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -896,13 +927,14 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
@@ -919,7 +951,11 @@ class Exa:
 
         validate_search_options(
             options,
-            {**SEARCH_OPTIONS_TYPES, **CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES},
+            {
+                **SEARCH_OPTIONS_TYPES,
+                **CONTENTS_OPTIONS_TYPES,
+                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
+            },
         )
 
         # Nest the appropriate fields under "contents"
@@ -1076,13 +1112,19 @@ class Exa:
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
+
     def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
         options = {
             k: v
             for k, v in {"urls": urls, **kwargs}.items()
             if k != "self" and v is not None
         }
-        if "text" not in options and "highlights" not in options and "summary" not in options and "extras" not in options:
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+            and "extras" not in options
+        ):
             options["text"] = True
 
         validate_search_options(
@@ -1093,9 +1135,9 @@ class Exa:
         data = self.request("/contents", options)
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
-            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
-            data["autoDate"] if "autoDate" in data else None,
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
         )
 
     def find_similar(
@@ -1115,15 +1157,35 @@ class Exa:
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[_Result]:
+        """Finds similar pages to a given URL, potentially with domain filters and date filters.
+
+        Args:
+            url (str): The URL to find similar pages for.
+            num_results (int, optional): Number of results to return. Default is None (server default).
+            include_domains (List[str], optional): Domains to include in the search.
+            exclude_domains (List[str], optional): Domains to exclude from the search.
+            start_crawl_date (str, optional): Only links crawled after this date.
+            end_crawl_date (str, optional): Only links crawled before this date.
+            start_published_date (str, optional): Only links published after this date.
+            end_published_date (str, optional): Only links published before this date.
+            include_text (List[str], optional): Strings that must appear in the page text.
+            exclude_text (List[str], optional): Strings that must not appear in the page text.
+            exclude_source_domain (bool, optional): Whether to exclude the source domain.
+            category (str, optional): A data category to focus on.
+            flags (List[str], optional): Experimental flags.
+
+        Returns:
+            SearchResponse[_Result]
+        """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
         validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
-            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
-            data["autoDate"] if "autoDate" in data else None,
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
         )
 
     @overload
@@ -1142,13 +1204,13 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -1169,13 +1231,13 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
 
@@ -1196,13 +1258,13 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithHighlights]:
         ...
 
@@ -1224,13 +1286,13 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]:
         ...
 
@@ -1251,13 +1313,13 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithSummary]:
         ...
 
@@ -1279,13 +1341,13 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]:
         ...
 
@@ -1307,13 +1369,13 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
-        livecrawl_timeout: Optional[int] = None,
+        flags: Optional[List[str]] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithHighlightsAndSummary]:
         ...
 
@@ -1336,20 +1398,24 @@ class Exa:
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        filter_empty_results: Optional[bool] = None,
-        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         extras: Optional[ExtrasOptions] = None,
-        flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
         ...
 
     def find_similar_and_contents(self, url: str, **kwargs):
         options = {k: v for k, v in {"url": url, **kwargs}.items() if v is not None}
         # Default to text if none specified
-        if "text" not in options and "highlights" not in options and "summary" not in options:
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+        ):
             options["text"] = True
 
         validate_search_options(
@@ -1379,9 +1445,9 @@ class Exa:
         data = self.request("/findSimilar", options)
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
-            data["autopromptString"] if "autopromptString" in data else None,
-            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
-            data["autoDate"] if "autoDate" in data else None,
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
         )
 
     def wrap(self, client: OpenAI):
@@ -1455,7 +1521,7 @@ class Exa:
                 exa_kwargs=exa_kwargs,
             )
 
-        print("Wrapping OpenAI client with Exa functionality.", type(create_with_rag))
+        print("Wrapping OpenAI client with Exa functionality.")
         client.chat.completions.create = create_with_rag  # type: ignore
 
         return client
@@ -1499,6 +1565,7 @@ class Exa:
                 completion=completion, exa_result=None
             )
 
+        # We do a search_and_contents automatically
         exa_result = self.search_and_contents(query, **exa_kwargs)
         exa_str = format_exa_result(exa_result, max_len=max_len)
         new_messages = add_message_to_messages(completion, messages, exa_str)
@@ -1537,8 +1604,9 @@ class Exa:
             include_text (bool, optional): Whether to include full text in the results. Defaults to False.
 
         Returns:
-            Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]: Either an AnswerResponse object containing the answer and sources,
-            or an iterator that yields either answer chunks or sources when streaming is enabled.
+            Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]:
+                - If stream=False, returns an AnswerResponse object containing the answer and sources.
+                - If stream=True, returns an iterator that yields either answer chunks or sources.
         """
         options = {
             k: v
@@ -1547,10 +1615,10 @@ class Exa:
         }
         options = to_camel_case(options)
         response = self.request("/answer", options)
-        
+
         if stream:
             return response
-            
+
         return AnswerResponse(
             response["answer"],
             [AnswerResult(**to_snake_case(result)) for result in response["sources"]]
