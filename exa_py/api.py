@@ -517,15 +517,17 @@ class AnswerResult:
     url: str
     id: str
     title: Optional[str] = None
-    published_date: Optional[str] = None
     author: Optional[str] = None
+    published_date: Optional[str] = None
+    text: Optional[str] = None
 
     def __init__(self, **kwargs):
-        self.url = kwargs["url"]
-        self.id = kwargs["id"]
-        self.title = kwargs.get("title")
-        self.published_date = kwargs.get("published_date")
-        self.author = kwargs.get("author")
+        self.url = kwargs['url']
+        self.id = kwargs['id']
+        self.title = kwargs.get('title')
+        self.author = kwargs.get('author')  
+        self.published_date = kwargs.get('published_date')
+        self.text = kwargs.get('text')
 
     def __str__(self):
         return (
@@ -534,6 +536,7 @@ class AnswerResult:
             f"ID: {self.id}\n"
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
+            f"Text: {self.text}\n"
         )
 
 
@@ -608,7 +611,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.8.4",
+        user_agent: str = "exa-py 1.8.5",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
