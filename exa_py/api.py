@@ -4,6 +4,7 @@ import dataclasses
 from functools import wraps
 import re
 import requests
+import httpx
 from typing import (
     Callable,
     Iterable,
@@ -652,6 +653,39 @@ class Exa:
             raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
         return res.json()
 
+    async def request_async(self, endpoint: str, data):
+        """
+        Asynchronous version of the request method.
+        Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
+
+        Args:
+            endpoint (str): The API endpoint (path).
+            data (dict): The JSON payload to send.
+
+        Returns:
+            Union[dict, AsyncIterator[str]]: If streaming, returns an async iterator of strings (line-by-line).
+            Otherwise, returns the JSON-decoded response as a dict.
+
+        Raises:
+            ValueError: If the request fails (non-200 status code).
+        """
+        if data.get("stream"):
+            async with httpx.AsyncClient() as client:
+                res = await client.post(self.base_url + endpoint, json=data, headers=self.headers, stream=True)
+                if res.status_code != 200:
+                    raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
+                async def _stream():
+                    async for line in res.aiter_lines():
+                        if line:
+                            yield line
+                return _stream()
+
+        async with httpx.AsyncClient() as client:
+            res = await client.post(self.base_url + endpoint, json=data, headers=self.headers)
+            if res.status_code != 200:
+                raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
+            return res.json()
+
     def search(
         self,
         query: str,
@@ -702,6 +736,40 @@ class Exa:
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+        )
+
+    async def search_async(
+        self,
+        query: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
+    ) -> SearchResponse[_Result]:
+        """
+        Asynchronous version of the search method.
+        Perform a search with a prompt-engineered query to retrieve relevant results.
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        validate_search_options(options, SEARCH_OPTIONS_TYPES)
+        options = to_camel_case(options)
+        data = await self.request_async("/search", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
         )
 
     @overload
@@ -982,6 +1050,52 @@ class Exa:
             data["autoDate"] if "autoDate" in data else None,
         )
 
+    async def search_and_contents_async(self, query: str, **kwargs):
+        """
+        Asynchronous version of the search_and_contents method.
+        Perform a search with the specified query and retrieve the requested content fields.
+        """
+        options = {k: v for k, v in {"query": query, **kwargs}.items() if v is not None}
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+            and "extras" not in options
+        ):
+            options["text"] = True
+
+        validate_search_options(
+            options,
+            {
+                **SEARCH_OPTIONS_TYPES,
+                **CONTENTS_OPTIONS_TYPES,
+                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
+            },
+        )
+
+        options = nest_fields(
+            options,
+            [
+                "text",
+                "highlights",
+                "summary",
+                "subpages",
+                "subpage_target",
+                "livecrawl",
+                "livecrawl_timeout",
+                "extras",
+            ],
+            "contents",
+        )
+        options = to_camel_case(options)
+        data = await self.request_async("/search", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
+        )
+
     @overload
     def get_contents(
         self,
@@ -1140,6 +1254,37 @@ class Exa:
             data.get("autoDate"),
         )
 
+    async def get_contents_async(self, urls: Union[str, List[str], List[_Result]], **kwargs):
+        """
+        Asynchronous version of the get_contents method.
+        Retrieve contents for the specified URLs, optionally including text, highlights, and summary.
+        """
+        options = {
+            k: v
+            for k, v in {"urls": urls, **kwargs}.items()
+            if k != "self" and v is not None
+        }
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+            and "extras" not in options
+        ):
+            options["text"] = True
+
+        validate_search_options(
+            options,
+            {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES},
+        )
+        options = to_camel_case(options)
+        data = await self.request_async("/contents", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
+        )
+
     def find_similar(
         self,
         url: str,
@@ -1181,6 +1326,38 @@ class Exa:
         validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
+        )
+
+    async def find_similar_async(
+        self,
+        url: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
+    ) -> SearchResponse[_Result]:
+        """
+        Asynchronous version of the find_similar method.
+        Finds similar pages to a given URL with optional filters.
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
+        options = to_camel_case(options)
+        data = await self.request_async("/findSimilar", options)
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
@@ -1450,11 +1627,55 @@ class Exa:
             data.get("autoDate"),
         )
 
+    async def find_similar_and_contents_async(self, url: str, **kwargs):
+        """
+        Asynchronous version of the find_similar_and_contents method.
+        Finds similar pages to a given URL with optional retrieval of text, highlights, and summary.
+        """
+        options = {k: v for k, v in {"url": url, **kwargs}.items() if v is not None}
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+        ):
+            options["text"] = True
+
+        validate_search_options(
+            options,
+            {
+                **FIND_SIMILAR_OPTIONS_TYPES,
+                **CONTENTS_OPTIONS_TYPES,
+                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
+            },
+        )
+        options = nest_fields(
+            options,
+            [
+                "text",
+                "highlights",
+                "summary",
+                "subpages",
+                "subpage_target",
+                "livecrawl",
+                "livecrawl_timeout",
+                "extras",
+            ],
+            "contents",
+        )
+        options = to_camel_case(options)
+        data = await self.request_async("/findSimilar", options)
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
+        )
+
     def wrap(self, client: OpenAI):
         """Wrap an OpenAI client with Exa functionality.
 
-        After wrapping, any call to `client.chat.completions.create` will be intercepted 
-        and enhanced with Exa RAG functionality. To disable Exa for a specific call, 
+        After wrapping, any call to `client.chat.completions.create` will be intercepted
+        and enhanced with Exa RAG functionality. To disable Exa for a specific call,
         set `use_exa="none"` in the `create` method.
 
         Args:
@@ -1526,6 +1747,73 @@ class Exa:
 
         return client
 
+    async def wrap_async(self, client: OpenAI):
+        """
+        Asynchronous version of wrap.
+        Wrap an OpenAI client with Exa functionality in an async context.
+        """
+        func = client.chat.completions.create
+
+        @wraps(func)
+        async def create_with_rag_async(
+            # Mandatory OpenAI args
+            messages: Iterable[ChatCompletionMessageParam],
+            model: Union[str, ChatModel],
+            # Exa args
+            use_exa: Optional[Literal["required", "none", "auto"]] = "auto",
+            highlights: Union[HighlightsContentsOptions, Literal[True], None] = None,
+            num_results: Optional[int] = 3,
+            include_domains: Optional[List[str]] = None,
+            exclude_domains: Optional[List[str]] = None,
+            start_crawl_date: Optional[str] = None,
+            end_crawl_date: Optional[str] = None,
+            start_published_date: Optional[str] = None,
+            end_published_date: Optional[str] = None,
+            include_text: Optional[List[str]] = None,
+            exclude_text: Optional[List[str]] = None,
+            use_autoprompt: Optional[bool] = True,
+            type: Optional[str] = None,
+            category: Optional[str] = None,
+            result_max_len: int = 2048,
+            flags: Optional[List[str]] = None,
+            # OpenAI args
+            **openai_kwargs,
+        ):
+            exa_kwargs = {
+                "num_results": num_results,
+                "include_domains": include_domains,
+                "exclude_domains": exclude_domains,
+                "highlights": highlights,
+                "start_crawl_date": start_crawl_date,
+                "end_crawl_date": end_crawl_date,
+                "start_published_date": start_published_date,
+                "end_published_date": end_published_date,
+                "include_text": include_text,
+                "exclude_text": exclude_text,
+                "use_autoprompt": use_autoprompt,
+                "type": type,
+                "category": category,
+                "flags": flags,
+            }
+
+            create_kwargs = {
+                "model": model,
+                **openai_kwargs,
+            }
+
+            return await self._create_with_tool_async(
+                create_fn=func,
+                messages=list(messages),
+                max_len=result_max_len,
+                create_kwargs=create_kwargs,
+                exa_kwargs=exa_kwargs,
+            )
+
+        print("Wrapping OpenAI client with Exa functionality in async mode.")
+        client.chat.completions.create = create_with_rag_async  # type: ignore
+
+        return client
+
     def _create_with_tool(
         self,
         create_fn: Callable,
@@ -1576,6 +1864,60 @@ class Exa:
         )
         return exa_completion
 
+    async def _create_with_tool_async(
+        self,
+        create_fn: Callable,
+        messages: List[ChatCompletionMessageParam],
+        max_len,
+        create_kwargs,
+        exa_kwargs,
+    ) -> ExaOpenAICompletion:
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "search",
+                    "description": "Search the web for relevant information.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The query to search for.",
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                },
+            }
+        ]
+
+        create_kwargs["tools"] = tools
+
+        completion = create_fn(messages=messages, **create_kwargs)
+        # Because the official OpenAI Python library is not fully async in some parts,
+        # we simulate the same logic. If using an actual async method, you'd await it.
+        # e.g. completion = await create_fn(messages=messages, **create_kwargs)
+
+        query = maybe_get_query(completion)
+
+        if not query:
+            return ExaOpenAICompletion.from_completion(
+                completion=completion, exa_result=None
+            )
+
+        # We do a search_and_contents automatically
+        exa_result = await self.search_and_contents_async(query, **exa_kwargs)
+        exa_str = format_exa_result(exa_result, max_len=max_len)
+        new_messages = add_message_to_messages(completion, messages, exa_str)
+        # Because the library is not fully async, we call it again in the same manner
+        completion = create_fn(messages=new_messages, **create_kwargs)
+
+        exa_completion = ExaOpenAICompletion.from_completion(
+            completion=completion, exa_result=exa_result
+        )
+        return exa_completion
+
     @overload
     def answer(
         self,
@@ -1617,6 +1959,46 @@ class Exa:
         response = self.request("/answer", options)
 
         if stream:
+            return response
+
+        return AnswerResponse(
+            response["answer"],
+            [AnswerResult(**to_snake_case(result)) for result in response["sources"]]
+        )
+
+    async def answer_async(
+        self,
+        query: str,
+        *,
+        expanded_queries_limit: Optional[int] = 1,
+        stream: Optional[bool] = False,
+        include_text: Optional[bool] = False,
+    ) -> Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]:
+        """
+        Asynchronous version of the answer method.
+        Generate an answer to a query using Exa's search and LLM capabilities.
+
+        Args:
+            query (str): The query to answer.
+            expanded_queries_limit (int, optional): Maximum number of query variations (0-4). Defaults to 1.
+            stream (bool, optional): Whether to stream the response. Defaults to False.
+            include_text (bool, optional): Whether to include full text in the results. Defaults to False.
+
+        Returns:
+            Union[AnswerResponse, AsyncIterator[Union[str, List[AnswerResult]]]]:
+                - If stream=False, returns an AnswerResponse object containing the answer and sources.
+                - If stream=True, returns an async iterator that yields either answer chunks or sources.
+        """
+        options = {
+            k: v
+            for k, v in locals().items()
+            if k != "self" and v is not None
+        }
+        options = to_camel_case(options)
+        response = await self.request_async("/answer", options)
+
+        if stream:
+            # We return the async iterator or streaming content
             return response
 
         return AnswerResponse(
