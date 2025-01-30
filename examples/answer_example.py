@@ -4,29 +4,20 @@ import os
 exa = Exa(os.environ.get("EXA_API_KEY"))
 
 # Basic answer
-response = exa.answer("This is a query to answer:")
-print(response)
-
-# Answer with expanded queries
-response = exa.answer(
-    "This is a query to answer with expanded queries:",
-    expanded_queries_limit=2
-)
+response = exa.answer("What is the population of the US?")
 print(response)
 
 # Answer with full text
 response = exa.answer(
-    "This is a query to answer with full text:",
-    include_text=True
+    "What is the meaning of life? ",
+    text=True
 )
-print(response) 
+print(response)
 
 #Answer with streaming
-response = exa.answer(
-    "This is a query to answer with streaming:",
-    stream=True
+response = exa.stream_answer(
+    "How close are we to meeting aliens?",
 )
 
-# Print each chunk as it arrives
 for chunk in response:
-    print(chunk)
+    print(chunk, end='', flush=True)

@@ -17,8 +17,10 @@ from typing import (
     Literal,
     get_origin,
     get_args,
+    Iterator,
 )
 from typing_extensions import TypedDict
+import json
 
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
@@ -30,7 +32,6 @@ from exa_py.utils import (
     maybe_get_query,
 )
 import os
-from typing import Iterator
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -504,7 +505,7 @@ class ResultWithTextAndHighlightsAndSummary(_Result):
 
 @dataclass
 class AnswerResult:
-    """A class representing a source result for an answer.
+    """A class representing a result for an answer.
 
     Attributes:
         title (str): The title of the search result.
@@ -512,20 +513,22 @@ class AnswerResult:
         id (str): The temporary ID for the document.
         published_date (str, optional): An estimate of the creation date, from parsing HTML content.
         author (str, optional): If available, the author of the content.
+        text (str, optional): The full page text from each search result.
     """
-
+    id: str 
     url: str
-    id: str
     title: Optional[str] = None
     published_date: Optional[str] = None
     author: Optional[str] = None
+    text: Optional[str] = None
 
     def __init__(self, **kwargs):
-        self.url = kwargs["url"]
-        self.id = kwargs["id"]
-        self.title = kwargs.get("title")
-        self.published_date = kwargs.get("published_date")
-        self.author = kwargs.get("author")
+        self.id = kwargs['id']
+        self.url = kwargs['url']
+        self.title = kwargs.get('title')    
+        self.published_date = kwargs.get('published_date')
+        self.author = kwargs.get('author')  
+        self.text = kwargs.get('text')
 
     def __str__(self):
         return (
@@ -534,7 +537,34 @@ class AnswerResult:
             f"ID: {self.id}\n"
             f"Published Date: {self.published_date}\n"
             f"Author: {self.author}\n"
+            f"Text: {self.text}\n\n"
         )
+    
+@dataclass
+class StreamChunk:
+    """A class representing a single chunk of streaming data.
+    
+    Attributes:
+        content (Optional[str]): The partial text content of the answer
+        citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk
+    """
+    content: Optional[str] = None
+    citations: Optional[List[AnswerResult]] = None
+    
+    def has_data(self) -> bool:
+        """Check if this chunk contains any data."""
+        return self.content is not None or self.citations is not None
+
+    def __str__(self) -> str:
+        """Format the chunk data as a string."""
+        output = ""
+        if self.content:
+            output += self.content
+        if self.citations:
+            output += "\nCitations:"
+            for source in self.citations:
+                output += f"\n{source}"
+        return output
 
 
 @dataclass
@@ -543,16 +573,64 @@ class AnswerResponse:
 
     Attributes:
         answer (str): The generated answer.
-        sources (List[AnswerResult]): A list of sources used to generate the answer.
+        citations (List[AnswerResult]): A list of citations used to generate the answer.
     """
 
     answer: str
-    sources: List[AnswerResult]
+    citations: List[AnswerResult]
 
     def __str__(self):
-        output = f"Answer: {self.answer}\n\nSources:\n"
-        output += "\n\n".join(str(source) for source in self.sources)
+        output = f"Answer: {self.answer}\n\nCitations:"
+        for source in self.citations:
+            output += f"\nTitle: {source.title}"
+            output += f"\nID: {source.id}"
+            output += f"\nURL: {source.url}"
+            output += f"\nPublished Date: {source.published_date}"
+            output += f"\nAuthor: {source.author}"
+            output += f"\nText: {source.text}"
+            output += "\n"
         return output
+
+
+class StreamAnswerResponse:
+    """A class representing a streaming answer response."""
+    def __init__(self, raw_response: requests.Response):
+        self._raw_response = raw_response
+        self._ensure_ok_status()
+
+    def _ensure_ok_status(self):
+        if self._raw_response.status_code != 200:
+            raise ValueError(
+                f"Request failed with status code {self._raw_response.status_code}: {self._raw_response.text}"
+            )
+
+    def __iter__(self) -> Iterator[StreamChunk]:
+        for line in self._raw_response.iter_lines():
+            if not line:
+                continue
+            decoded_line = line.decode("utf-8").removeprefix("data: ")
+            try:
+                chunk = json.loads(decoded_line)
+            except json.JSONDecodeError:
+                continue
+
+            content = None
+            citations = None
+
+            if "choices" in chunk and chunk["choices"]:
+                if "delta" in chunk["choices"][0]:
+                    content = chunk["choices"][0]["delta"].get("content")
+
+            if "citations" in chunk and chunk["citations"] and chunk["citations"] != "null":
+                citations = [AnswerResult(**to_snake_case(s)) for s in chunk["citations"]]
+
+            stream_chunk = StreamChunk(content=content, citations=citations)
+            if stream_chunk.has_data():
+                yield stream_chunk
+
+    def close(self) -> None:
+        """Close the underlying raw response to release the network socket."""
+        self._raw_response.close()
 
 
 T = TypeVar("T")
@@ -608,7 +686,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.8.4",
+        user_agent: str = "exa-py 1.8.7",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -635,7 +713,7 @@ class Exa:
             data (dict): The JSON payload to send.
 
         Returns:
-            Union[dict, Iterator[str]]: If streaming, returns an iterator of strings (line-by-line).
+            Union[dict, requests.Response]: If streaming, returns the Response object.
             Otherwise, returns the JSON-decoded response as a dict.
 
         Raises:
@@ -643,9 +721,7 @@ class Exa:
         """
         if data.get("stream"):
             res = requests.post(self.base_url + endpoint, json=data, headers=self.headers, stream=True)
-            if res.status_code != 200:
-                raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
-            return (line.decode("utf-8") for line in res.iter_lines() if line)
+            return res
 
         res = requests.post(self.base_url + endpoint, json=data, headers=self.headers)
         if res.status_code != 200:
@@ -727,6 +803,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
@@ -755,6 +832,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithText]:
         ...
@@ -1581,33 +1659,36 @@ class Exa:
         self,
         query: str,
         *,
-        expanded_queries_limit: Optional[int] = 1,
         stream: Optional[bool] = False,
-        include_text: Optional[bool] = False,
-    ) -> Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]:
+        text: Optional[bool] = False,
+    ) -> Union[AnswerResponse, StreamAnswerResponse]:
         ...
 
     def answer(
         self,
         query: str,
         *,
-        expanded_queries_limit: Optional[int] = 1,
         stream: Optional[bool] = False,
-        include_text: Optional[bool] = False,
-    ) -> Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]:
+        text: Optional[bool] = False,
+    ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
         Args:
             query (str): The query to answer.
-            expanded_queries_limit (int, optional): Maximum number of query variations (0-4). Defaults to 1.
-            stream (bool, optional): Whether to stream the response. Defaults to False.
-            include_text (bool, optional): Whether to include full text in the results. Defaults to False.
+            text (bool, optional): Whether to include full text in the results. Defaults to False.
 
         Returns:
-            Union[AnswerResponse, Iterator[Union[str, List[AnswerResult]]]]:
-                - If stream=False, returns an AnswerResponse object containing the answer and sources.
-                - If stream=True, returns an iterator that yields either answer chunks or sources.
+            AnswerResponse: An object containing the answer and citations.
+
+        Raises:
+            ValueError: If stream=True is provided. Use stream_answer() instead for streaming responses.
         """
+        if stream:
+            raise ValueError(
+                "stream=True is not supported in `answer()`. "
+                "Please use `stream_answer(...)` for streaming."
+            )
+
         options = {
             k: v
             for k, v in locals().items()
@@ -1616,10 +1697,34 @@ class Exa:
         options = to_camel_case(options)
         response = self.request("/answer", options)
 
-        if stream:
-            return response
-
         return AnswerResponse(
             response["answer"],
-            [AnswerResult(**to_snake_case(result)) for result in response["sources"]]
+            [AnswerResult(**to_snake_case(result)) for result in response["citations"]]
         )
+
+    def stream_answer(
+        self,
+        query: str,
+        *,
+        text: bool = False,
+    ) -> StreamAnswerResponse:
+        """Generate a streaming answer response.
+
+        Args:
+            query (str): The query to answer.
+            text (bool): Whether to include full text in the results. Defaults to False.
+
+        Returns:
+            StreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
+                Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
+        """
+        options = {
+            k: v
+            for k, v in locals().items()
+            if k != "self" and v is not None
+        }
+        options = to_camel_case(options)
+        options["stream"] = True
+        raw_response = self.request("/answer", options)
+        return StreamAnswerResponse(raw_response)
+
