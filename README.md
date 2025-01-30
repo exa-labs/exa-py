@@ -73,14 +73,15 @@ exa = Exa(api_key="your-api-key")
   # basic answer
   response = exa.answer("This is a query to answer a question")
 
-  # answer with expanded queries and full text
-  response = exa.answer("This is a query to answer a question", expanded_queries_limit=3, include_text=True)
+  # answer with full text
+  response = exa.answer("This is a query to answer a question", text=True)
 
   # answer with streaming
-  response = exa.answer("This is a query to answer with streaming:", stream=True)
+  response = exa.stream_answer("This is a query to answer:")
 
-  # Print each chunk as it arrives when answer streaming is enabled
+  # Print each chunk as it arrives when using the stream_answer method
   for chunk in response:
-    print(chunk)
+    print(chunk, end='', flush=True)
+
 ```
 
