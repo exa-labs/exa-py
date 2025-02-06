@@ -73,8 +73,8 @@ exa = Exa(api_key="your-api-key")
   # basic answer
   response = exa.answer("This is a query to answer a question")
 
-  # answer with full text
-  response = exa.answer("This is a query to answer a question", text=True)
+  # answer with full text, using the exa-pro model (sends 2 expanded quries to exa search)
+  response = exa.answer("This is a query to answer a question", text=True, model="exa-pro")
 
   # answer with streaming
   response = exa.stream_answer("This is a query to answer:")

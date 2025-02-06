@@ -10,7 +10,8 @@ print(response)
 # Answer with full text
 response = exa.answer(
     "What is the meaning of life? ",
-    text=True
+    text=True,
+    model="exa-pro",
 )
 print(response)
 
