@@ -686,7 +686,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.8.7",
+        user_agent: str = "exa-py 1.8.8",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -1661,6 +1661,7 @@ class Exa:
         *,
         stream: Optional[bool] = False,
         text: Optional[bool] = False,
+        model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         ...
 
@@ -1670,12 +1671,14 @@ class Exa:
         *,
         stream: Optional[bool] = False,
         text: Optional[bool] = False,
+        model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
         Args:
             query (str): The query to answer.
             text (bool, optional): Whether to include full text in the results. Defaults to False.
+            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
 
         Returns:
             AnswerResponse: An object containing the answer and citations.
@@ -1707,12 +1710,14 @@ class Exa:
         query: str,
         *,
         text: bool = False,
+        model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> StreamAnswerResponse:
         """Generate a streaming answer response.
 
         Args:
             query (str): The query to answer.
             text (bool): Whether to include full text in the results. Defaults to False.
+            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
 
         Returns:
             StreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
