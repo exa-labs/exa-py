@@ -729,7 +729,7 @@ class Exa:
     def __init__(
         self,
         api_key: Optional[str],
-        base_url: str = "https://tom-vulcan.tunnel.exa.sh",
+        base_url: str = "https://api.exa.ai",
         user_agent: str = "exa-py 1.8.8",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
