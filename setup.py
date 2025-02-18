@@ -1,8 +1,8 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="exa_py",
-    version="1.8.8",
+    version="1.8.9",
     description="Python SDK for Exa API.",
     long_description_content_type="text/markdown",
     long_description=open("README.md").read(),
@@ -11,11 +11,7 @@ setup(
     package_data={"exa_py": ["py.typed"]},
     url="https://github.com/exa-labs/exa-py",
     packages=find_packages(),
-    install_requires=[
-        "requests",
-        "typing-extensions",
-        "openai>=1.10.0"
-    ],
+    install_requires=["requests", "typing-extensions", "openai>=1.10.0"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",

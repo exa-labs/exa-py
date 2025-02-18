@@ -1,37 +1,39 @@
 from __future__ import annotations
-from dataclasses import dataclass
+
 import dataclasses
-from functools import wraps
+import json
+import os
 import re
-import requests
+from dataclasses import dataclass
+from functools import wraps
 from typing import (
     Callable,
-    Iterable,
-    List,
-    Optional,
     Dict,
     Generic,
-    TypeVar,
-    overload,
-    Union,
-    Literal,
-    get_origin,
-    get_args,
+    Iterable,
     Iterator,
+    List,
+    Literal,
+    Optional,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+    overload,
 )
-from typing_extensions import TypedDict
-import json
 
+import requests
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
+from typing_extensions import TypedDict
+
 from exa_py.utils import (
     ExaOpenAICompletion,
     add_message_to_messages,
     format_exa_result,
     maybe_get_query,
 )
-import os
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -102,17 +104,29 @@ def to_snake_case(data: dict) -> dict:
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
-    "include_domains": [list],  # Domains to search from; exclusive with 'exclude_domains'.
+    "include_domains": [
+        list
+    ],  # Domains to search from; exclusive with 'exclude_domains'.
     "exclude_domains": [list],  # Domains to omit; exclusive with 'include_domains'.
     "start_crawl_date": [str],  # Results after this crawl date. ISO 8601 format.
     "end_crawl_date": [str],  # Results before this crawl date. ISO 8601 format.
-    "start_published_date": [str],  # Results after this publish date; excludes links with no date. ISO 8601 format.
-    "end_published_date": [str],  # Results before this publish date; excludes links with no date. ISO 8601 format.
-    "include_text": [list],  # Must be present in webpage text. (One string, up to 5 words)
-    "exclude_text": [list],  # Must not be present in webpage text. (One string, up to 5 words)
+    "start_published_date": [
+        str
+    ],  # Results after this publish date; excludes links with no date. ISO 8601 format.
+    "end_published_date": [
+        str
+    ],  # Results before this publish date; excludes links with no date. ISO 8601 format.
+    "include_text": [
+        list
+    ],  # Must be present in webpage text. (One string, up to 5 words)
+    "exclude_text": [
+        list
+    ],  # Must not be present in webpage text. (One string, up to 5 words)
     "use_autoprompt": [bool],  # Convert query to Exa. (Default: false)
     "type": [str],  # 'keyword', 'neural', or 'auto' (Default: auto)
-    "category": [str],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
+    "category": [
+        str
+    ],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
 }
@@ -188,6 +202,25 @@ def is_valid_type(value, expected_type):
     return False  # For any other case
 
 
+def parse_cost_dollars(raw: dict) -> Optional[CostDollars]:
+    """
+    Parse the costDollars JSON into a CostDollars object, or return None if missing/invalid.
+    """
+    if not raw:
+        return None
+
+    total = raw.get("total")
+    if total is None:
+        # If there's no total, treat as absent
+        return None
+
+    # search and contents can be dictionaries or None
+    search_part = raw.get("search")
+    contents_part = raw.get("contents")
+
+    return CostDollars(total=total, search=search_part, contents=contents_part)
+
+
 class TextContentsOptions(TypedDict, total=False):
     """A class representing the options that you can specify when requesting text
 
@@ -229,6 +262,30 @@ class ExtrasOptions(TypedDict, total=False):
 
     links: int
     image_links: int
+
+
+class CostDollarsSearch(TypedDict, total=False):
+    """Represents the cost breakdown for search."""
+
+    neural: float
+    keyword: float
+
+
+class CostDollarsContents(TypedDict, total=False):
+    """Represents the cost breakdown for contents."""
+
+    text: float
+    highlights: float
+    summary: float
+
+
+@dataclass
+class CostDollars:
+    """Represents costDollars field in the API response."""
+
+    total: float
+    search: CostDollarsSearch = None
+    contents: CostDollarsContents = None
 
 
 @dataclass
@@ -515,7 +572,8 @@ class AnswerResult:
         author (str, optional): If available, the author of the content.
         text (str, optional): The full page text from each search result.
     """
-    id: str 
+
+    id: str
     url: str
     title: Optional[str] = None
     published_date: Optional[str] = None
@@ -523,12 +581,12 @@ class AnswerResult:
     text: Optional[str] = None
 
     def __init__(self, **kwargs):
-        self.id = kwargs['id']
-        self.url = kwargs['url']
-        self.title = kwargs.get('title')    
-        self.published_date = kwargs.get('published_date')
-        self.author = kwargs.get('author')  
-        self.text = kwargs.get('text')
+        self.id = kwargs["id"]
+        self.url = kwargs["url"]
+        self.title = kwargs.get("title")
+        self.published_date = kwargs.get("published_date")
+        self.author = kwargs.get("author")
+        self.text = kwargs.get("text")
 
     def __str__(self):
         return (
@@ -539,18 +597,20 @@ class AnswerResult:
             f"Author: {self.author}\n"
             f"Text: {self.text}\n\n"
         )
-    
+
+
 @dataclass
 class StreamChunk:
     """A class representing a single chunk of streaming data.
-    
+
     Attributes:
         content (Optional[str]): The partial text content of the answer
         citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk
     """
+
     content: Optional[str] = None
     citations: Optional[List[AnswerResult]] = None
-    
+
     def has_data(self) -> bool:
         """Check if this chunk contains any data."""
         return self.content is not None or self.citations is not None
@@ -594,6 +654,7 @@ class AnswerResponse:
 
 class StreamAnswerResponse:
     """A class representing a streaming answer response."""
+
     def __init__(self, raw_response: requests.Response):
         self._raw_response = raw_response
         self._ensure_ok_status()
@@ -621,8 +682,14 @@ class StreamAnswerResponse:
                 if "delta" in chunk["choices"][0]:
                     content = chunk["choices"][0]["delta"].get("content")
 
-            if "citations" in chunk and chunk["citations"] and chunk["citations"] != "null":
-                citations = [AnswerResult(**to_snake_case(s)) for s in chunk["citations"]]
+            if (
+                "citations" in chunk
+                and chunk["citations"]
+                and chunk["citations"] != "null"
+            ):
+                citations = [
+                    AnswerResult(**to_snake_case(s)) for s in chunk["citations"]
+                ]
 
             stream_chunk = StreamChunk(content=content, citations=citations)
             if stream_chunk.has_data():
@@ -651,6 +718,7 @@ class SearchResponse(Generic[T]):
     autoprompt_string: Optional[str]
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
+    cost_dollars: Optional[CostDollars] = None
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
@@ -658,7 +726,12 @@ class SearchResponse(Generic[T]):
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
         if self.resolved_search_type:
             output += f"\nResolved Search Type: {self.resolved_search_type}"
-
+        if self.cost_dollars:
+            output += f"\nCostDollars: total={self.cost_dollars.total}"
+            if self.cost_dollars.search:
+                output += f"\n  - search: {self.cost_dollars.search}"
+            if self.cost_dollars.contents:
+                output += f"\n  - contents: {self.cost_dollars.contents}"
         return output
 
 
@@ -686,7 +759,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.8.8",
+        user_agent: str = "exa-py 1.8.9",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -720,12 +793,16 @@ class Exa:
             ValueError: If the request fails (non-200 status code).
         """
         if data.get("stream"):
-            res = requests.post(self.base_url + endpoint, json=data, headers=self.headers, stream=True)
+            res = requests.post(
+                self.base_url + endpoint, json=data, headers=self.headers, stream=True
+            )
             return res
 
         res = requests.post(self.base_url + endpoint, json=data, headers=self.headers)
         if res.status_code != 200:
-            raise ValueError(f"Request failed with status code {res.status_code}: {res.text}")
+            raise ValueError(
+                f"Request failed with status code {res.status_code}: {res.text}"
+            )
         return res.json()
 
     def search(
@@ -773,11 +850,13 @@ class Exa:
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
         options = to_camel_case(options)
         data = self.request("/search", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            cost_dollars=cost_dollars,
         )
 
     @overload
@@ -805,8 +884,7 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def search_and_contents(
@@ -834,8 +912,7 @@ class Exa:
         filter_empty_results: Optional[bool] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def search_and_contents(
@@ -863,8 +940,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithHighlights]: ...
 
     @overload
     def search_and_contents(
@@ -893,8 +969,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlights]: ...
 
     @overload
     def search_and_contents(
@@ -922,8 +997,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithSummary]:
-        ...
+    ) -> SearchResponse[ResultWithSummary]: ...
 
     @overload
     def search_and_contents(
@@ -952,8 +1026,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithTextAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
     @overload
     def search_and_contents(
@@ -982,8 +1055,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]: ...
 
     @overload
     def search_and_contents(
@@ -1013,8 +1085,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
     def search_and_contents(self, query: str, **kwargs):
         options = {k: v for k, v in {"query": query, **kwargs}.items() if v is not None}
@@ -1053,11 +1124,13 @@ class Exa:
         )
         options = to_camel_case(options)
         data = self.request("/search", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            cost_dollars=cost_dollars,
         )
 
     @overload
@@ -1071,8 +1144,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def get_contents(
@@ -1087,8 +1159,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def get_contents(
@@ -1103,8 +1174,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithHighlights]: ...
 
     @overload
     def get_contents(
@@ -1120,8 +1190,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlights]: ...
 
     @overload
     def get_contents(
@@ -1136,8 +1205,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithSummary]:
-        ...
+    ) -> SearchResponse[ResultWithSummary]: ...
 
     @overload
     def get_contents(
@@ -1153,8 +1221,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithTextAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
     @overload
     def get_contents(
@@ -1170,8 +1237,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]: ...
 
     @overload
     def get_contents(
@@ -1188,8 +1254,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
     def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
         options = {
@@ -1211,11 +1276,13 @@ class Exa:
         )
         options = to_camel_case(options)
         data = self.request("/contents", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            cost_dollars=cost_dollars,
         )
 
     def find_similar(
@@ -1259,11 +1326,13 @@ class Exa:
         validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            cost_dollars=cost_dollars,
         )
 
     @overload
@@ -1289,8 +1358,7 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1316,8 +1384,7 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithText]:
-        ...
+    ) -> SearchResponse[ResultWithText]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1343,8 +1410,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithHighlights]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1371,8 +1437,7 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlights]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlights]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1398,8 +1463,7 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithSummary]:
-        ...
+    ) -> SearchResponse[ResultWithSummary]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1426,8 +1490,7 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithTextAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1454,8 +1517,7 @@ class Exa:
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithHighlightsAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithHighlightsAndSummary]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1483,8 +1545,7 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]:
-        ...
+    ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
     def find_similar_and_contents(self, url: str, **kwargs):
         options = {k: v for k, v in {"url": url, **kwargs}.items() if v is not None}
@@ -1521,18 +1582,20 @@ class Exa:
         )
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            cost_dollars=cost_dollars,
         )
 
     def wrap(self, client: OpenAI):
         """Wrap an OpenAI client with Exa functionality.
 
-        After wrapping, any call to `client.chat.completions.create` will be intercepted 
-        and enhanced with Exa RAG functionality. To disable Exa for a specific call, 
+        After wrapping, any call to `client.chat.completions.create` will be intercepted
+        and enhanced with Exa RAG functionality. To disable Exa for a specific call,
         set `use_exa="none"` in the `create` method.
 
         Args:
@@ -1662,8 +1725,7 @@ class Exa:
         stream: Optional[bool] = False,
         text: Optional[bool] = False,
         model: Optional[Literal["exa", "exa-pro"]] = None,
-    ) -> Union[AnswerResponse, StreamAnswerResponse]:
-        ...
+    ) -> Union[AnswerResponse, StreamAnswerResponse]: ...
 
     def answer(
         self,
@@ -1692,17 +1754,13 @@ class Exa:
                 "Please use `stream_answer(...)` for streaming."
             )
 
-        options = {
-            k: v
-            for k, v in locals().items()
-            if k != "self" and v is not None
-        }
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
         options = to_camel_case(options)
         response = self.request("/answer", options)
 
         return AnswerResponse(
             response["answer"],
-            [AnswerResult(**to_snake_case(result)) for result in response["citations"]]
+            [AnswerResult(**to_snake_case(result)) for result in response["citations"]],
         )
 
     def stream_answer(
@@ -1723,13 +1781,8 @@ class Exa:
             StreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
                 Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
         """
-        options = {
-            k: v
-            for k, v in locals().items()
-            if k != "self" and v is not None
-        }
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
         options = to_camel_case(options)
         options["stream"] = True
         raw_response = self.request("/answer", options)
         return StreamAnswerResponse(raw_response)
-
