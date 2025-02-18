@@ -187,6 +187,27 @@ def is_valid_type(value, expected_type):
         return isinstance(value, expected_type)
     return False  # For any other case
 
+def parse_cost_dollars(raw: dict) -> Optional[CostDollars]:
+    """
+    Parse the costDollars JSON into a CostDollars object, or return None if missing/invalid.
+    """
+    if not raw:
+        return None
+    
+    total = raw.get("total")
+    if total is None:
+        # If there's no total, treat as absent
+        return None
+
+    # search and contents can be dictionaries or None
+    search_part = raw.get("search")
+    contents_part = raw.get("contents")
+
+    return CostDollars(
+        total=total,
+        search=search_part,
+        contents=contents_part
+    )
 
 class TextContentsOptions(TypedDict, total=False):
     """A class representing the options that you can specify when requesting text
@@ -230,6 +251,24 @@ class ExtrasOptions(TypedDict, total=False):
     links: int
     image_links: int
 
+class CostDollarsSearch(TypedDict, total=False):
+    """Represents the cost breakdown for search."""
+    neural: float
+    keyword: float
+
+
+class CostDollarsContents(TypedDict, total=False):
+    """Represents the cost breakdown for contents."""
+    text: float
+    highlight: float
+    summary: float
+
+@dataclass
+class CostDollars:
+    """Represents costDollars field in the API response."""
+    total: float
+    search: CostDollarsSearch = None
+    contents: CostDollarsContents = None
 
 @dataclass
 class _Result:
@@ -635,7 +674,6 @@ class StreamAnswerResponse:
 
 T = TypeVar("T")
 
-
 @dataclass
 class SearchResponse(Generic[T]):
     """A class representing the response for a search operation.
@@ -651,6 +689,7 @@ class SearchResponse(Generic[T]):
     autoprompt_string: Optional[str]
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
+    cost_dollars: Optional[CostDollars] = None
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
@@ -658,7 +697,12 @@ class SearchResponse(Generic[T]):
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
         if self.resolved_search_type:
             output += f"\nResolved Search Type: {self.resolved_search_type}"
-
+        if self.cost_dollars:
+            output += f"\nCostDollars: total={self.cost_dollars.total}"
+            if self.cost_dollars.search:
+                output += f"\n  - search: {self.cost_dollars.search}"
+            if self.cost_dollars.contents:
+                output += f"\n  - contents: {self.cost_dollars.contents}"
         return output
 
 
@@ -685,7 +729,7 @@ class Exa:
     def __init__(
         self,
         api_key: Optional[str],
-        base_url: str = "https://api.exa.ai",
+        base_url: str = "https://tom-vulcan.tunnel.exa.sh",
         user_agent: str = "exa-py 1.8.8",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
@@ -773,11 +817,13 @@ class Exa:
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
         options = to_camel_case(options)
         data = self.request("/search", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            cost_dollars=cost_dollars
         )
 
     @overload
@@ -1053,11 +1099,13 @@ class Exa:
         )
         options = to_camel_case(options)
         data = self.request("/search", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            cost_dollars=cost_dollars,
         )
 
     @overload
@@ -1211,11 +1259,13 @@ class Exa:
         )
         options = to_camel_case(options)
         data = self.request("/contents", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            cost_dollars=cost_dollars,
         )
 
     def find_similar(
@@ -1259,11 +1309,13 @@ class Exa:
         validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
+        cost_dollars=parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            cost_dollars=cost_dollars
         )
 
     @overload
@@ -1521,11 +1573,13 @@ class Exa:
         )
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            cost_dollars=cost_dollars,
         )
 
     def wrap(self, client: OpenAI):
