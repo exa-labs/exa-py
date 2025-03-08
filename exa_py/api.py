@@ -252,10 +252,12 @@ class SummaryContentsOptions(TypedDict, total=False):
 
     Attributes:
         query (str): The query string for the summary. Summary will bias towards answering the query.
+        schema (dict): JSON schema for structured output from summary.
     """
 
     query: str
-
+    schema: dict
+    
 
 class ExtrasOptions(TypedDict, total=False):
     """A class representing additional extraction fields (e.g. links, images)"""
