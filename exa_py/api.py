@@ -47,6 +47,12 @@ def snake_to_camel(snake_str: str) -> str:
     Returns:
         str: The string converted to camelCase format.
     """
+    # Handle special cases where the field should start with non-alphanumeric characters
+    if snake_str == "schema_":
+        return "$schema"
+    if snake_str == "not_":
+        return "not"
+        
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
 
@@ -247,16 +253,37 @@ class HighlightsContentsOptions(TypedDict, total=False):
     highlights_per_url: int
 
 
+class JSONSchema(TypedDict, total=False):
+    """Represents a JSON Schema definition used for structured summary output.
+    To learn more visit https://json-schema.org/overview/what-is-jsonschema.
+    """
+    schema_: str  # This will be converted to "$schema" in JSON
+    title: str
+    description: str
+    type: Literal["object", "array", "string", "number", "boolean", "null", "integer"]
+    properties: Dict[str, JSONSchema]
+    items: Union[JSONSchema, List[JSONSchema]]
+    required: List[str]
+    enum: List
+    additionalProperties: Union[bool, JSONSchema]
+    definitions: Dict[str, JSONSchema]
+    patternProperties: Dict[str, JSONSchema]
+    allOf: List[JSONSchema]
+    anyOf: List[JSONSchema]
+    oneOf: List[JSONSchema]
+    not_: JSONSchema  # This will be converted to "not" in JSON
+
+
 class SummaryContentsOptions(TypedDict, total=False):
     """A class representing the options that you can specify when requesting summary
 
     Attributes:
         query (str): The query string for the summary. Summary will bias towards answering the query.
-        schema (dict): JSON schema for structured output from summary.
+        schema (JSONSchema): JSON schema for structured output from summary.
     """
 
     query: str
-    schema: dict
+    schema: JSONSchema
     
 
 class ExtrasOptions(TypedDict, total=False):

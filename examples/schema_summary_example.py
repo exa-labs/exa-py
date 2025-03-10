@@ -1,6 +1,7 @@
 import os
 import json
 from exa_py import Exa
+from exa_py.api import JSONSchema  # Import the JSONSchema type for clarity
 
 EXA_API_KEY = os.environ.get('EXA_API_KEY')
 
@@ -10,8 +11,9 @@ if not EXA_API_KEY:
 exa = Exa(EXA_API_KEY)
 
 # Define a JSON schema for structured summary output.
-company_schema = {
-    "$schema": "http://json-schema.org/draft-07/schema#",
+company_schema: JSONSchema = {
+    # Originally $schema, but schema_ is used for python compatibility. Converted to $schema by the API.
+    "schema_": "http://json-schema.org/draft-07/schema#",
     "title": "Company Information",
     "type": "object",
     "properties": {
