@@ -1901,7 +1901,7 @@ class AsyncExa(Exa):
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
                 headers=self.headers,
-                timeout=10
+                timeout=60
             )
         return self._client
 
