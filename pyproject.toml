@@ -10,6 +10,7 @@ python = "^3.9"
 requests = "^2.32.3"
 typing-extensions = "^4.12.2"
 openai = "^1.48"
+httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
 python-dotenv = "^1.0.1"
