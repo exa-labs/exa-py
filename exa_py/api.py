@@ -1623,9 +1623,8 @@ class Exa:
     def wrap(self, client: OpenAI):
         """Wrap an OpenAI client with Exa functionality.
 
-        After wrapping, any call to `client.chat.completions.create` will be intercepted
-        and enhanced with Exa RAG functionality. To disable Exa for a specific call,
-        set `use_exa="none"` in the `create` method.
+        After wrapping, any call to `client.chat.completions.create` or `client.responses.create` 
+        will be intercepted and enhanced with Exa RAG functionality.
 
         Args:
             client (OpenAI): The OpenAI client to wrap.
@@ -1634,9 +1633,10 @@ class Exa:
             OpenAI: The wrapped OpenAI client.
         """
 
-        func = client.chat.completions.create
+        # Wrap the classic chat completions API
+        chat_func = client.chat.completions.create
 
-        @wraps(func)
+        @wraps(chat_func)
         def create_with_rag(
             # Mandatory OpenAI args
             messages: Iterable[ChatCompletionMessageParam],
@@ -1684,15 +1684,129 @@ class Exa:
             }
 
             return self._create_with_tool(
-                create_fn=func,
+                create_fn=chat_func,
                 messages=list(messages),
                 max_len=result_max_len,
                 create_kwargs=create_kwargs,
                 exa_kwargs=exa_kwargs,
             )
 
-        print("Wrapping OpenAI client with Exa functionality.")
-        client.chat.completions.create = create_with_rag  # type: ignore
+        # Wrap the new responses API
+        if hasattr(client, 'responses') and hasattr(client.responses, 'create'):
+            responses_func = client.responses.create
+            
+            @wraps(responses_func)
+            def create_with_responses_rag(
+                # Mandatory OpenAI args
+                input: Union[List[dict], List[ChatCompletionMessageParam]],
+                model: Union[str, ChatModel],
+                # Exa args
+                use_exa: Optional[Literal["required", "none", "auto"]] = "auto",
+                num_results: Optional[int] = 3,
+                include_domains: Optional[List[str]] = None,
+                exclude_domains: Optional[List[str]] = None,
+                highlights: Union[HighlightsContentsOptions, Literal[True], None] = None,
+                # Additional OpenAI args
+                **openai_kwargs
+            ):
+                # Define the Exa web search tool
+                exa_tool = {
+                    "type": "function",
+                    "name": "exa_websearch",
+                    "description": "Search the web using Exa. Provide relevant links in your answer.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Search query for Exa."
+                            }
+                        },
+                        "required": ["query"],
+                        "additionalProperties": False
+                    },
+                    "strict": True
+                }
+                
+                # Add our tool to any existing tools
+                tools = openai_kwargs.get('tools', [])
+                if isinstance(tools, list):
+                    tools.append(exa_tool)
+                else:
+                    tools = [exa_tool]
+                    
+                # Store search config
+                exa_kwargs = {
+                    "num_results": num_results,
+                    "include_domains": include_domains,
+                    "exclude_domains": exclude_domains,
+                    "type": "auto",
+                    "text": {
+                        "max_characters": 4000
+                    }
+                }
+                
+                # Send initial request to OpenAI
+                response = responses_func(
+                    model=model,
+                    input=input,
+                    tools=tools,
+                    **{k: v for k, v in openai_kwargs.items() if k != 'tools'}
+                )
+                
+                # Check if the model wants to use the search function
+                function_call = None
+                if hasattr(response, 'output'):
+                    for item in response.output:
+                        if hasattr(item, 'type') and item.type == 'function_call' and item.name == 'exa_websearch':
+                            function_call = item
+                            break
+                
+                if function_call:
+                    # Extract the search query
+                    args = json.loads(function_call.arguments)
+                    query = args.get("query", "")
+                    
+                    # Execute search with Exa API
+                    search_results = self.search_and_contents(query, **exa_kwargs)
+                    
+                    # Format the message for OpenAI
+                    new_input = list(input) if isinstance(input, list) else [input]
+                    
+                    # Add function call and search results to conversation
+                    new_input.append({
+                        "type": "function_call",
+                        "name": function_call.name,
+                        "arguments": function_call.arguments,
+                        "call_id": function_call.call_id
+                    })
+                    
+                    new_input.append({
+                        "type": "function_call_output",
+                        "call_id": function_call.call_id,
+                        "output": str(search_results)
+                    })
+                    
+                    # Send follow-up request to OpenAI with search results
+                    final_response = responses_func(
+                        model=model,
+                        input=new_input,
+                        tools=tools,
+                        **{k: v for k, v in openai_kwargs.items() if k != 'tools'}
+                    )
+                    
+                    # Add Exa result to the response
+                    final_response.exa_result = search_results
+                    return final_response
+                
+                return response
+            
+            # Apply the wrapper
+            client.responses.create = create_with_responses_rag
+
+        # Apply the original wrapper
+        client.chat.completions.create = create_with_rag
+        print("Wrapping OpenAI client with Exa functionality for both Chat Completions and Responses APIs.")
 
         return client
 
