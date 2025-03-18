@@ -933,8 +933,6 @@ class Exa:
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
-        flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         subpages: Optional[int] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
@@ -964,7 +962,6 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -993,7 +990,6 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1021,7 +1017,6 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1050,7 +1045,6 @@ class Exa:
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1078,8 +1072,6 @@ class Exa:
         category: Optional[str] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1107,11 +1099,8 @@ class Exa:
         type: Optional[str] = None,
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
@@ -1483,14 +1472,15 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithSummary]: ...
 
@@ -1510,43 +1500,17 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
-        flags: Optional[List[str]] = None,
-        livecrawl_timeout: Optional[int] = None,
-        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
-        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithTextAndSummary]: ...
-
-    @overload
-    def find_similar_and_contents(
-        self,
-        url: str,
-        *,
-        highlights: Union[HighlightsContentsOptions, Literal[True]],
-        summary: Union[SummaryContentsOptions, Literal[True]],
-        num_results: Optional[int] = None,
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-        start_crawl_date: Optional[str] = None,
-        end_crawl_date: Optional[str] = None,
-        start_published_date: Optional[str] = None,
-        end_published_date: Optional[str] = None,
-        include_text: Optional[List[str]] = None,
-        exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
         flags: Optional[List[str]] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithHighlightsAndSummary]: ...
+    ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
     @overload
     def find_similar_and_contents(
@@ -1565,14 +1529,13 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
@@ -1632,7 +1595,6 @@ class Exa:
         Returns:
             OpenAI: The wrapped OpenAI client.
         """
-
         # Wrap the classic chat completions API
         chat_func = client.chat.completions.create
 
@@ -1691,120 +1653,141 @@ class Exa:
                 exa_kwargs=exa_kwargs,
             )
 
-        # Wrap the new responses API
+        # Wrap the responses API
         if hasattr(client, 'responses') and hasattr(client.responses, 'create'):
             responses_func = client.responses.create
             
             @wraps(responses_func)
             def create_with_responses_rag(
-                # Mandatory OpenAI args
-                input: Union[List[dict], List[ChatCompletionMessageParam]],
                 model: Union[str, ChatModel],
-                # Exa args
-                use_exa: Optional[Literal["required", "none", "auto"]] = "auto",
-                num_results: Optional[int] = 3,
-                include_domains: Optional[List[str]] = None,
-                exclude_domains: Optional[List[str]] = None,
-                highlights: Union[HighlightsContentsOptions, Literal[True], None] = None,
-                # Additional OpenAI args
+                input: Union[List[dict], List[ChatCompletionMessageParam]],
+                tools: Optional[List[dict]] = None,
                 **openai_kwargs
             ):
-                # Define the Exa web search tool
-                exa_tool = {
-                    "type": "function",
-                    "name": "exa_websearch",
-                    "description": "Search the web using Exa. Provide relevant links in your answer.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "Search query for Exa."
-                            }
-                        },
-                        "required": ["query"],
-                        "additionalProperties": False
-                    },
-                    "strict": True
-                }
+                # Initialize tools if not provided
+                tools = tools or []
                 
-                # Add our tool to any existing tools
-                tools = openai_kwargs.get('tools', [])
-                if isinstance(tools, list):
-                    tools.append(exa_tool)
-                else:
-                    tools = [exa_tool]
-                    
-                # Store search config
-                exa_kwargs = {
-                    "num_results": num_results,
-                    "include_domains": include_domains,
-                    "exclude_domains": exclude_domains,
-                    "type": "auto",
-                    "text": {
-                        "max_characters": 4000
+                # Check if web_search_exa tool is included
+                exa_config = {}
+                exa_tool_index = None
+                
+                for i, tool in enumerate(tools):
+                    if tool.get("type") == "web_search_exa":
+                        # Extract configuration if provided
+                        exa_config = tool.get("config", {})
+                        exa_tool_index = i
+                        break
+                
+
+                # Only proceed with Exa integration if web_search_exa was requested
+                if exa_tool_index is not None:
+                    # Replace the web_search_exa tool with a function tool
+                    tools[exa_tool_index] = {
+                        "type": "function",
+                        "name": "exa_search",
+                        "description": "Search the web using Exa",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "The search query"
+                                }
+                            },
+                            "required": ["query"]
+                        }
                     }
-                }
+                else:
+                    # If no web_search_exa tool requested, just pass through to original function
+                    return responses_func(
+                        model=model,
+                        input=input,
+                        tools=tools,
+                        **openai_kwargs
+                    )
                 
-                # Send initial request to OpenAI
+                # Make initial API call
                 response = responses_func(
                     model=model,
                     input=input,
                     tools=tools,
-                    **{k: v for k, v in openai_kwargs.items() if k != 'tools'}
+                    **openai_kwargs
                 )
                 
-                # Check if the model wants to use the search function
+                # Check for function calls
                 function_call = None
                 if hasattr(response, 'output'):
                     for item in response.output:
-                        if hasattr(item, 'type') and item.type == 'function_call' and item.name == 'exa_websearch':
+                        if hasattr(item, 'type') and item.type == 'function_call' and item.name == 'exa_search':
                             function_call = item
                             break
-                
+
                 if function_call:
-                    # Extract the search query
                     args = json.loads(function_call.arguments)
-                    query = args.get("query", "")
+                    query = args.get("query")
                     
-                    # Execute search with Exa API
-                    search_results = self.search_and_contents(query, **exa_kwargs)
-                    
-                    # Format the message for OpenAI
-                    new_input = list(input) if isinstance(input, list) else [input]
-                    
-                    # Add function call and search results to conversation
-                    new_input.append({
-                        "type": "function_call",
-                        "name": function_call.name,
-                        "arguments": function_call.arguments,
-                        "call_id": function_call.call_id
-                    })
-                    
-                    new_input.append({
-                        "type": "function_call_output",
-                        "call_id": function_call.call_id,
-                        "output": str(search_results)
-                    })
-                    
-                    # Send follow-up request to OpenAI with search results
-                    final_response = responses_func(
-                        model=model,
-                        input=new_input,
-                        tools=tools,
-                        **{k: v for k, v in openai_kwargs.items() if k != 'tools'}
-                    )
-                    
-                    # Add Exa result to the response
-                    final_response.exa_result = search_results
-                    return final_response
-                
+                    if query:
+                        num_results = exa_config.get("num_results", 3)
+                        max_chars = exa_config.get("text", {}).get("max_characters", 2000)
+                        
+                        
+                        try:
+                            search_results = self.search_and_contents(
+                                query=query,
+                                num_results=num_results,
+                                text={"max_characters": max_chars}
+                            )
+
+                            
+                            # Format search results - Fixed string concatenation
+                            results_text_parts = []
+                            for i, result in enumerate(search_results.results):
+                                result_text = f"\nTitle: {result.title}\nURL: {result.url}\n"
+                                if hasattr(result, 'text') and result.text:
+                                    result_text += f"Content: {result.text[:500]}...\n"
+                                results_text_parts.append(result_text)
+                            
+                            results_text = "".join(results_text_parts)
+
+                            # Add function call and results to messages
+                            new_input = list(input)
+                            new_input.append({
+                                "type": "function_call",
+                                "name": "exa_search", 
+                                "arguments": function_call.arguments,
+                                "call_id": function_call.call_id
+                            })
+                            new_input.append({
+                                "type": "function_call_output",
+                                "call_id": function_call.call_id,
+                                "output": results_text
+                            })
+
+                            # Send final request with search results
+                            final_response = responses_func(
+                                model=model,
+                                input=new_input,
+                                tools=tools,
+                                **openai_kwargs
+                            )
+                            
+                            # Attach search results to response
+                            final_response.exa_result = search_results
+                            return final_response
+
+                        except Exception as e:
+                            print(f"Error during search: {str(e)}")
+                            print(f"Error type: {type(e)}")
+                            import traceback
+                            print(f"Traceback: {traceback.format_exc()}")
+                            raise
+
                 return response
-            
+
             # Apply the wrapper
             client.responses.create = create_with_responses_rag
 
-        # Apply the original wrapper
+        # Apply the chat completions wrapper
         client.chat.completions.create = create_with_rag
         print("Wrapping OpenAI client with Exa functionality for both Chat Completions and Responses APIs.")
 
