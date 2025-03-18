@@ -38,7 +38,7 @@ questions = [
 def get_answer_with_exa(question):
     """Get an answer using Exa search through OpenAI's Responses API."""
     response = openai_client.responses.create(
-        model="gpt-4",
+        model="gpt-4o",
         input=[
             {
                 "role": "system",

@@ -1671,6 +1671,10 @@ class Exa:
                 exa_config = {}
                 exa_tool_index = None
                 
+                input = [{
+                    "role": "system",
+                    "content": "You are a helpful assistant. When users ask questions, use the exa_search function to find relevant information and provide detailed answers with citations."
+                }] + input
                 for i, tool in enumerate(tools):
                     if tool.get("type") == "web_search_exa":
                         # Extract configuration if provided
