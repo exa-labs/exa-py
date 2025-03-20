@@ -34,6 +34,7 @@ from exa_py.utils import (
     format_exa_result,
     maybe_get_query,
 )
+from .websets import WebsetsClient
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -806,13 +807,16 @@ class Exa:
                 )
         self.base_url = base_url
         self.headers = {"x-api-key": api_key, "User-Agent": user_agent}
+        self.websets = WebsetsClient(self)
 
-    def request(self, endpoint: str, data):
-        """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
+    def request(self, endpoint: str, data=None, method="POST", params=None):
+        """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
             endpoint (str): The API endpoint (path).
-            data (dict): The JSON payload to send.
+            data (dict, optional): The JSON payload to send. Defaults to None.
+            method (str, optional): The HTTP method to use. Defaults to "POST".
+            params (dict, optional): Query parameters to include. Defaults to None.
 
         Returns:
             Union[dict, requests.Response]: If streaming, returns the Response object.
@@ -821,14 +825,32 @@ class Exa:
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
-        if data.get("stream"):
+        if data and data.get("stream"):
             res = requests.post(
                 self.base_url + endpoint, json=data, headers=self.headers, stream=True
             )
             return res
 
-        res = requests.post(self.base_url + endpoint, json=data, headers=self.headers)
-        if res.status_code != 200:
+        if method.upper() == "GET":
+            res = requests.get(
+                self.base_url + endpoint, headers=self.headers, params=params
+            )
+        elif method.upper() == "POST":
+            res = requests.post(
+                self.base_url + endpoint, json=data, headers=self.headers
+            )
+        elif method.upper() == "PATCH":
+            res = requests.patch(
+                self.base_url + endpoint, json=data, headers=self.headers
+            )
+        elif method.upper() == "DELETE":
+            res = requests.delete(
+                self.base_url + endpoint, headers=self.headers
+            )
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+
+        if res.status_code >= 400:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
             )
@@ -1078,8 +1100,6 @@ class Exa:
         category: Optional[str] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
-        flags: Optional[List[str]] = None,
-        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
