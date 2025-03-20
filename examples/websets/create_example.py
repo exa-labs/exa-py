@@ -22,7 +22,7 @@ response = exa.websets.create(
 )
 
 # Wait until Webset completes
-webset = exa.websets.waitUntilIdle(response.id)
+webset = exa.websets.wait_until_idle(response.id)
 
 
 # Retrieve Webset Items

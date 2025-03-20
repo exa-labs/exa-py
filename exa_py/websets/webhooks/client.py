@@ -28,7 +28,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         response = self.request("/v0/webhooks", data=params.model_dump(by_alias=True, exclude_none=True))
         return Webhook.model_validate(response)
 
-    def retrieve(self, id: str) -> Webhook:
+    def get(self, id: str) -> Webhook:
         """Get a Webhook by ID.
         
         Args:

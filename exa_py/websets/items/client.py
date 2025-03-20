@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import  Optional
+from typing import  Optional, Iterator
 
 from ..types import (
     WebsetItem,
@@ -30,7 +30,28 @@ class WebsetItemsClient(WebsetsBaseClient):
         response = self.request(f"/v0/websets/{webset_id}/items", params=params, method="GET")
         return ListWebsetItemResponse.model_validate(response)
 
-    def retrieve(self, webset_id: str, id: str) -> WebsetItem:
+    def list_all(self, webset_id: str, *, limit: Optional[int] = None) -> Iterator[WebsetItem]:
+        """Iterate through all Items in a Webset, handling pagination automatically.
+        
+        Args:
+            webset_id (str): The id or externalId of the Webset.
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Yields:
+            WebsetItem: Each item in the webset.
+        """
+        cursor = None
+        while True:
+            response = self.list(webset_id, cursor=cursor, limit=limit)
+            for item in response.data:
+                yield item
+            
+            if not response.has_more or not response.next_cursor:
+                break
+                
+            cursor = response.next_cursor
+
+    def get(self, webset_id: str, id: str) -> WebsetItem:
         """Get an Item by ID.
         
         Args:

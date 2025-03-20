@@ -39,7 +39,7 @@ class WebsetsClient(WebsetsBaseClient):
         response = self.request("/v0/websets", data=params.model_dump(by_alias=True, exclude_none=True))
         return Webset.model_validate(response)
 
-    def retrieve(self, id: str, *, expand: Optional[List[Literal["items"]]] = None) -> GetWebsetResponse:
+    def get(self, id: str, *, expand: Optional[List[Literal["items"]]] = None) -> GetWebsetResponse:
         """Get a Webset by ID.
         
         Args:
@@ -105,7 +105,7 @@ class WebsetsClient(WebsetsBaseClient):
         response = self.request(f"/v0/websets/{id}/cancel", method="POST")
         return Webset.model_validate(response) 
     
-    def waitUntilIdle(self, id: str, *, timeout: Optional[int] = None) -> Webset:
+    def wait_until_idle(self, id: str, *, timeout: Optional[int] = None) -> Webset:
         """Wait until a Webset is idle.
         
         Args:
@@ -116,7 +116,7 @@ class WebsetsClient(WebsetsBaseClient):
         """
         start_time = time.time()
         while True:
-            webset = self.retrieve(id)
+            webset = self.get(id)
             if webset.status == WebsetStatus.idle:
                 break
             time.sleep(1)

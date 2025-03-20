@@ -25,7 +25,7 @@ class WebsetEnrichmentsClient(WebsetsBaseClient):
         response = self.request(f"/v0/websets/{webset_id}/enrichments", data=params.model_dump(by_alias=True, exclude_none=True))
         return WebsetEnrichment.model_validate(response)
 
-    def retrieve(self, webset_id: str, id: str) -> WebsetEnrichment:
+    def get(self, webset_id: str, id: str) -> WebsetEnrichment:
         """Get an Enrichment by ID.
         
         Args:

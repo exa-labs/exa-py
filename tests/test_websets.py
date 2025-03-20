@@ -166,7 +166,7 @@ def test_response_case_conversion(websets_client, parent_mock):
     }
     
     parent_mock.request.return_value = mock_response
-    result = websets_client.retrieve(id="ws_123")
+    result = websets_client.get(id="ws_123")
     
     assert result.external_id == "test-id"
     assert result.created_at == datetime.fromisoformat(mock_response["createdAt"])

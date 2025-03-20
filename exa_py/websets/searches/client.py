@@ -25,7 +25,7 @@ class WebsetSearchesClient(WebsetsBaseClient):
         response = self.request(f"/v0/websets/{webset_id}/searches", data=params.model_dump(by_alias=True, exclude_none=True))
         return WebsetSearch.model_validate(response)
 
-    def retrieve(self, webset_id: str, id: str) -> WebsetSearch:
+    def get(self, webset_id: str, id: str) -> WebsetSearch:
         """Get a Search by ID.
         
         Args:
