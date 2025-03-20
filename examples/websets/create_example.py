@@ -3,7 +3,7 @@ import os
 
 from exa_py.websets.core.model import CreateWebsetParameters, CreateEnrichmentParameters
 
-exa = Exa("0db316b5-679a-460f-9c76-b66a772078bb", base_url="https://api.exa.sh")
+exa = Exa(os.environ.get("EXA_API_KEY"))
 
 # Create Webset
 response = exa.websets.create(
@@ -13,12 +13,12 @@ response = exa.websets.create(
             "query": "Engineers based in San Francisco",
             "count": 10,
         },
-        # enrichments=[
-        #     CreateEnrichmentParameters(
-        #         description="LinkedIn profile of VP of Engineering or related role",
-        #         format="text",
-        #     ),
-        # ],
+        enrichments=[
+            CreateEnrichmentParameters(
+                description="LinkedIn profile of VP of Engineering or related role",
+                format="text",
+            ),
+        ],
     )
 )
 
