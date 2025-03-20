@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..core.model import (
+from ..types import (
     CreateEnrichmentParameters,
     WebsetEnrichment,
 )

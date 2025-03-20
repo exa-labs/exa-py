@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import time
 from typing import List, Optional, Literal
 
-from .core.model import (
+from .types import (
     Webset,
     ListWebsetsResponse,
     GetWebsetResponse,

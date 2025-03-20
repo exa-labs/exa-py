@@ -1,7 +1,7 @@
 from exa_py import Exa
 import os
 
-from exa_py.websets.core.model import CreateWebsetParameters, CreateEnrichmentParameters
+from exa_py.websets.types import CreateWebsetParameters, CreateEnrichmentParameters
 
 exa = Exa(os.environ.get("EXA_API_KEY"))
 

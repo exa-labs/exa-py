@@ -1,4 +1,4 @@
-from .model import *
+from ..types import *
 import sys
 
 # Get all public names from model module that don't start with underscore

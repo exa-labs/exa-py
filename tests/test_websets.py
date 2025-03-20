@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 from exa_py.websets.client import WebsetsClient
 from exa_py.websets.core.base import WebsetsBaseClient
 from exa_py.api import snake_to_camel, camel_to_snake, to_camel_case, to_snake_case
-from exa_py.websets.core.model import (
+from exa_py.websets.types import (
     UpdateWebsetRequest,
     CreateWebsetRequest,
     Search

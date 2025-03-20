@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from ..core.model import (
+from ..types import (
     CreateWebhookParameters,
     Webhook,
     ListWebhooksResponse,
