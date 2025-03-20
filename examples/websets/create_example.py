@@ -10,7 +10,7 @@ response = exa.websets.create(
     params=CreateWebsetParameters(
         external_id="test-webset",
         search={
-            "query": "Engineers based in San Francisco",
+            "query": "Tech companies in San Francisco with more than 20 and less than 100 employees",
             "count": 10,
         },
         enrichments=[
