@@ -59,8 +59,8 @@ def items_client(websets_client):
     ("test_case", "testCase"),
     ("multiple_word_test", "multipleWordTest"),
     ("single", "single"),
-    ("schema_", "$schema"),  # Special case
-    ("not_", "not"),  # Special case
+    ("schema_", "$schema"),
+    ("not_", "not"),
 ])
 def test_snake_to_camel(input, expected):
     """Test snake_case to camelCase conversion."""
@@ -131,19 +131,17 @@ def test_request_body_case_conversion(websets_client, parent_mock):
     
     parent_mock.request.return_value = mock_response
     
-    # Create a request with snake_case fields
     request = CreateWebsetRequest(
-        external_id="test-id",  # This will be sent as externalId to the API
+        external_id="test-id",
         search=Search(
             query="test query",
             count=10
         ),
-        metadata={"snake_case_key": "value"}  # This should remain unchanged
+        metadata={"snake_case_key": "value"}
     )
     
-    result = websets_client.create(params=request)
+    websets_client.create(params=request)
     
-    # Verify the request body was converted to camelCase
     actual_data = parent_mock.request.call_args[1]['data']
     assert actual_data == {
         "search": {
@@ -170,19 +168,17 @@ def test_response_case_conversion(websets_client, parent_mock):
     parent_mock.request.return_value = mock_response
     result = websets_client.retrieve(id="ws_123")
     
-    # Test that API camelCase is converted to SDK snake_case
     assert result.external_id == "test-id"
     assert result.created_at == datetime.fromisoformat(mock_response["createdAt"])
 
 
 def test_metadata_case_preservation(websets_client, parent_mock):
     """Test that metadata keys preserve their original case format when sent to API."""
-    # Test case preservation in both directions
     test_cases = [
-        {"snake_case_key": "value"},  # Snake case should be preserved
-        {"camelCaseKey": "value"},    # Camel case should be preserved
-        {"UPPER_CASE": "value"},      # Upper case should be preserved
-        {"mixed_Case_Key": "value"},  # Mixed case should be preserved
+        {"snake_case_key": "value"},
+        {"camelCaseKey": "value"},
+        {"UPPER_CASE": "value"},
+        {"mixed_Case_Key": "value"},
     ]
     
     for metadata in test_cases:
@@ -200,15 +196,12 @@ def test_metadata_case_preservation(websets_client, parent_mock):
         
         parent_mock.request.return_value = mock_response
         
-        # Test sending metadata to API
         request = UpdateWebsetRequest(metadata=metadata)
         result = websets_client.update(id="ws_123", params=request)
         
-        # Verify metadata case is preserved in request
         actual_data = parent_mock.request.call_args[1]['data']
         assert actual_data["metadata"] == metadata
         
-        # Verify metadata case is preserved in response
         assert result.metadata == metadata
 
 def test_nested_property_case_conversion(items_client, parent_mock):
