@@ -528,6 +528,10 @@ class WebsetEnrichment(ExaBaseModel):
     """
     The status of the enrichment
     """
+    webset_id: str = Field(..., alias='websetId')
+    """
+    The unique identifier for the Webset this enrichment belongs to.
+    """
     title: Optional[str] = None
     """
     The title of the enrichment.
