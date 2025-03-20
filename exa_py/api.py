@@ -1100,6 +1100,8 @@ class Exa:
         category: Optional[str] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
