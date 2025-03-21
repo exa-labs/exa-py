@@ -26,7 +26,7 @@ webset = exa.websets.wait_until_idle(response.id)
 
 
 # Retrieve Webset Items
-response = exa.websets.items.list(id=response.id)
+response = exa.websets.items.list(webset_id=response.id)
 
 for item in response.data:
     print(item)
