@@ -31,5 +31,6 @@ build/
 .env
 
 test/
+.coverage
 
 .aider*
