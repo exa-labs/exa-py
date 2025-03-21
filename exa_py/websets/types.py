@@ -29,7 +29,7 @@ class CreateEnrichmentParameters(ExaBaseModel):
     """
     Provide a description of the enrichment task you want to perform to each Webset Item.
     """
-    format: Optional[Format] = None
+    format: Optional[str] = None
     """
     Format of the enrichment response.
 
