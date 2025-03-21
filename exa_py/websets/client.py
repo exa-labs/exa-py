@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import time
+import time
+from datetime import datetime
 from typing import List, Optional, Literal
 
 from .types import (
