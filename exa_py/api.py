@@ -22,6 +22,7 @@ from typing import (
     overload,
 )
 
+import httpx
 import requests
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
@@ -724,6 +725,56 @@ class StreamAnswerResponse:
             stream_chunk = StreamChunk(content=content, citations=citations)
             if stream_chunk.has_data():
                 yield stream_chunk
+
+    def close(self) -> None:
+        """Close the underlying raw response to release the network socket."""
+        self._raw_response.close()
+
+
+class AsyncStreamAnswerResponse:
+    """A class representing a streaming answer response."""
+
+    def __init__(self, raw_response: httpx.Response):
+        self._raw_response = raw_response
+        self._ensure_ok_status()
+
+    def _ensure_ok_status(self):
+        if self._raw_response.status_code != 200:
+            raise ValueError(
+                f"Request failed with status code {self._raw_response.status_code}: {self._raw_response.text}"
+            )
+
+    def __aiter__(self):
+        async def generator():
+            async for line in self._raw_response.aiter_lines():
+                if not line:
+                    continue
+                decoded_line = line.removeprefix("data: ")
+                try:
+                    chunk = json.loads(decoded_line)
+                except json.JSONDecodeError:
+                    continue
+
+                content = None
+                citations = None
+
+                if "choices" in chunk and chunk["choices"]:
+                    if "delta" in chunk["choices"][0]:
+                        content = chunk["choices"][0]["delta"].get("content")
+
+                if (
+                        "citations" in chunk
+                        and chunk["citations"]
+                        and chunk["citations"] != "null"
+                ):
+                    citations = [
+                        AnswerResult(**to_snake_case(s)) for s in chunk["citations"]
+                    ]
+
+                stream_chunk = StreamChunk(content=content, citations=citations)
+                if stream_chunk.has_data():
+                    yield stream_chunk
+        return generator()
 
     def close(self) -> None:
         """Close the underlying raw response to release the network socket."""
@@ -1837,3 +1888,333 @@ class Exa:
         options["stream"] = True
         raw_response = self.request("/answer", options)
         return StreamAnswerResponse(raw_response)
+
+class AsyncExa(Exa):
+    def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
+        super().__init__(api_key, api_base)
+        self._client = None
+
+    @property
+    def client(self) -> httpx.AsyncClient:
+        # this may only be a
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                headers=self.headers,
+                timeout=10
+            )
+        return self._client
+
+    async def async_request(self, endpoint: str, data):
+        """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
+
+        Args:
+            endpoint (str): The API endpoint (path).
+            data (dict): The JSON payload to send.
+
+        Returns:
+            Union[dict, requests.Response]: If streaming, returns the Response object.
+            Otherwise, returns the JSON-decoded response as a dict.
+
+        Raises:
+            ValueError: If the request fails (non-200 status code).
+        """
+        if data.get("stream"):
+            request = httpx.Request(
+                'POST',
+                self.base_url + endpoint,
+                json=data,
+                headers=self.headers
+            )
+            res = await self.client.send(request, stream=True)
+            return res
+
+        res = await self.client.post(self.base_url + endpoint, json=data, headers=self.headers)
+        if res.status_code != 200:
+            raise ValueError(
+                f"Request failed with status code {res.status_code}: {res.text}"
+            )
+        return res.json()
+
+    async def search(
+        self,
+        query: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
+        category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
+    ) -> SearchResponse[_Result]:
+        """Perform a search with a prompt-engineered query to retrieve relevant results.
+
+        Args:
+            query (str): The query string.
+            num_results (int, optional): Number of search results to return (default 10).
+            include_domains (List[str], optional): Domains to include in the search.
+            exclude_domains (List[str], optional): Domains to exclude from the search.
+            start_crawl_date (str, optional): Only links crawled after this date.
+            end_crawl_date (str, optional): Only links crawled before this date.
+            start_published_date (str, optional): Only links published after this date.
+            end_published_date (str, optional): Only links published before this date.
+            include_text (List[str], optional): Strings that must appear in the page text.
+            exclude_text (List[str], optional): Strings that must not appear in the page text.
+            use_autoprompt (bool, optional): Convert query to Exa (default False).
+            type (str, optional): 'keyword' or 'neural' (default 'neural').
+            category (str, optional): e.g. 'company'
+            flags (List[str], optional): Experimental flags for Exa usage.
+            moderation (bool, optional): If True, the search results will be moderated for safety.
+
+        Returns:
+            SearchResponse: The response containing search results, etc.
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        validate_search_options(options, SEARCH_OPTIONS_TYPES)
+        options = to_camel_case(options)
+        data = await self.async_request("/search", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
+            cost_dollars=cost_dollars,
+        )
+
+    async def search_and_contents(self, query: str, **kwargs):
+        options = {k: v for k, v in {"query": query, **kwargs}.items() if v is not None}
+        # If user didn't ask for any particular content, default to text
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+            and "extras" not in options
+        ):
+            options["text"] = True
+
+        validate_search_options(
+            options,
+            {
+                **SEARCH_OPTIONS_TYPES,
+                **CONTENTS_OPTIONS_TYPES,
+                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
+            },
+        )
+
+        # Nest the appropriate fields under "contents"
+        options = nest_fields(
+            options,
+            [
+                "text",
+                "highlights",
+                "summary",
+                "subpages",
+                "subpage_target",
+                "livecrawl",
+                "livecrawl_timeout",
+                "extras",
+            ],
+            "contents",
+        )
+        options = to_camel_case(options)
+        data = await self.async_request("/search", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data["autopromptString"] if "autopromptString" in data else None,
+            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
+            data["autoDate"] if "autoDate" in data else None,
+            cost_dollars=cost_dollars,
+        )
+
+    async def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
+        options = {
+            k: v
+            for k, v in {"urls": urls, **kwargs}.items()
+            if k != "self" and v is not None
+        }
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+            and "extras" not in options
+        ):
+            options["text"] = True
+
+        validate_search_options(
+            options,
+            {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES},
+        )
+        options = to_camel_case(options)
+        data = await self.async_request("/contents", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
+            cost_dollars=cost_dollars,
+        )
+
+    async def find_similar(
+        self,
+        url: str,
+        *,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[str] = None,
+        flags: Optional[List[str]] = None,
+    ) -> SearchResponse[_Result]:
+        """Finds similar pages to a given URL, potentially with domain filters and date filters.
+
+        Args:
+            url (str): The URL to find similar pages for.
+            num_results (int, optional): Number of results to return. Default is None (server default).
+            include_domains (List[str], optional): Domains to include in the search.
+            exclude_domains (List[str], optional): Domains to exclude from the search.
+            start_crawl_date (str, optional): Only links crawled after this date.
+            end_crawl_date (str, optional): Only links crawled before this date.
+            start_published_date (str, optional): Only links published after this date.
+            end_published_date (str, optional): Only links published before this date.
+            include_text (List[str], optional): Strings that must appear in the page text.
+            exclude_text (List[str], optional): Strings that must not appear in the page text.
+            exclude_source_domain (bool, optional): Whether to exclude the source domain.
+            category (str, optional): A data category to focus on.
+            flags (List[str], optional): Experimental flags.
+
+        Returns:
+            SearchResponse[_Result]
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
+        options = to_camel_case(options)
+        data = await self.async_request("/findSimilar", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
+            cost_dollars=cost_dollars,
+        )
+
+    async def find_similar_and_contents(self, url: str, **kwargs):
+        options = {k: v for k, v in {"url": url, **kwargs}.items() if v is not None}
+        # Default to text if none specified
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+        ):
+            options["text"] = True
+
+        validate_search_options(
+            options,
+            {
+                **FIND_SIMILAR_OPTIONS_TYPES,
+                **CONTENTS_OPTIONS_TYPES,
+                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
+            },
+        )
+        # We nest the content fields
+        options = nest_fields(
+            options,
+            [
+                "text",
+                "highlights",
+                "summary",
+                "subpages",
+                "subpage_target",
+                "livecrawl",
+                "livecrawl_timeout",
+                "extras",
+            ],
+            "contents",
+        )
+        options = to_camel_case(options)
+        data = await self.async_request("/findSimilar", options)
+        cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        return SearchResponse(
+            [Result(**to_snake_case(result)) for result in data["results"]],
+            data.get("autopromptString"),
+            data.get("resolvedSearchType"),
+            data.get("autoDate"),
+            cost_dollars=cost_dollars,
+        )
+
+    async def answer(
+        self,
+        query: str,
+        *,
+        stream: Optional[bool] = False,
+        text: Optional[bool] = False,
+        model: Optional[Literal["exa", "exa-pro"]] = None,
+    ) -> Union[AnswerResponse, StreamAnswerResponse]:
+        """Generate an answer to a query using Exa's search and LLM capabilities.
+
+        Args:
+            query (str): The query to answer.
+            text (bool, optional): Whether to include full text in the results. Defaults to False.
+            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+
+        Returns:
+            AnswerResponse: An object containing the answer and citations.
+
+        Raises:
+            ValueError: If stream=True is provided. Use stream_answer() instead for streaming responses.
+        """
+        if stream:
+            raise ValueError(
+                "stream=True is not supported in `answer()`. "
+                "Please use `stream_answer(...)` for streaming."
+            )
+
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options = to_camel_case(options)
+        response = await self.async_request("/answer", options)
+
+        return AnswerResponse(
+            response["answer"],
+            [AnswerResult(**to_snake_case(result)) for result in response["citations"]],
+        )
+
+    async def stream_answer(
+        self,
+        query: str,
+        *,
+        text: bool = False,
+        model: Optional[Literal["exa", "exa-pro"]] = None,
+    ) -> AsyncStreamAnswerResponse:
+        """Generate a streaming answer response.
+
+        Args:
+            query (str): The query to answer.
+            text (bool): Whether to include full text in the results. Defaults to False.
+            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+
+        Returns:
+            AsyncStreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
+                Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options = to_camel_case(options)
+        options["stream"] = True
+        raw_response = await self.async_request("/answer", options)
+        return AsyncStreamAnswerResponse(raw_response)

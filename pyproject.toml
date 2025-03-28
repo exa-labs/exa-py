@@ -12,6 +12,7 @@ typing-extensions = "^4.12.2"
 openai = "^1.48"
 pydantic = "^2.10.6"
 pytest-mock = "^3.14.0"
+httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
 python-dotenv = "^1.0.1"
