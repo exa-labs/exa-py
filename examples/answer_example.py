@@ -15,9 +15,17 @@ response = exa.answer(
 )
 print(response)
 
+# Answer with system prompt
+response = exa.answer(
+    "What is the latest valuation of SpaceX?",
+    system_prompt="Answer only in a single sentence.",
+)
+print(response)
+
 #Answer with streaming
 response = exa.stream_answer(
     "How close are we to meeting aliens?",
+    system_prompt="Answer in a humorous tone.",
 )
 
 for chunk in response:

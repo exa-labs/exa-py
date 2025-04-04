@@ -16,9 +16,17 @@ async def main():
     )
     print(response)
 
+    # Answer with system prompt
+    response = await exa.answer(
+        "What is the latest valuation of SpaceX?",
+        system_prompt="Answer only in a single sentence.",
+    )
+    print(response)
+    
     #Answer with streaming
     response = await exa.stream_answer(
         "How close are we to meeting aliens?",
+        system_prompt="Answer in a humorous tone.",
     )
 
     async for chunk in response:
