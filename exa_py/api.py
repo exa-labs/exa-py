@@ -840,7 +840,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.10.0",
+        user_agent: str = "exa-py 1.11.0",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -1826,6 +1826,7 @@ class Exa:
         *,
         stream: Optional[bool] = False,
         text: Optional[bool] = False,
+        system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]: ...
 
@@ -1835,6 +1836,7 @@ class Exa:
         *,
         stream: Optional[bool] = False,
         text: Optional[bool] = False,
+        system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
@@ -1842,6 +1844,7 @@ class Exa:
         Args:
             query (str): The query to answer.
             text (bool, optional): Whether to include full text in the results. Defaults to False.
+            system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
 
         Returns:
@@ -1870,6 +1873,7 @@ class Exa:
         query: str,
         *,
         text: bool = False,
+        system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> StreamAnswerResponse:
         """Generate a streaming answer response.
@@ -1877,6 +1881,7 @@ class Exa:
         Args:
             query (str): The query to answer.
             text (bool): Whether to include full text in the results. Defaults to False.
+            system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
 
         Returns:
@@ -2165,6 +2170,7 @@ class AsyncExa(Exa):
         *,
         stream: Optional[bool] = False,
         text: Optional[bool] = False,
+        system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
@@ -2172,6 +2178,7 @@ class AsyncExa(Exa):
         Args:
             query (str): The query to answer.
             text (bool, optional): Whether to include full text in the results. Defaults to False.
+            system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
 
         Returns:
@@ -2200,6 +2207,7 @@ class AsyncExa(Exa):
         query: str,
         *,
         text: bool = False,
+        system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
     ) -> AsyncStreamAnswerResponse:
         """Generate a streaming answer response.
@@ -2207,6 +2215,7 @@ class AsyncExa(Exa):
         Args:
             query (str): The query to answer.
             text (bool): Whether to include full text in the results. Defaults to False.
+            system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
 
         Returns:
