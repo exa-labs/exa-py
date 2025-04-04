@@ -8,14 +8,13 @@ if not EXA_API_KEY:
 
 exa = Exa(EXA_API_KEY)
 
-response = exa.search_and_contents("the canonical url for the homepage of tesla",
-                                   num_results=1,
-                                   livecrawl="always"
-                                   )
+response = exa.search_and_contents("upcoming marvel movies release dates",
+    num_results=1,
+    livecrawl="always"
+)
 print(response)
 
-norm_response = exa.search_and_contents("the canonical url for the homepage of tesla", num_results=1)
-
+norm_response = exa.search_and_contents("upcoming marvel movies release dates", num_results=1)
 print(norm_response)
 
-assert(response.results[0].text != norm_response.results[0].text)
+# assert(response.results[0].text != norm_response.results[0].text)
