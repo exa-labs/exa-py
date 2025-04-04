@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from exa_py import AsyncExa
 import os
 
