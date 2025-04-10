@@ -29,7 +29,7 @@ class CreateEnrichmentParameters(ExaBaseModel):
     """
     Provide a description of the enrichment task you want to perform to each Webset Item.
     """
-    format: Optional[str] = None
+    format: Optional[Format] = None
     """
     Format of the enrichment response.
 
@@ -46,7 +46,7 @@ class CreateEnrichmentParameters(ExaBaseModel):
 
 
 class CreateWebhookParameters(ExaBaseModel):
-    events: List[Event] = Field(..., max_items=12, min_items=1)
+    events: List[EventType] = Field(..., max_items=12, min_items=1)
     """
     The events to trigger the webhook
     """
@@ -127,7 +127,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     The behaviour of the Search when it is added to a Webset.
 
-    - `override`: the search will reuse the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will not be discarded.
+    - `override`: the search will reuse the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will be discarded.
     """
     metadata: Optional[Dict[str, Any]] = None
     """
@@ -167,7 +167,7 @@ class EnrichmentResult(ExaBaseModel):
     """
 
 
-class Event(Enum):
+class EventType(Enum):
     webset_created = 'webset.created'
     webset_deleted = 'webset.deleted'
     webset_paused = 'webset.paused'
@@ -335,7 +335,7 @@ class Search(ExaBaseModel):
 
     Any URL provided will be crawled and used as context for the search.
     """
-    count: confloat(ge=1.0)
+    count: Optional[confloat(ge=1.0)] = 10
     """
     Number of Items the Webset will attempt to find.
 
@@ -374,7 +374,7 @@ class Source(Enum):
 
 
 class UpdateWebhookParameters(ExaBaseModel):
-    events: Optional[List[Event]] = Field(None, max_items=12, min_items=1)
+    events: Optional[List[EventType]] = Field(None, max_items=12, min_items=1)
     """
     The events to trigger the webhook
     """
@@ -389,7 +389,7 @@ class UpdateWebhookParameters(ExaBaseModel):
 
 
 class UpdateWebsetRequest(ExaBaseModel):
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, constr(max_length=1000)]] = None
     """
     Set of key-value pairs you want to associate with this object.
     """
@@ -405,7 +405,7 @@ class Webhook(ExaBaseModel):
     """
     The status of the webhook
     """
-    events: List[Event] = Field(..., min_items=1)
+    events: List[EventType] = Field(..., min_items=1)
     """
     The events to trigger the webhook
     """
@@ -413,7 +413,11 @@ class Webhook(ExaBaseModel):
     """
     The URL to send the webhook to
     """
-    metadata: Optional[Dict[str, Any]] = None
+    secret: str
+    """
+    The secret to verify the webhook signature. Only returned on Webhook creation.
+    """
+    metadata: Optional[Dict[str, Any]] = {}
     """
     The metadata of the webhook
     """
@@ -458,7 +462,7 @@ class Webset(ExaBaseModel):
     """
     The Enrichments to apply to the Webset Items.
     """
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = {}
     """
     Set of key-value pairs you want to associate with this object.
     """
@@ -558,7 +562,7 @@ class WebsetEnrichment(ExaBaseModel):
 
     This will be automatically generated based on the description and format.
     """
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = {}
     """
     The metadata of the enrichment
     """
@@ -593,10 +597,6 @@ class WebsetEnrichmentStatus(Enum):
     pending = 'pending'
     canceled = 'canceled'
     completed = 'completed'
-
-
-class WebsetExportFormat(Enum):
-    csv = 'csv'
 
 
 class WebsetIdleEvent(ExaBaseModel):
@@ -645,7 +645,7 @@ class WebsetItem(ExaBaseModel):
     """
     The criteria evaluations of the item
     """
-    enrichments: Optional[List[EnrichmentResult]]
+    enrichments: List[EnrichmentResult]
     """
     The enrichments results of the Webset item
     """
@@ -806,7 +806,7 @@ class WebsetItemEvaluation(ExaBaseModel):
     """
     The satisfaction of the criterion
     """
-    references: Optional[List[Reference]]
+    references: List[Reference] = []
     """
     The references used to generate the result. `null` if the evaluation is not yet completed.
     """
@@ -912,14 +912,12 @@ class WebsetSearch(ExaBaseModel):
     """
     The query used to create the search.
     """
-    entity: Optional[
-        Union[
-            WebsetCompanyEntity,
-            WebsetPersonEntity,
-            WebsetArticleEntity,
-            WebsetResearchPaperEntity,
-            WebsetCustomEntity,
-        ]
+    entity: Union[
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
     ]
     """
     The entity the search will return results for.
@@ -938,7 +936,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The progress of the search
     """
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = {}
     """
     Set of key-value pairs you want to associate with this object.
     """
@@ -964,7 +962,7 @@ class WebsetSearchBehaviour(Enum):
     """
     The behaviour of the Search when it is added to a Webset.
 
-    - `override`: the search will reuse the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will not be discarded.
+    - `override`: the search will reuse the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will be discarded.
     """
 
     override = 'override'
