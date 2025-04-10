@@ -1,15 +1,27 @@
-
 from __future__ import annotations
 
 from pydantic import ConfigDict
-
-from typing import Any, Dict, Optional
+from enum import Enum
+from typing import Any, Dict, Optional, TypeVar, Generic, Type, get_origin, get_args
 
 from pydantic import BaseModel
 
+# Generic type var for any Enum
+EnumT = TypeVar('EnumT', bound=Enum)
+
 class ExaBaseModel(BaseModel):
     """Base model for all Exa models with common configuration."""
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        use_enum_values=False,  # Don't convert enums to strings
+        coerce_numbers_to_str=False,  # Don't convert numbers to strings
+        str_strip_whitespace=True,  # Strip whitespace from strings
+        str_to_lower=False,  # Don't convert strings to lowercase
+        str_to_upper=False,  # Don't convert strings to uppercase
+        from_attributes=True,  # Allow initialization from attributes
+        validate_assignment=True,  # Validate on assignment
+        extra='forbid',  # Forbid extra fields
+    )
 
 class WebsetsBaseClient:
     base_url: str

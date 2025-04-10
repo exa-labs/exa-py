@@ -11,8 +11,10 @@ from exa_py.websets.core.base import WebsetsBaseClient
 from exa_py.api import snake_to_camel, camel_to_snake, to_camel_case, to_snake_case
 from exa_py.websets.types import (
     UpdateWebsetRequest,
-    CreateWebsetRequest,
-    Search
+    CreateWebsetParameters,
+    Search,
+    CreateEnrichmentParameters,
+    Format
 )
 
 # ============================================================================
@@ -131,7 +133,7 @@ def test_request_body_case_conversion(websets_client, parent_mock):
     
     parent_mock.request.return_value = mock_response
     
-    request = CreateWebsetRequest(
+    request = CreateWebsetParameters(
         external_id="test-id",
         search=Search(
             query="test query",
@@ -253,4 +255,30 @@ def test_request_forwards_to_parent(base_client, parent_mock):
         method="POST",
         params={"query": "test"}
     )
-    assert result == {"key": "value"} 
+    assert result == {"key": "value"}
+
+def test_format_validation_string_and_enum():
+    """Test that the format field accepts both string and enum values."""
+    # Test with enum value
+    params1 = CreateEnrichmentParameters(
+        description="Test description",
+        format=Format.text
+    )
+    assert params1.format == Format.text
+    
+    # Test with string value
+    params2 = CreateEnrichmentParameters(
+        description="Test description",
+        format="text"
+    )
+    assert params2.format == Format.text
+    
+    # Both should serialize to the same value
+    assert params1.model_dump()["format"] == params2.model_dump()["format"]
+    
+    # Test with invalid string value
+    with pytest.raises(ValueError):
+        CreateEnrichmentParameters(
+            description="Test description",
+            format="invalid_format"
+        ) 

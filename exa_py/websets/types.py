@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, ClassVar
 
 from pydantic import AnyUrl, Field, confloat, constr
+from pydantic import field_validator
 from .core.base import ExaBaseModel
 
 
@@ -15,6 +16,21 @@ class CanceledReason(Enum):
 
     webset_deleted = 'webset_deleted'
     webset_canceled = 'webset_canceled'
+
+
+class Format(Enum):
+    """
+    Format of the enrichment response.
+
+    We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
+    """
+
+    text = 'text'
+    date = 'date'
+    number = 'number'
+    options = 'options'
+    email = 'email'
+    phone = 'phone'
 
 
 class CreateCriterionParameters(ExaBaseModel):
@@ -180,21 +196,6 @@ class EventType(Enum):
     webset_export_completed = 'webset.export.completed'
     webset_item_created = 'webset.item.created'
     webset_item_enriched = 'webset.item.enriched'
-
-
-class Format(Enum):
-    """
-    Format of the enrichment response.
-
-    We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
-    """
-
-    text = 'text'
-    date = 'date'
-    number = 'number'
-    options = 'options'
-    email = 'email'
-    phone = 'phone'
 
 
 class ListEventsResponse(ExaBaseModel):
