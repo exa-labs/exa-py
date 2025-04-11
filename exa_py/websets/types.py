@@ -149,9 +149,9 @@ class Criterion(ExaBaseModel):
 class EnrichmentResult(ExaBaseModel):
     object: Literal['enrichment_result']
     format: WebsetEnrichmentFormat
-    result: List[str]
+    result: Optional[List[str]] = None
     """
-    The result of the enrichment.
+    The result of the enrichment. None if the enrichment wasn't successful.
     """
     reasoning: Optional[str] = None
     """
