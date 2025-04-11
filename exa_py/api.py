@@ -35,6 +35,7 @@ from exa_py.utils import (
     maybe_get_query,
 )
 from .websets import WebsetsClient
+from .websets.core.base import ExaJSONEncoder
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -809,25 +810,24 @@ class Exa:
         self.headers = {"x-api-key": api_key, "User-Agent": user_agent}
         self.websets = WebsetsClient(self)
 
-    def request(self, endpoint: str, data=None, method="POST", params=None):
-        """Send a request to the Exa API, optionally streaming if data['stream'] is True.
+    def request(self, endpoint: str, data: Optional[Dict[str, Any]] = None, method: str = "POST", params: Optional[Dict[str, Any]] = None) -> Union[Dict[str, Any], requests.Response]:
+        """Make a request to the Exa API.
 
         Args:
-            endpoint (str): The API endpoint (path).
-            data (dict, optional): The JSON payload to send. Defaults to None.
-            method (str, optional): The HTTP method to use. Defaults to "POST".
-            params (dict, optional): Query parameters to include. Defaults to None.
+            endpoint (str): The API endpoint to request.
+            data (Dict[str, Any], optional): The request data. Defaults to None.
+            method (str, optional): The HTTP method. Defaults to "POST".
+            params (Dict[str, Any], optional): The query parameters. Defaults to None.
 
         Returns:
-            Union[dict, requests.Response]: If streaming, returns the Response object.
-            Otherwise, returns the JSON-decoded response as a dict.
-
-        Raises:
-            ValueError: If the request fails (non-200 status code).
+            Dict[str, Any] | requests.Response: The API response.
         """
         if data and data.get("stream"):
             res = requests.post(
-                self.base_url + endpoint, json=data, headers=self.headers, stream=True
+                self.base_url + endpoint, 
+                data=json.dumps(data, cls=ExaJSONEncoder) if data else None,
+                headers={**self.headers, "Content-Type": "application/json"}, 
+                stream=True
             )
             return res
 
@@ -837,11 +837,15 @@ class Exa:
             )
         elif method.upper() == "POST":
             res = requests.post(
-                self.base_url + endpoint, json=data, headers=self.headers
+                self.base_url + endpoint, 
+                data=json.dumps(data, cls=ExaJSONEncoder) if data else None,
+                headers={**self.headers, "Content-Type": "application/json"}
             )
         elif method.upper() == "PATCH":
             res = requests.patch(
-                self.base_url + endpoint, json=data, headers=self.headers
+                self.base_url + endpoint, 
+                data=json.dumps(data, cls=ExaJSONEncoder) if data else None,
+                headers={**self.headers, "Content-Type": "application/json"}
             )
         elif method.upper() == "DELETE":
             res = requests.delete(
@@ -1132,8 +1136,6 @@ class Exa:
         moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...

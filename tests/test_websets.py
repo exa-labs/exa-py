@@ -266,14 +266,15 @@ def test_format_validation_string_and_enum():
         description="Test description",
         format=Format.text
     )
-    assert params1.format == Format.text
+    # Since use_enum_values=True in ExaBaseModel, the enum is converted to its string value
+    assert params1.format == Format.text.value
     
     # Test with string value
     params2 = CreateEnrichmentParameters(
         description="Test description",
         format="text"
     )
-    assert params2.format == Format.text
+    assert params2.format == "text"
     
     # Both should serialize to the same value
     assert params1.model_dump()["format"] == params2.model_dump()["format"]
@@ -355,3 +356,60 @@ def test_dict_and_model_parameter_support(websets_client, parent_mock):
     format2_value = format2.value if hasattr(format2, 'value') else format2
     
     assert format1_value == format2_value 
+
+def test_webhook_attempts_list(websets_client, parent_mock):
+    """Test that the WebhookAttemptsClient.list method works correctly."""
+    # Mock response for webhook attempts
+    mock_response = {
+        "data": [{
+            "id": "attempt_123",
+            "object": "webhook_attempt",
+            "eventId": "event_123",
+            "eventType": "webset.created",
+            "webhookId": "webhook_123",
+            "url": "https://example.com/webhook",
+            "successful": True,
+            "responseHeaders": {"content-type": "application/json"},
+            "responseBody": '{"status": "ok"}',
+            "responseStatusCode": 200,
+            "attempt": 1,
+            "attemptedAt": "2023-01-01T00:00:00Z"
+        }],
+        "hasMore": False,
+        "nextCursor": None
+    }
+    
+    parent_mock.request.return_value = mock_response
+    
+    # Test without optional parameters
+    result = websets_client.webhooks.attempts.list(webhook_id="webhook_123")
+    
+    parent_mock.request.assert_called_with(
+        "/websets//v0/webhooks/webhook_123/attempts",
+        params={},
+        method="GET",
+        data=None
+    )
+    
+    assert len(result.data) == 1
+    assert result.data[0].id == "attempt_123"
+    assert result.data[0].event_type == "webset.created"
+    assert result.data[0].successful is True
+    
+    # Reset mock and test with all optional parameters
+    parent_mock.request.reset_mock()
+    parent_mock.request.return_value = mock_response
+    
+    result = websets_client.webhooks.attempts.list(
+        webhook_id="webhook_123",
+        cursor="cursor_value",
+        limit=10,
+        event_type="webset.created"
+    )
+    
+    parent_mock.request.assert_called_with(
+        "/websets//v0/webhooks/webhook_123/attempts",
+        params={"cursor": "cursor_value", "limit": 10, "eventType": "webset.created"},
+        method="GET",
+        data=None
+    ) 

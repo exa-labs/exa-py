@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from pydantic import ConfigDict, BaseModel
+import json
+from pydantic import ConfigDict, BaseModel, AnyUrl
 from enum import Enum
 from typing import Any, Dict, Optional, TypeVar, Generic, Type, get_origin, get_args, Union
 
@@ -9,6 +10,13 @@ EnumT = TypeVar('EnumT', bound=Enum)
 
 # Generic type for any ExaBaseModel
 ModelT = TypeVar('ModelT', bound='ExaBaseModel')
+
+# Custom JSON encoder for handling AnyUrl
+class ExaJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, AnyUrl):
+            return str(obj)
+        return super().default(obj)
 
 class ExaBaseModel(BaseModel):
     """Base model for all Exa models with common configuration."""
@@ -22,6 +30,7 @@ class ExaBaseModel(BaseModel):
         from_attributes=True,  # Allow initialization from attributes
         validate_assignment=True,  # Validate on assignment
         extra='forbid',  # Forbid extra fields
+        json_encoders={AnyUrl: str}  # Convert AnyUrl to string when serializing to JSON
     )
 
 class WebsetsBaseClient:

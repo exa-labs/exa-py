@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union, ClassVar
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AnyUrl, Field, confloat, constr
-from pydantic import field_validator
 from .core.base import ExaBaseModel
 
 
@@ -16,21 +15,6 @@ class CanceledReason(Enum):
 
     webset_deleted = 'webset_deleted'
     webset_canceled = 'webset_canceled'
-
-
-class Format(Enum):
-    """
-    Format of the enrichment response.
-
-    We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
-    """
-
-    text = 'text'
-    date = 'date'
-    number = 'number'
-    options = 'options'
-    email = 'email'
-    phone = 'phone'
 
 
 class CreateCriterionParameters(ExaBaseModel):
@@ -198,6 +182,22 @@ class EventType(Enum):
     webset_item_enriched = 'webset.item.enriched'
 
 
+
+class Format(Enum):
+    """
+    Format of the enrichment response.
+
+    We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
+    """
+
+    text = 'text'
+    date = 'date'
+    number = 'number'
+    options = 'options'
+    email = 'email'
+    phone = 'phone'
+
+
 class ListEventsResponse(ExaBaseModel):
     data: List[
         Union[
@@ -215,6 +215,21 @@ class ListEventsResponse(ExaBaseModel):
     ] = Field(..., discriminator='type')
     """
     The list of events
+    """
+    has_more: bool = Field(..., alias='hasMore')
+    """
+    Whether there are more results to paginate through
+    """
+    next_cursor: Optional[str] = Field(..., alias='nextCursor')
+    """
+    The cursor to paginate through the next set of results
+    """
+
+
+class ListWebhookAttemptsResponse(ExaBaseModel):
+    data: List[WebhookAttempt]
+    """
+    The list of webhook attempts
     """
     has_more: bool = Field(..., alias='hasMore')
     """
@@ -414,7 +429,7 @@ class Webhook(ExaBaseModel):
     """
     The URL to send the webhook to
     """
-    secret: str
+    secret: Optional[str] = None
     """
     The secret to verify the webhook signature. Only returned on Webhook creation.
     """
@@ -429,6 +444,54 @@ class Webhook(ExaBaseModel):
     updated_at: datetime = Field(..., alias='updatedAt')
     """
     The date and time the webhook was last updated
+    """
+
+
+class WebhookAttempt(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the webhook attempt
+    """
+    object: Literal['webhook_attempt']
+    event_id: str = Field(..., alias='eventId')
+    """
+    The unique identifier for the event
+    """
+    event_type: EventType = Field(..., alias='eventType')
+    """
+    The type of event
+    """
+    webhook_id: str = Field(..., alias='webhookId')
+    """
+    The unique identifier for the webhook
+    """
+    url: str
+    """
+    The URL that was used during the attempt
+    """
+    successful: bool
+    """
+    Whether the attempt was successful
+    """
+    response_headers: Dict[str, Any] = Field(..., alias='responseHeaders')
+    """
+    The headers of the response
+    """
+    response_body: str = Field(..., alias='responseBody')
+    """
+    The body of the response
+    """
+    response_status_code: float = Field(..., alias='responseStatusCode')
+    """
+    The status code of the response
+    """
+    attempt: float
+    """
+    The attempt number of the webhook
+    """
+    attempted_at: datetime = Field(..., alias='attemptedAt')
+    """
+    The date and time the webhook attempt was made
     """
 
 
