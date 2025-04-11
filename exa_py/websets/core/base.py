@@ -46,17 +46,20 @@ class WebsetsBaseClient:
         """
         self._client = client
         
-    def _prepare_data(self, data: Union[Dict[str, Any], ExaBaseModel], model_class: Optional[Type[ModelT]] = None) -> Dict[str, Any]:
+    def _prepare_data(self, data: Union[Dict[str, Any], ExaBaseModel, str], model_class: Optional[Type[ModelT]] = None) -> Union[Dict[str, Any], str]:
         """Prepare data for API request, converting dict to model if needed.
         
         Args:
-            data: Either a dictionary or model instance
+            data: Either a dictionary, model instance, or string
             model_class: The model class to use if data is a dictionary
             
         Returns:
-            Dictionary prepared for API request
+            Dictionary prepared for API request or string if string data was provided
         """
-        if isinstance(data, dict) and model_class:
+        if isinstance(data, str):
+            # Return string as is
+            return data
+        elif isinstance(data, dict) and model_class:
             # Convert dict to model instance
             model_instance = model_class.model_validate(data)
             return model_instance.model_dump(by_alias=True, exclude_none=True)
@@ -67,22 +70,25 @@ class WebsetsBaseClient:
             # Use dict directly
             return data
         else:
-            raise TypeError(f"Expected dict or ExaBaseModel, got {type(data)}")
+            raise TypeError(f"Expected dict, ExaBaseModel, or str, got {type(data)}")
         
-    def request(self, endpoint: str, data: Optional[Union[Dict[str, Any], ExaBaseModel]] = None, 
+    def request(self, endpoint: str, data: Optional[Union[Dict[str, Any], ExaBaseModel, str]] = None, 
                 method: str = "POST", params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Make a request to the Exa API.
         
         Args:
             endpoint (str): The API endpoint to request.
-            data (Dict[str, Any] or ExaBaseModel, optional): The request data. Can be either a dictionary or a model instance.
+            data (Union[Dict[str, Any], ExaBaseModel, str], optional): The request data. Can be a dictionary, model instance, or string. Defaults to None.
             method (str, optional): The HTTP method. Defaults to "POST".
             params (Dict[str, Any], optional): The query parameters. Defaults to None.
             
         Returns:
             Dict[str, Any]: The API response.
         """
-        if data is not None and isinstance(data, ExaBaseModel):
+        if isinstance(data, str):
+            # If data is a string, pass it as is
+            pass
+        elif data is not None and isinstance(data, ExaBaseModel):
             # If data is a model instance, convert it to a dict
             data = data.model_dump(by_alias=True, exclude_none=True)
             
