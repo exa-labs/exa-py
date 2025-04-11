@@ -3,8 +3,7 @@ import os
 
 from exa_py.websets.types import CreateWebsetParameters, CreateEnrichmentParameters
 
-# Use a mock API key for testing
-exa = Exa("mock_api_key")
+exa = Exa(os.environ.get("EXA_API_KEY"))
 
 # Create Webset
 response = exa.websets.create(
