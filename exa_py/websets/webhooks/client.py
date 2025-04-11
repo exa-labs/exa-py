@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Dict, Any, Union
 
 from ..types import (
     CreateWebhookParameters,
@@ -16,7 +16,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
     def __init__(self, client):
         super().__init__(client)
 
-    def create(self, params: CreateWebhookParameters) -> Webhook:
+    def create(self, params: Union[Dict[str, Any], CreateWebhookParameters]) -> Webhook:
         """Create a Webhook.
         
         Args:
@@ -25,7 +25,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         Returns:
             Webhook: The created webhook.
         """
-        response = self.request("/v0/webhooks", data=params.model_dump(by_alias=True, exclude_none=True))
+        response = self.request("/v0/webhooks", data=params)
         return Webhook.model_validate(response)
 
     def get(self, id: str) -> Webhook:
@@ -54,7 +54,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         response = self.request("/v0/webhooks", params=params, method="GET")
         return ListWebhooksResponse.model_validate(response)
 
-    def update(self, id: str, params: UpdateWebhookParameters) -> Webhook:
+    def update(self, id: str, params: Union[Dict[str, Any], UpdateWebhookParameters]) -> Webhook:
         """Update a Webhook.
         
         Args:
@@ -64,7 +64,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         Returns:
             Webhook: The updated webhook.
         """
-        response = self.request(f"/v0/webhooks/{id}", data=params.model_dump(by_alias=True, exclude_none=True), method="PATCH")
+        response = self.request(f"/v0/webhooks/{id}", data=params, method="PATCH")
         return Webhook.model_validate(response)
 
     def delete(self, id: str) -> Webhook:

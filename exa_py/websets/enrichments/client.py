@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Dict, Any, Union
+
 from ..types import (
     CreateEnrichmentParameters,
     WebsetEnrichment,
@@ -12,7 +14,7 @@ class WebsetEnrichmentsClient(WebsetsBaseClient):
     def __init__(self, client):
         super().__init__(client)
 
-    def create(self, webset_id: str, params: CreateEnrichmentParameters) -> WebsetEnrichment:
+    def create(self, webset_id: str, params: Union[Dict[str, Any], CreateEnrichmentParameters]) -> WebsetEnrichment:
         """Create an Enrichment for a Webset.
         
         Args:
@@ -22,7 +24,7 @@ class WebsetEnrichmentsClient(WebsetsBaseClient):
         Returns:
             WebsetEnrichment: The created enrichment.
         """
-        response = self.request(f"/v0/websets/{webset_id}/enrichments", data=params.model_dump(by_alias=True, exclude_none=True))
+        response = self.request(f"/v0/websets/{webset_id}/enrichments", data=params)
         return WebsetEnrichment.model_validate(response)
 
     def get(self, webset_id: str, id: str) -> WebsetEnrichment:
