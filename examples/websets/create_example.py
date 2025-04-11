@@ -3,7 +3,8 @@ import os
 
 from exa_py.websets.types import CreateWebsetParameters, CreateEnrichmentParameters
 
-exa = Exa(os.environ.get("EXA_API_KEY"))
+# Use a mock API key for testing
+exa = Exa("mock_api_key")
 
 # Create Webset
 response = exa.websets.create(
@@ -23,7 +24,6 @@ response = exa.websets.create(
 
 # Wait until Webset completes
 webset = exa.websets.wait_until_idle(response.id)
-
 
 # Retrieve Webset Items
 response = exa.websets.items.list(webset_id=response.id)

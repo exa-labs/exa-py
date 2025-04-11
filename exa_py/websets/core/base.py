@@ -14,7 +14,7 @@ class ExaBaseModel(BaseModel):
     """Base model for all Exa models with common configuration."""
     model_config = ConfigDict(
         populate_by_name=True,
-        use_enum_values=False,  # Don't convert enums to strings
+        use_enum_values=True,
         coerce_numbers_to_str=False,  # Don't convert numbers to strings
         str_strip_whitespace=True,  # Strip whitespace from strings
         str_to_lower=False,  # Don't convert strings to lowercase
