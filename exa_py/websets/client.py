@@ -123,7 +123,7 @@ class WebsetsClient(WebsetsBaseClient):
         start_time = time.time()
         while True:
             webset = self.get(id)
-            if webset.status == WebsetStatus.idle:
+            if webset.status == WebsetStatus.idle.value:
                 return webset
                 
             if time.time() - start_time > timeout:
