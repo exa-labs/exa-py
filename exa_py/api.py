@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 from functools import wraps
 from typing import (
+    Any,
     Callable,
     Dict,
     Generic,
@@ -36,6 +37,7 @@ from exa_py.utils import (
     maybe_get_query,
 )
 from .websets import WebsetsClient
+from .websets.core.base import ExaJSONEncoder
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -857,17 +859,17 @@ class Exa:
                     "API key must be provided as an argument or in EXA_API_KEY environment variable"
                 )
         self.base_url = base_url
-        self.headers = {"x-api-key": api_key, "User-Agent": user_agent}
+        self.headers = {"x-api-key": api_key, "User-Agent": user_agent, "Content-Type": "application/json"}
         self.websets = WebsetsClient(self)
 
-    def request(self, endpoint: str, data=None, method="POST", params=None):
+    def request(self, endpoint: str, data: Optional[Union[Dict[str, Any], str]] = None, method: str = "POST", params: Optional[Dict[str, Any]] = None) -> Union[Dict[str, Any], requests.Response]:
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
             endpoint (str): The API endpoint (path).
             data (dict, optional): The JSON payload to send. Defaults to None.
             method (str, optional): The HTTP method to use. Defaults to "POST".
-            params (dict, optional): Query parameters to include. Defaults to None.
+            params (Dict[str, Any], optional): Query parameters to include. Defaults to None.
 
         Returns:
             Union[dict, requests.Response]: If streaming, returns the Response object.
@@ -876,9 +878,20 @@ class Exa:
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
+        # Handle the case when data is a string
+        if isinstance(data, str):
+            # Use the string directly as the data payload
+            json_data = data
+        else:
+            # Otherwise, serialize the dictionary to JSON if it exists
+            json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
+            
         if data and data.get("stream"):
             res = requests.post(
-                self.base_url + endpoint, json=data, headers=self.headers, stream=True
+                self.base_url + endpoint, 
+                data=json_data,
+                headers=self.headers, 
+                stream=True
             )
             return res
 
@@ -888,11 +901,15 @@ class Exa:
             )
         elif method.upper() == "POST":
             res = requests.post(
-                self.base_url + endpoint, json=data, headers=self.headers
+                self.base_url + endpoint, 
+                data=json_data,
+                headers=self.headers
             )
         elif method.upper() == "PATCH":
             res = requests.patch(
-                self.base_url + endpoint, json=data, headers=self.headers
+                self.base_url + endpoint, 
+                data=json_data,
+                headers=self.headers
             )
         elif method.upper() == "DELETE":
             res = requests.delete(

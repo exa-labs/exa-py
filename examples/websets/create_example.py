@@ -21,12 +21,13 @@ response = exa.websets.create(
     )
 )
 
+print("Webset created:", response.model_dump_json(indent=2))
+
 # Wait until Webset completes
 webset = exa.websets.wait_until_idle(response.id)
-
 
 # Retrieve Webset Items
 response = exa.websets.items.list(webset_id=response.id)
 
 for item in response.data:
-    print(item)
+    print(item.model_dump_json(indent=2))

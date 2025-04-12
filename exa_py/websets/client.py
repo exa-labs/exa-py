@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict, Any, Union
 
 from .types import (
     Webset,
@@ -28,16 +28,16 @@ class WebsetsClient(WebsetsBaseClient):
         self.enrichments = WebsetEnrichmentsClient(client)
         self.webhooks = WebsetWebhooksClient(client)
 
-    def create(self, params: CreateWebsetParameters) -> Webset:
+    def create(self, params: Union[Dict[str, Any], CreateWebsetParameters]) -> Webset:
         """Create a new Webset.
         
         Args:
-            params (CreateWebsetRequest): The parameters for creating a webset.
+            params (CreateWebsetParameters): The parameters for creating a webset.
         
         Returns:
             Webset: The created webset.
         """
-        response = self.request("/v0/websets", data=params.model_dump(by_alias=True, exclude_none=True))
+        response = self.request("/v0/websets", data=params)
         return Webset.model_validate(response)
 
     def get(self, id: str, *, expand: Optional[List[Literal["items"]]] = None) -> GetWebsetResponse:
@@ -69,7 +69,7 @@ class WebsetsClient(WebsetsBaseClient):
         response = self.request("/v0/websets", params=params, method="GET")
         return ListWebsetsResponse.model_validate(response)
 
-    def update(self, id: str, params: UpdateWebsetRequest) -> Webset:
+    def update(self, id: str, params: Union[Dict[str, Any], UpdateWebsetRequest]) -> Webset:
         """Update a Webset.
         
         Args:
@@ -79,7 +79,7 @@ class WebsetsClient(WebsetsBaseClient):
         Returns:
             Webset: The updated webset.
         """
-        response = self.request(f"/v0/websets/{id}", data=params.model_dump(by_alias=True, exclude_none=True), method="POST")
+        response = self.request(f"/v0/websets/{id}", data=params, method="POST")
         return Webset.model_validate(response)
 
     def delete(self, id: str) -> Webset:
@@ -104,23 +104,29 @@ class WebsetsClient(WebsetsBaseClient):
             Webset: The canceled webset.
         """
         response = self.request(f"/v0/websets/{id}/cancel", method="POST")
-        return Webset.model_validate(response) 
-    
-    def wait_until_idle(self, id: str, *, timeout: Optional[int] = None) -> Webset:
+        return Webset.model_validate(response)
+
+    def wait_until_idle(self, id: str, *, timeout: int = 3600, poll_interval: int = 5) -> Webset:
         """Wait until a Webset is idle.
         
         Args:
             id (str): The id or externalId of the Webset.
-        
+            timeout (int, optional): Maximum time to wait in seconds. Defaults to 3600.
+            poll_interval (int, optional): Time to wait between polls in seconds. Defaults to 5.
+            
         Returns:
-            Webset: The webset.
+            Webset: The webset once it's idle.
+            
+        Raises:
+            TimeoutError: If the webset does not become idle within the timeout period.
         """
         start_time = time.time()
         while True:
             webset = self.get(id)
-            if webset.status == WebsetStatus.idle:
-                break
-            time.sleep(1)
-            if timeout and time.time() - start_time > timeout:
-                raise Exception("Webset timed out")
-        return webset
+            if webset.status == WebsetStatus.idle.value:
+                return webset
+                
+            if time.time() - start_time > timeout:
+                raise TimeoutError(f"Webset {id} did not become idle within {timeout} seconds")
+                
+            time.sleep(poll_interval)

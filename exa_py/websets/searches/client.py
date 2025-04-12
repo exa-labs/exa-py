@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Dict, Any, Union
+
 from ..types import (
     CreateWebsetSearchParameters,
     WebsetSearch,
@@ -12,7 +14,7 @@ class WebsetSearchesClient(WebsetsBaseClient):
     def __init__(self, client):
         super().__init__(client)
 
-    def create(self, webset_id: str, params: CreateWebsetSearchParameters) -> WebsetSearch:
+    def create(self, webset_id: str, params: Union[Dict[str, Any], CreateWebsetSearchParameters]) -> WebsetSearch:
         """Create a new Search for the Webset.
         
         Args:
@@ -22,7 +24,7 @@ class WebsetSearchesClient(WebsetsBaseClient):
         Returns:
             WebsetSearch: The created search.
         """
-        response = self.request(f"/v0/websets/{webset_id}/searches", data=params.model_dump(by_alias=True, exclude_none=True))
+        response = self.request(f"/v0/websets/{webset_id}/searches", data=params)
         return WebsetSearch.model_validate(response)
 
     def get(self, webset_id: str, id: str) -> WebsetSearch:

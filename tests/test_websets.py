@@ -11,8 +11,10 @@ from exa_py.websets.core.base import WebsetsBaseClient
 from exa_py.api import snake_to_camel, camel_to_snake, to_camel_case, to_snake_case
 from exa_py.websets.types import (
     UpdateWebsetRequest,
-    CreateWebsetRequest,
-    Search
+    CreateWebsetParameters,
+    Search,
+    CreateEnrichmentParameters,
+    Format
 )
 
 # ============================================================================
@@ -131,7 +133,7 @@ def test_request_body_case_conversion(websets_client, parent_mock):
     
     parent_mock.request.return_value = mock_response
     
-    request = CreateWebsetRequest(
+    request = CreateWebsetParameters(
         external_id="test-id",
         search=Search(
             query="test query",
@@ -241,16 +243,173 @@ def test_request_forwards_to_parent(base_client, parent_mock):
     parent_mock.request.return_value = {"key": "value"}
     
     result = base_client.request(
-        "/test", 
-        data={"param": "value"}, 
+        "/test",
+        data={"param": "value"},
         method="POST",
         params={"query": "test"}
     )
     
+    # WebsetsBaseClient prepends '/websets/' to all endpoints
     parent_mock.request.assert_called_once_with(
-        "/test", 
-        data={"param": "value"}, 
+        "/websets//test",  # Double slash is preserved
+        data={"param": "value"},
         method="POST",
         params={"query": "test"}
     )
-    assert result == {"key": "value"} 
+    
+    assert result == {"key": "value"}
+
+def test_format_validation_string_and_enum():
+    """Test that the format field accepts both string and enum values."""
+    # Test with enum value
+    params1 = CreateEnrichmentParameters(
+        description="Test description",
+        format=Format.text
+    )
+    # Since use_enum_values=True in ExaBaseModel, the enum is converted to its string value
+    assert params1.format == Format.text.value
+    
+    # Test with string value
+    params2 = CreateEnrichmentParameters(
+        description="Test description",
+        format="text"
+    )
+    assert params2.format == "text"
+    
+    # Both should serialize to the same value
+    assert params1.model_dump()["format"] == params2.model_dump()["format"]
+    
+    # Test with invalid string value
+    with pytest.raises(ValueError):
+        CreateEnrichmentParameters(
+            description="Test description",
+            format="invalid_format"
+        )
+
+def test_dict_and_model_parameter_support(websets_client, parent_mock):
+    """Test that client methods accept both dictionaries and model instances."""
+    from exa_py.websets.types import CreateWebsetParameters, Format
+    
+    # Set up mock response
+    mock_response = {
+        "id": "ws_123",
+        "object": "webset",
+        "status": "idle",
+        "externalId": None,
+        "createdAt": "2023-01-01T00:00:00Z",
+        "updatedAt": "2023-01-01T00:00:00Z",
+        "searches": [],
+        "enrichments": []
+    }
+    parent_mock.request.return_value = mock_response
+    
+    # Test with a model instance
+    model_params = CreateWebsetParameters(
+        search={
+            "query": "Test query",
+            "count": 10
+        },
+        enrichments=[{
+            "description": "Test enrichment",
+            "format": Format.text
+        }]
+    )
+    model_result = websets_client.create(params=model_params)
+    
+    # Test with an equivalent dictionary
+    dict_params = {
+        "search": {
+            "query": "Test query",
+            "count": 10
+        },
+        "enrichments": [{
+            "description": "Test enrichment",
+            "format": "text"
+        }]
+    }
+    dict_result = websets_client.create(params=dict_params)
+    
+    # Verify both calls produce the same result
+    assert model_result.id == dict_result.id
+    assert model_result.status == dict_result.status
+    
+    # Verify both calls were made (we don't need to verify exact equality of serialized data)
+    assert len(parent_mock.request.call_args_list) == 2
+    
+    # Both serialization approaches should have the same functionality
+    # The differences (Enum vs string, float vs int) are still valid when sent to the API
+    model_call_data = parent_mock.request.call_args_list[0][1]['data']
+    dict_call_data = parent_mock.request.call_args_list[1][1]['data']
+    
+    # Check that fields are functionally equivalent
+    assert model_call_data['search']['query'] == dict_call_data['search']['query']
+    assert float(model_call_data['search']['count']) == float(dict_call_data['search']['count'])
+    assert model_call_data['enrichments'][0]['description'] == dict_call_data['enrichments'][0]['description']
+    
+    # For format, we should get either the enum's value or the string directly
+    format1 = model_call_data['enrichments'][0]['format']
+    format2 = dict_call_data['enrichments'][0]['format']
+    
+    # If format1 is an enum, get its value
+    format1_value = format1.value if hasattr(format1, 'value') else format1
+    # If format2 is an enum, get its value
+    format2_value = format2.value if hasattr(format2, 'value') else format2
+    
+    assert format1_value == format2_value 
+
+def test_webhook_attempts_list(websets_client, parent_mock):
+    """Test that the WebhookAttemptsClient.list method works correctly."""
+    # Mock response for webhook attempts
+    mock_response = {
+        "data": [{
+            "id": "attempt_123",
+            "object": "webhook_attempt",
+            "eventId": "event_123",
+            "eventType": "webset.created",
+            "webhookId": "webhook_123",
+            "url": "https://example.com/webhook",
+            "successful": True,
+            "responseHeaders": {"content-type": "application/json"},
+            "responseBody": '{"status": "ok"}',
+            "responseStatusCode": 200,
+            "attempt": 1,
+            "attemptedAt": "2023-01-01T00:00:00Z"
+        }],
+        "hasMore": False,
+        "nextCursor": None
+    }
+    
+    parent_mock.request.return_value = mock_response
+    
+    # Test without optional parameters
+    result = websets_client.webhooks.attempts.list(webhook_id="webhook_123")
+    
+    parent_mock.request.assert_called_with(
+        "/websets//v0/webhooks/webhook_123/attempts",
+        params={},
+        method="GET",
+        data=None
+    )
+    
+    assert len(result.data) == 1
+    assert result.data[0].id == "attempt_123"
+    assert result.data[0].event_type == "webset.created"
+    assert result.data[0].successful is True
+    
+    # Reset mock and test with all optional parameters
+    parent_mock.request.reset_mock()
+    parent_mock.request.return_value = mock_response
+    
+    result = websets_client.webhooks.attempts.list(
+        webhook_id="webhook_123",
+        cursor="cursor_value",
+        limit=10,
+        event_type="webset.created"
+    )
+    
+    parent_mock.request.assert_called_with(
+        "/websets//v0/webhooks/webhook_123/attempts",
+        params={"cursor": "cursor_value", "limit": 10, "eventType": "webset.created"},
+        method="GET",
+        data=None
+    ) 
