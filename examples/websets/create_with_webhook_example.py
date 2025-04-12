@@ -1,10 +1,11 @@
 from exa_py import Exa
 import os
 import time
+
 from exa_py.websets.types import CreateWebsetParameters, CreateEnrichmentParameters, CreateWebhookParameters, EventType
 
 # Initialize the client with the provided API key
-exa = Exa("f8394587-06b1-4b99-81d0-38b522b76b59")
+exa = Exa(os.environ.get("EXA_API_KEY"))
 
 print("Setting up webhooks for real-time updates...")
 
