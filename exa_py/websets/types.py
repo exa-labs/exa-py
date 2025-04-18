@@ -18,14 +18,14 @@ class CanceledReason(Enum):
 
 
 class CreateCriterionParameters(ExaBaseModel):
-    description: constr(min_length=1, max_length=300)
+    description: constr(min_length=1)
     """
     The description of the criterion
     """
 
 
 class CreateEnrichmentParameters(ExaBaseModel):
-    description: constr(min_length=1, max_length=5000)
+    description: constr(min_length=1)
     """
     Provide a description of the enrichment task you want to perform to each Webset Item.
     """
@@ -88,7 +88,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
     The actual number of Items found may be less than this number depending on the query complexity.
     """
-    query: constr(min_length=1, max_length=5000) = Field(
+    query: constr(min_length=1) = Field(
         ...,
         examples=[
             'Marketing agencies based in the US, that focus on consumer products. Get brands worked with and city'
@@ -136,7 +136,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
 
 class Criterion(ExaBaseModel):
-    description: constr(min_length=1, max_length=300)
+    description: constr(min_length=1)
     """
     The description of the criterion
     """
@@ -338,7 +338,7 @@ class Search(ExaBaseModel):
     Create initial search for the Webset.
     """
 
-    query: constr(min_length=1, max_length=5000) = Field(
+    query: constr(min_length=1) = Field(
         ...,
         examples=[
             'Marketing agencies based in the US, that focus on consumer products.'
@@ -405,7 +405,7 @@ class UpdateWebhookParameters(ExaBaseModel):
 
 
 class UpdateWebsetRequest(ExaBaseModel):
-    metadata: Optional[Dict[str, constr(max_length=1000)]] = None
+    metadata: Optional[Dict[str, str]] = None
     """
     Set of key-value pairs you want to associate with this object.
     """
@@ -564,7 +564,7 @@ class WebsetCreatedEvent(ExaBaseModel):
 
 class WebsetCustomEntity(ExaBaseModel):
     type: Literal['custom']
-    description: constr(min_length=2, max_length=200)
+    description: constr(min_length=2)
     """
     When you decide to use a custom entity, this is the description of the entity.
 
@@ -972,7 +972,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The status of the search
     """
-    query: constr(min_length=1, max_length=5000)
+    query: constr(min_length=1)
     """
     The query used to create the search.
     """
