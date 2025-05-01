@@ -27,9 +27,6 @@ exa = Exa(api_key="your-api-key")
   # basic search
   results = exa.search("This is a Exa query:")
 
-  # autoprompted search
-  results = exa.search("autopromptable query", use_autoprompt=True)
-
   # keyword search (non-neural)
   results = exa.search("Google-style query", type="keyword")
 
@@ -42,13 +39,9 @@ exa = Exa(api_key="your-api-key")
   # search and get text contents
   results = exa.search_and_contents("This is a Exa query:")
 
-  # search and get highlights
-  results = exa.search_and_contents("This is a Exa query:", highlights=True)
-
   # search and get contents with contents options
   results = exa.search_and_contents("This is a Exa query:", 
-                                    text={"include_html_tags": True, "max_characters": 1000}, 
-                                    highlights={"highlights_per_url": 2, "num_sentences": 1, "query": "This is the highlight query:"})
+                                    text={"include_html_tags": True, "max_characters": 1000})
                                     
   # find similar documents
   results = exa.find_similar("https://example.com")
@@ -57,18 +50,14 @@ exa = Exa(api_key="your-api-key")
   results = exa.find_similar("https://example.com", exclude_source_domain=True)
 
   # find similar with contents
-  results = exa.find_similar_and_contents("https://example.com", text=True, highlights=True)
+  results = exa.find_similar_and_contents("https://example.com", text=True)
 
   # get text contents
-  results = exa.get_contents(["urls"])
-
-  # get highlights
-  results = exa.get_contents(["urls"], highlights=True)
+  results = exa.get_contents(["tesla.com"])
 
   # get contents with contents options
   results = exa.get_contents(["urls"], 
-                             text={"include_html_tags": True, "max_characters": 1000}, 
-                             highlights={"highlights_per_url": 2, "num_sentences": 1, "query": "This is the highlight query:"})
+                             text={"include_html_tags": True, "max_characters": 1000})
 
   # basic answer
   response = exa.answer("This is a query to answer a question")
