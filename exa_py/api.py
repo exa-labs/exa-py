@@ -834,6 +834,36 @@ def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
 
     return original_dict
 
+@dataclass
+class ResearchResponse:
+    """A class representing the response for a research operation.
+
+    Attributes:
+        id (str): The unique identifier for the research request.
+        status (str): Status of the research request.
+        output (Optional[Dict[str, Any]]): The answer structured as JSON, if available.
+        citations (List[_Result]): List of citations used to generate the answer.
+    """
+
+    id: str
+    status: str
+    output: Optional[Dict[str, Any]]
+    citations: List[_Result]
+
+    def __str__(self):
+        output_repr = (
+            json.dumps(self.output, indent=2, ensure_ascii=False)
+            if self.output is not None
+            else "None"
+        )
+        citations_str = "\n\n".join(str(src) for src in self.citations)
+        return (
+            f"ID: {self.id}\n"
+            f"Status: {self.status}\n"
+            f"Output: {output_repr}\n\n"
+            f"Citations:\n{citations_str}"
+        )
+
 
 class Exa:
     """A client for interacting with Exa API."""
@@ -1911,6 +1941,33 @@ class Exa:
         raw_response = self.request("/answer", options)
         return StreamAnswerResponse(raw_response)
 
+    def research(
+        self,
+        query: str,
+        *,
+        output_schema: Optional[Dict[str, Any]] = None,
+    ) -> ResearchResponse:
+        """Submit a research request to Exa.
+
+        Args:
+            query (str): The research question to be answered.
+            output_schema (dict, optional): A JSON Schema specifying the desired structure of the answer.
+
+        Returns:
+            ResearchResponse: The response containing an ID, status, output, and citations.
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options = to_camel_case(options)
+        response = self.request("/research", options)
+
+        return ResearchResponse(
+            id=response["id"],
+            status=response["status"],
+            output=response.get("output"),
+            citations=[_Result(**to_snake_case(c)) for c in response.get("citations", [])],
+        )
+
+
 class AsyncExa(Exa):
     def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
         super().__init__(api_key, api_base)
@@ -2244,3 +2301,29 @@ class AsyncExa(Exa):
         options["stream"] = True
         raw_response = await self.async_request("/answer", options)
         return AsyncStreamAnswerResponse(raw_response)
+
+    async def research(
+        self,
+        query: str,
+        *,
+        output_schema: Optional[Dict[str, Any]] = None,
+    ) -> ResearchResponse:
+        """Asynchronously submit a research request to Exa.
+
+        Args:
+            query (str): The research question to be answered.
+            output_schema (dict, optional): JSON Schema specifying the desired answer structure.
+
+        Returns:
+            ResearchResponse
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options = to_camel_case(options)
+        response = await self.async_request("/research", options)
+
+        return ResearchResponse(
+            id=response["id"],
+            status=response["status"],
+            output=response.get("output"),
+            citations=[_Result(**to_snake_case(c)) for c in response.get("citations", [])],
+        )
