@@ -834,6 +834,36 @@ def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
 
     return original_dict
 
+@dataclass
+class ResearchTaskResponse:
+    """A class representing the response for a research task.
+
+    Attributes:
+        id (str): The unique identifier for the research request.
+        status (str): Status of the research request.
+        output (Optional[Dict[str, Any]]): The answer structured as JSON, if available.
+        citations (Optional[Dict[str, List[_Result]]]): List of citations used to generate the answer, grouped by root field in the output schema.
+    """
+
+    id: str
+    status: str
+    output: Optional[Dict[str, Any]]
+    citations: Dict[str, List[_Result]]
+
+    def __str__(self):
+        output_repr = (
+            json.dumps(self.output, indent=2, ensure_ascii=False)
+            if self.output is not None
+            else "None"
+        )
+        citations_str = "\n\n".join(str(src) for src in self.citations)
+        return (
+            f"ID: {self.id}\n"
+            f"Status: {self.status}\n"
+            f"Output: {output_repr}\n\n"
+            f"Citations:\n{citations_str}"
+        )
+
 
 class Exa:
     """A client for interacting with Exa API."""
@@ -1911,6 +1941,37 @@ class Exa:
         raw_response = self.request("/answer", options)
         return StreamAnswerResponse(raw_response)
 
+    def researchTask(
+        self,
+        *,
+        input_instructions: str,
+        output_schema: Dict[str, Any],
+    ) -> ResearchTaskResponse:
+        """Submit a research request to Exa.
+
+        Args:
+            input_instructions (str): The instructions for the research task.
+            output_schema (Dict[str, Any]): JSON schema describing the desired answer structure.
+        """
+        # Build the request payload expected by the Exa API
+        options = {
+            "input": {"instructions": input_instructions},
+            "output": {"schema": output_schema},
+        }
+
+        response = self.request("/research/tasks", options)
+
+        return ResearchTaskResponse(
+            id=response["id"],
+            status=response["status"],
+            output=response.get("output"),
+            citations={
+                key: [_Result(**to_snake_case(citation)) for citation in citations_list]
+                for key, citations_list in response.get("citations", {}).items()
+            },
+        )
+
+
 class AsyncExa(Exa):
     def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
         super().__init__(api_key, api_base)
@@ -2244,3 +2305,36 @@ class AsyncExa(Exa):
         options["stream"] = True
         raw_response = await self.async_request("/answer", options)
         return AsyncStreamAnswerResponse(raw_response)
+
+    async def researchTask(
+        self,
+        *,
+        input_instructions: str,
+        output_schema: Dict[str, Any],
+    ) -> ResearchTaskResponse:
+        """Asynchronously submit a research request to Exa.
+
+        Args:
+            input_instructions (str): The instructions for the research task.
+            output_schema (Dict[str, Any]): JSON schema describing the desired answer structure.
+
+        Returns:
+            ResearchTaskResponse: The parsed response from the Exa API.
+        """
+        # Build the request payload expected by the Exa API
+        options = {
+            "input": {"instructions": input_instructions},
+            "output": {"schema": output_schema},
+        }
+
+        response = await self.async_request("/research/tasks", options)
+
+        return ResearchTaskResponse(
+            id=response["id"],
+            status=response["status"],
+            output=response.get("output"),
+            citations={
+                key: [_Result(**to_snake_case(citation)) for citation in citations_list]
+                for key, citations_list in response.get("citations", {}).items()
+            },
+        )
