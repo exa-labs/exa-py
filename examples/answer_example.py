@@ -22,11 +22,24 @@ response = exa.answer(
 )
 print(response)
 
-#Answer with streaming
+# Answer with streaming
 response = exa.stream_answer(
     "How close are we to meeting aliens?",
     system_prompt="Answer in a humorous tone.",
 )
 
+# Answer with output schema
+response = exa.answer(
+    "What is the latest valuation of SpaceX?",
+    output_schema={
+        "type": "object",
+        "required": ["answer"],
+        "additionalProperties": False,
+        "properties": {
+            "answer": {"type": "number"},
+        },
+    },
+)
+
 for chunk in response:
-    print(chunk, end='', flush=True)
+    print(chunk, end="", flush=True)

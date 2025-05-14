@@ -56,7 +56,7 @@ def snake_to_camel(snake_str: str) -> str:
         return "$schema"
     if snake_str == "not_":
         return "not"
-        
+
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
 
@@ -261,6 +261,7 @@ class JSONSchema(TypedDict, total=False):
     """Represents a JSON Schema definition used for structured summary output.
     To learn more visit https://json-schema.org/overview/what-is-jsonschema.
     """
+
     schema_: str  # This will be converted to "$schema" in JSON
     title: str
     description: str
@@ -288,7 +289,7 @@ class SummaryContentsOptions(TypedDict, total=False):
 
     query: str
     schema: JSONSchema
-    
+
 
 class ExtrasOptions(TypedDict, total=False):
     """A class representing additional extraction fields (e.g. links, images)"""
@@ -669,7 +670,7 @@ class AnswerResponse:
         citations (List[AnswerResult]): A list of citations used to generate the answer.
     """
 
-    answer: str
+    answer: Union[str, dict[str, Any]]
     citations: List[AnswerResult]
 
     def __str__(self):
@@ -765,9 +766,9 @@ class AsyncStreamAnswerResponse:
                         content = chunk["choices"][0]["delta"].get("content")
 
                 if (
-                        "citations" in chunk
-                        and chunk["citations"]
-                        and chunk["citations"] != "null"
+                    "citations" in chunk
+                    and chunk["citations"]
+                    and chunk["citations"] != "null"
                 ):
                     citations = [
                         AnswerResult(**to_snake_case(s)) for s in chunk["citations"]
@@ -776,6 +777,7 @@ class AsyncStreamAnswerResponse:
                 stream_chunk = StreamChunk(content=content, citations=citations)
                 if stream_chunk.has_data():
                     yield stream_chunk
+
         return generator()
 
     def close(self) -> None:
@@ -834,6 +836,7 @@ def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
 
     return original_dict
 
+
 @dataclass
 class ResearchTaskResponse:
     """A class representing the response for a research task.
@@ -889,10 +892,20 @@ class Exa:
                     "API key must be provided as an argument or in EXA_API_KEY environment variable"
                 )
         self.base_url = base_url
-        self.headers = {"x-api-key": api_key, "User-Agent": user_agent, "Content-Type": "application/json"}
+        self.headers = {
+            "x-api-key": api_key,
+            "User-Agent": user_agent,
+            "Content-Type": "application/json",
+        }
         self.websets = WebsetsClient(self)
 
-    def request(self, endpoint: str, data: Optional[Union[Dict[str, Any], str]] = None, method: str = "POST", params: Optional[Dict[str, Any]] = None) -> Union[Dict[str, Any], requests.Response]:
+    def request(
+        self,
+        endpoint: str,
+        data: Optional[Union[Dict[str, Any], str]] = None,
+        method: str = "POST",
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Union[Dict[str, Any], requests.Response]:
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
@@ -915,13 +928,13 @@ class Exa:
         else:
             # Otherwise, serialize the dictionary to JSON if it exists
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
-            
+
         if data and data.get("stream"):
             res = requests.post(
-                self.base_url + endpoint, 
+                self.base_url + endpoint,
                 data=json_data,
-                headers=self.headers, 
-                stream=True
+                headers=self.headers,
+                stream=True,
             )
             return res
 
@@ -931,20 +944,14 @@ class Exa:
             )
         elif method.upper() == "POST":
             res = requests.post(
-                self.base_url + endpoint, 
-                data=json_data,
-                headers=self.headers
+                self.base_url + endpoint, data=json_data, headers=self.headers
             )
         elif method.upper() == "PATCH":
             res = requests.patch(
-                self.base_url + endpoint, 
-                data=json_data,
-                headers=self.headers
+                self.base_url + endpoint, data=json_data, headers=self.headers
             )
         elif method.upper() == "DELETE":
-            res = requests.delete(
-                self.base_url + endpoint, headers=self.headers
-            )
+            res = requests.delete(self.base_url + endpoint, headers=self.headers)
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
@@ -1875,6 +1882,7 @@ class Exa:
         text: Optional[bool] = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
+        output_schema: Optional[dict[str, Any]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]: ...
 
     def answer(
@@ -1885,6 +1893,7 @@ class Exa:
         text: Optional[bool] = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
+        output_schema: Optional[dict[str, Any]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
@@ -1893,6 +1902,7 @@ class Exa:
             text (bool, optional): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
 
         Returns:
             AnswerResponse: An object containing the answer and citations.
@@ -1922,6 +1932,7 @@ class Exa:
         text: bool = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
+        output_schema: Optional[dict[str, Any]] = None,
     ) -> StreamAnswerResponse:
         """Generate a streaming answer response.
 
@@ -1930,7 +1941,7 @@ class Exa:
             text (bool): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
-
+            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
         Returns:
             StreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
                 Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
@@ -1982,9 +1993,7 @@ class AsyncExa(Exa):
         # this may only be a
         if self._client is None:
             self._client = httpx.AsyncClient(
-                base_url=self.base_url,
-                headers=self.headers,
-                timeout=60
+                base_url=self.base_url, headers=self.headers, timeout=60
             )
         return self._client
 
@@ -2004,15 +2013,14 @@ class AsyncExa(Exa):
         """
         if data.get("stream"):
             request = httpx.Request(
-                'POST',
-                self.base_url + endpoint,
-                json=data,
-                headers=self.headers
+                "POST", self.base_url + endpoint, json=data, headers=self.headers
             )
             res = await self.client.send(request, stream=True)
             return res
 
-        res = await self.client.post(self.base_url + endpoint, json=data, headers=self.headers)
+        res = await self.client.post(
+            self.base_url + endpoint, json=data, headers=self.headers
+        )
         if res.status_code != 200:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
@@ -2250,6 +2258,7 @@ class AsyncExa(Exa):
         text: Optional[bool] = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
+        output_schema: Optional[dict[str, Any]] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
@@ -2258,6 +2267,7 @@ class AsyncExa(Exa):
             text (bool, optional): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
 
         Returns:
             AnswerResponse: An object containing the answer and citations.
@@ -2287,6 +2297,7 @@ class AsyncExa(Exa):
         text: bool = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
+        output_schema: Optional[dict[str, Any]] = None,
     ) -> AsyncStreamAnswerResponse:
         """Generate a streaming answer response.
 
@@ -2295,7 +2306,7 @@ class AsyncExa(Exa):
             text (bool): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
-
+            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
         Returns:
             AsyncStreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
                 Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
