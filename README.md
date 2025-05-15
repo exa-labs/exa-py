@@ -22,6 +22,7 @@ exa = Exa(api_key="your-api-key")
 ```
 
 ## Common requests
+
 ```python
 
   # basic search
@@ -40,9 +41,9 @@ exa = Exa(api_key="your-api-key")
   results = exa.search_and_contents("This is a Exa query:")
 
   # search and get contents with contents options
-  results = exa.search_and_contents("This is a Exa query:", 
+  results = exa.search_and_contents("This is a Exa query:",
                                     text={"include_html_tags": True, "max_characters": 1000})
-                                    
+
   # find similar documents
   results = exa.find_similar("https://example.com")
 
@@ -56,7 +57,7 @@ exa = Exa(api_key="your-api-key")
   results = exa.get_contents(["tesla.com"])
 
   # get contents with contents options
-  results = exa.get_contents(["urls"], 
+  results = exa.get_contents(["urls"],
                              text={"include_html_tags": True, "max_characters": 1000})
 
   # basic answer
@@ -72,5 +73,8 @@ exa = Exa(api_key="your-api-key")
   for chunk in response:
     print(chunk, end='', flush=True)
 
-```
+  # research task example – answer a question with citations
+  answer = exa.answer("What are the most recent breakthroughs in quantum computer hardware?", text=True)
+  print(answer.answer)
 
+```

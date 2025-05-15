@@ -39,6 +39,7 @@ from exa_py.utils import (
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
 from .research.client import ResearchClient, AsyncResearchClient
+from .research.models import ResearchTaskResponse  # noqa: E402,F401
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -908,6 +909,7 @@ class Exa:
         data: Optional[Union[Dict[str, Any], str]] = None,
         method: str = "POST",
         params: Optional[Dict[str, Any]] = None,
+        force_stream: Optional[bool] = False,
     ) -> Union[Dict[str, Any], requests.Response]:
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
@@ -932,7 +934,7 @@ class Exa:
             # Otherwise, serialize the dictionary to JSON if it exists
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
 
-        if data and data.get("stream"):
+        if (data and data.get("stream")) or force_stream:
             res = requests.post(
                 self.base_url + endpoint,
                 data=json_data,
@@ -1972,7 +1974,7 @@ class AsyncExa(Exa):
             )
         return self._client
 
-    async def async_request(self, endpoint: str, data):
+    async def async_request(self, endpoint: str, data, force_stream: Optional[bool] = False):
         """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
@@ -1986,7 +1988,7 @@ class AsyncExa(Exa):
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
-        if data.get("stream"):
+        if data.get("stream") or force_stream:
             request = httpx.Request(
                 "POST", self.base_url + endpoint, json=data, headers=self.headers
             )
