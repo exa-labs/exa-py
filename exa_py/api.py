@@ -877,7 +877,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.12.1",
+        user_agent: str = "exa-py 1.12.2",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -1974,7 +1974,9 @@ class AsyncExa(Exa):
             )
         return self._client
 
-    async def async_request(self, endpoint: str, data, force_stream: Optional[bool] = False):
+    async def async_request(
+        self, endpoint: str, data, force_stream: Optional[bool] = False
+    ):
         """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
