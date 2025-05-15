@@ -74,7 +74,36 @@ exa = Exa(api_key="your-api-key")
     print(chunk, end='', flush=True)
 
   # research task example – answer a question with citations
-  answer = exa.answer("What are the most recent breakthroughs in quantum computer hardware?", text=True)
-  print(answer.answer)
-
+  # Example prompt & schema inspired by the TypeScript example.
+  QUESTION = (
+      "Summarize the history of San Francisco highlighting one or two major events "
+      "for each decade from 1850 to 1950"
+  )
+  OUTPUT_SCHEMA: Dict[str, Any] = {
+      "type": "object",
+      "required": ["timeline"],
+      "properties": {
+          "timeline": {
+              "type": "array",
+              "items": {
+                  "type": "object",
+                  "required": ["decade", "notableEvents"],
+                  "properties": {
+                      "decade": {
+                          "type": "string",
+                          "description": 'Decade label e.g. "1850s"',
+                      },
+                      "notableEvents": {
+                          "type": "string",
+                          "description": "A summary of notable events.",
+                      },
+                  },
+              },
+          },
+      },
+  }
+  resp = exa.research.create_task(
+      input_instructions=QUESTION,
+      output_schema=OUTPUT_SCHEMA,
+  )
 ```
