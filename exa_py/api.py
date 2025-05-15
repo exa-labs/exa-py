@@ -38,6 +38,8 @@ from exa_py.utils import (
 )
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
+from .research.client import ResearchClient, AsyncResearchClient
+from .research.models import ResearchTaskResponse  # noqa: E402,F401
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -875,7 +877,7 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.12.1",
+        user_agent: str = "exa-py 1.12.3",
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -898,6 +900,8 @@ class Exa:
             "Content-Type": "application/json",
         }
         self.websets = WebsetsClient(self)
+        # Research tasks client (new, mirrors Websets design)
+        self.research = ResearchClient(self)
 
     def request(
         self,
@@ -905,6 +909,7 @@ class Exa:
         data: Optional[Union[Dict[str, Any], str]] = None,
         method: str = "POST",
         params: Optional[Dict[str, Any]] = None,
+        force_stream: Optional[bool] = False,
     ) -> Union[Dict[str, Any], requests.Response]:
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
@@ -929,7 +934,7 @@ class Exa:
             # Otherwise, serialize the dictionary to JSON if it exists
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
 
-        if data and data.get("stream"):
+        if (data and data.get("stream")) or force_stream:
             res = requests.post(
                 self.base_url + endpoint,
                 data=json_data,
@@ -1952,40 +1957,12 @@ class Exa:
         raw_response = self.request("/answer", options)
         return StreamAnswerResponse(raw_response)
 
-    def researchTask(
-        self,
-        *,
-        input_instructions: str,
-        output_schema: Dict[str, Any],
-    ) -> ResearchTaskResponse:
-        """Submit a research request to Exa.
-
-        Args:
-            input_instructions (str): The instructions for the research task.
-            output_schema (Dict[str, Any]): JSON schema describing the desired answer structure.
-        """
-        # Build the request payload expected by the Exa API
-        options = {
-            "input": {"instructions": input_instructions},
-            "output": {"schema": output_schema},
-        }
-
-        response = self.request("/research/tasks", options)
-
-        return ResearchTaskResponse(
-            id=response["id"],
-            status=response["status"],
-            output=response.get("output"),
-            citations={
-                key: [_Result(**to_snake_case(citation)) for citation in citations_list]
-                for key, citations_list in response.get("citations", {}).items()
-            },
-        )
-
 
 class AsyncExa(Exa):
     def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
         super().__init__(api_key, api_base)
+        # Override the synchronous ResearchClient with its async counterpart.
+        self.research = AsyncResearchClient(self)
         self._client = None
 
     @property
@@ -1997,7 +1974,9 @@ class AsyncExa(Exa):
             )
         return self._client
 
-    async def async_request(self, endpoint: str, data):
+    async def async_request(
+        self, endpoint: str, data, force_stream: Optional[bool] = False
+    ):
         """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
@@ -2011,7 +1990,7 @@ class AsyncExa(Exa):
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
-        if data.get("stream"):
+        if data.get("stream") or force_stream:
             request = httpx.Request(
                 "POST", self.base_url + endpoint, json=data, headers=self.headers
             )
@@ -2316,36 +2295,3 @@ class AsyncExa(Exa):
         options["stream"] = True
         raw_response = await self.async_request("/answer", options)
         return AsyncStreamAnswerResponse(raw_response)
-
-    async def researchTask(
-        self,
-        *,
-        input_instructions: str,
-        output_schema: Dict[str, Any],
-    ) -> ResearchTaskResponse:
-        """Asynchronously submit a research request to Exa.
-
-        Args:
-            input_instructions (str): The instructions for the research task.
-            output_schema (Dict[str, Any]): JSON schema describing the desired answer structure.
-
-        Returns:
-            ResearchTaskResponse: The parsed response from the Exa API.
-        """
-        # Build the request payload expected by the Exa API
-        options = {
-            "input": {"instructions": input_instructions},
-            "output": {"schema": output_schema},
-        }
-
-        response = await self.async_request("/research/tasks", options)
-
-        return ResearchTaskResponse(
-            id=response["id"],
-            status=response["status"],
-            output=response.get("output"),
-            citations={
-                key: [_Result(**to_snake_case(citation)) for citation in citations_list]
-                for key, citations_list in response.get("citations", {}).items()
-            },
-        )

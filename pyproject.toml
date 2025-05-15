@@ -32,14 +32,12 @@ in-project = true
 
 [project]
 name = "exa-py"
-version = "1.12.1"
+version = "1.12.3"
 description = "Python SDK for Exa API."
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
-authors = [
-    {name = "Exa AI", email = "hello@exa.ai"}
-]
+license = { text = "MIT" }
+authors = [{ name = "Exa AI", email = "hello@exa.ai" }]
 dependencies = [
     "requests>=2.32.3",
     "typing-extensions>=4.12.2",
