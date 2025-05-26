@@ -44,6 +44,11 @@ exa = Exa(api_key="your-api-key")
   results = exa.search_and_contents("This is a Exa query:",
                                     text={"include_html_tags": True, "max_characters": 1000})
 
+  # search and return a combined context string
+  results = exa.search_and_contents(
+      "This is a Exa query:", context={"max_characters": 1000}
+  )
+
   # find similar documents
   results = exa.find_similar("https://example.com")
 

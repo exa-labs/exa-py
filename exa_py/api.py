@@ -167,6 +167,7 @@ CONTENTS_OPTIONS_TYPES = {
     "text": [dict, bool],
     "highlights": [dict, bool],
     "summary": [dict, bool],
+    "context": [dict, bool],
     "metadata": [dict, bool],
     "livecrawl_timeout": [int],
     "livecrawl": [LIVECRAWL_OPTIONS],
@@ -291,6 +292,12 @@ class SummaryContentsOptions(TypedDict, total=False):
 
     query: str
     schema: JSONSchema
+
+
+class ContextContentsOptions(TypedDict, total=False):
+    """Options for requesting a combined context string."""
+
+    max_characters: int
 
 
 class ExtrasOptions(TypedDict, total=False):
@@ -805,6 +812,7 @@ class SearchResponse(Generic[T]):
     autoprompt_string: Optional[str]
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
+    context: Optional[str] = None
     cost_dollars: Optional[CostDollars] = None
 
     def __str__(self):
@@ -813,6 +821,8 @@ class SearchResponse(Generic[T]):
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
         if self.resolved_search_type:
             output += f"\nResolved Search Type: {self.resolved_search_type}"
+        if self.context:
+            output += f"\nContext: {self.context}"
         if self.cost_dollars:
             output += f"\nCostDollars: total={self.cost_dollars.total}"
             if self.cost_dollars.search:
@@ -1017,6 +1027,7 @@ class Exa:
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -1275,6 +1286,7 @@ class Exa:
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -1291,6 +1303,7 @@ class Exa:
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -1443,6 +1456,7 @@ class Exa:
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -1493,6 +1507,7 @@ class Exa:
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -1733,6 +1748,7 @@ class Exa:
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -1749,6 +1765,7 @@ class Exa:
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -2057,6 +2074,7 @@ class AsyncExa(Exa):
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -2087,6 +2105,7 @@ class AsyncExa(Exa):
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -2132,6 +2151,7 @@ class AsyncExa(Exa):
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -2182,6 +2202,7 @@ class AsyncExa(Exa):
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -2210,6 +2231,7 @@ class AsyncExa(Exa):
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -2226,6 +2248,7 @@ class AsyncExa(Exa):
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            data.get("context"),
             cost_dollars=cost_dollars,
         )
 
