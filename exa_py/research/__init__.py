@@ -1,8 +1,9 @@
 from .client import ResearchClient, AsyncResearchClient
-from .models import ResearchTaskResponse
+from .models import ResearchTask
 
 __all__ = [
     "ResearchClient",
     "AsyncResearchClient",
-    "ResearchTaskResponse",
+    "ResearchTaskId",
+    "ResearchTask",
 ]
