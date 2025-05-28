@@ -39,7 +39,6 @@ from exa_py.utils import (
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
 from .research.client import ResearchClient, AsyncResearchClient
-from .research.models import ResearchTaskResponse  # noqa: E402,F401
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -839,37 +838,6 @@ def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
     return original_dict
 
 
-@dataclass
-class ResearchTaskResponse:
-    """A class representing the response for a research task.
-
-    Attributes:
-        id (str): The unique identifier for the research request.
-        status (str): Status of the research request.
-        output (Optional[Dict[str, Any]]): The answer structured as JSON, if available.
-        citations (Optional[Dict[str, List[_Result]]]): List of citations used to generate the answer, grouped by root field in the output schema.
-    """
-
-    id: str
-    status: str
-    output: Optional[Dict[str, Any]]
-    citations: Dict[str, List[_Result]]
-
-    def __str__(self):
-        output_repr = (
-            json.dumps(self.output, indent=2, ensure_ascii=False)
-            if self.output is not None
-            else "None"
-        )
-        citations_str = "\n\n".join(str(src) for src in self.citations)
-        return (
-            f"ID: {self.id}\n"
-            f"Status: {self.status}\n"
-            f"Output: {output_repr}\n\n"
-            f"Citations:\n{citations_str}"
-        )
-
-
 class Exa:
     """A client for interacting with Exa API."""
 
@@ -909,7 +877,6 @@ class Exa:
         data: Optional[Union[Dict[str, Any], str]] = None,
         method: str = "POST",
         params: Optional[Dict[str, Any]] = None,
-        force_stream: Optional[bool] = False,
     ) -> Union[Dict[str, Any], requests.Response]:
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
@@ -934,7 +901,7 @@ class Exa:
             # Otherwise, serialize the dictionary to JSON if it exists
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
 
-        if (data and data.get("stream")) or force_stream:
+        if data and data.get("stream"):
             res = requests.post(
                 self.base_url + endpoint,
                 data=json_data,
@@ -1974,9 +1941,7 @@ class AsyncExa(Exa):
             )
         return self._client
 
-    async def async_request(
-        self, endpoint: str, data, force_stream: Optional[bool] = False
-    ):
+    async def async_request(self, endpoint: str, data):
         """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
@@ -1990,7 +1955,7 @@ class AsyncExa(Exa):
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
-        if data.get("stream") or force_stream:
+        if data.get("stream"):
             request = httpx.Request(
                 "POST", self.base_url + endpoint, json=data, headers=self.headers
             )
