@@ -43,9 +43,7 @@ class ResearchClient:
             "output": {"schema": output_schema},
         }
 
-        raw_response: Dict[str, Any] = self._client.request(
-            "/v0/research/tasks", payload
-        )
+        raw_response: Dict[str, Any] = self._client.request("/research/tasks", payload)
 
         # Defensive checks so that we fail loudly if the contract changes.
         if not isinstance(raw_response, dict) or "id" not in raw_response:
@@ -62,7 +60,7 @@ class ResearchClient:
         self, id: str
     ) -> "ResearchTask":  # noqa: D401 – imperative mood is fine
         """Fetch the current status / result for a research task."""
-        endpoint = f"/v0/research/tasks/{id}"
+        endpoint = f"/research/tasks/{id}"
 
         # The new endpoint is a simple GET.
         raw_response: Dict[str, Any] = self._client.request(endpoint, method="GET")
@@ -131,7 +129,7 @@ class AsyncResearchClient:
         }
 
         raw_response: Dict[str, Any] = await self._client.async_request(
-            "/v0/research/tasks", payload
+            "/research/tasks", payload
         )
 
         # Defensive checks so that we fail loudly if the contract changes.
@@ -148,7 +146,7 @@ class AsyncResearchClient:
     async def get_task(self, id: str) -> "ResearchTask":  # noqa: D401
         """Fetch the current status / result for a research task (async)."""
 
-        endpoint = f"/v0/research/tasks/{id}"
+        endpoint = f"/research/tasks/{id}"
 
         # Perform GET using the underlying HTTP client because `async_request`
         # only supports POST semantics.
