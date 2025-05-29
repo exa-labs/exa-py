@@ -29,7 +29,7 @@ class ExaBaseModel(BaseModel):
         str_to_upper=False,  # Don't convert strings to uppercase
         from_attributes=True,  # Allow initialization from attributes
         validate_assignment=True,  # Validate on assignment
-        extra='forbid',  # Forbid extra fields
+        extra='allow',
         json_encoders={AnyUrl: str}  # Convert AnyUrl to string when serializing to JSON
     )
 
