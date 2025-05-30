@@ -274,7 +274,7 @@ class ListEventsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: str = Field(..., alias='nextCursor')
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
     The cursor to paginate through the next set of results
     """
@@ -289,7 +289,22 @@ class ListStreamRunsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: str = Field(..., alias='nextCursor')
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    """
+    The cursor to paginate through the next set of results
+    """
+
+
+class ListStreamsResponse(ExaBaseModel):
+    data: List[Stream]
+    """
+    The list of streams
+    """
+    has_more: bool = Field(..., alias='hasMore')
+    """
+    Whether there are more results to paginate through
+    """
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
     The cursor to paginate through the next set of results
     """
@@ -304,7 +319,7 @@ class ListWebhookAttemptsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: str = Field(..., alias='nextCursor')
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
     The cursor to paginate through the next set of results
     """
@@ -319,7 +334,7 @@ class ListWebhooksResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: str = Field(..., alias='nextCursor')
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
     The cursor to paginate through the next set of results
     """
@@ -334,7 +349,7 @@ class ListWebsetItemResponse(ExaBaseModel):
     """
     Whether there are more Items to paginate through
     """
-    next_cursor: str = Field(..., alias='nextCursor')
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
     The cursor to paginate through the next set of Items
     """
@@ -349,7 +364,7 @@ class ListWebsetsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: str = Field(..., alias='nextCursor')
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
     The cursor to paginate through the next set of results
     """
@@ -542,11 +557,11 @@ class Stream(ExaBaseModel):
     """
     Behavior to perform when stream runs
     """
-    last_run: StreamRun = Field(..., alias='lastRun', title='StreamRun')
+    last_run: Optional[StreamRun] = Field(None, alias='lastRun', title='StreamRun')
     """
     The last run of the stream
     """
-    next_run_at: datetime = Field(..., alias='nextRunAt')
+    next_run_at: Optional[datetime] = Field(None, alias='nextRunAt')
     """
     When the next run will occur
     """
@@ -595,11 +610,11 @@ class StreamCadence(ExaBaseModel):
 
 
 class StreamRefreshBehaviorContentsConfig(ExaBaseModel):
-    target: Literal['StreamRefreshBehaviorContentsConfig'] = Field(..., const=True)
+    target: Literal['contents']
 
 
 class StreamRefreshBehaviorEnrichmentsConfig(ExaBaseModel):
-    target: Literal['StreamRefreshBehaviorEnrichmentsConfig'] = Field(..., const=True)
+    target: Literal['enrichments']
     enrichments: Optional[Enrichments] = None
     """
     Only refresh specific enrichments
@@ -627,15 +642,15 @@ class StreamRun(ExaBaseModel):
     """
     The type of the Stream Run
     """
-    completed_at: datetime = Field(..., alias='completedAt')
+    completed_at: Optional[datetime] = Field(None, alias='completedAt')
     """
     When the run completed
     """
-    failed_at: datetime = Field(..., alias='failedAt')
+    failed_at: Optional[datetime] = Field(None, alias='failedAt')
     """
     When the run failed
     """
-    canceled_at: datetime = Field(..., alias='canceledAt')
+    canceled_at: Optional[datetime] = Field(None, alias='canceledAt')
     """
     When the run was canceled
     """
@@ -754,7 +769,7 @@ class WebhookAttempt(ExaBaseModel):
     """
     The headers of the response
     """
-    response_body: str = Field(..., alias='responseBody')
+    response_body: Optional[str] = Field(None, alias='responseBody')
     """
     The body of the response
     """
@@ -791,7 +806,7 @@ class Webset(ExaBaseModel):
     """
     The status of the webset
     """
-    external_id: str = Field(..., alias='externalId')
+    external_id: Optional[str] = Field(None, alias='externalId')
     """
     The external identifier for the webset
     """
@@ -896,7 +911,7 @@ class WebsetEnrichment(ExaBaseModel):
     The format of the enrichment response.
     """
     options: Optional[List[WebsetEnrichmentOption]] = Field(
-        ..., title='WebsetEnrichmentOptions'
+        None, title='WebsetEnrichmentOptions'
     )
     """
     When the format is options, the different options for the enrichment agent to choose from.
@@ -1028,7 +1043,7 @@ class WebsetItemArticlePropertiesFields(ExaBaseModel):
     """
     The author(s) of the article
     """
-    published_at: Optional[str] = Field(..., alias='publishedAt')
+    published_at: Optional[str] = Field(None, alias='publishedAt')
     """
     The date and time the article was published
     """
@@ -1074,7 +1089,7 @@ class WebsetItemCompanyPropertiesFields(ExaBaseModel):
     """
     A short description of the company
     """
-    logo_url: Optional[AnyUrl] = Field(..., alias='logoUrl')
+    logo_url: Optional[AnyUrl] = Field(None, alias='logoUrl')
     """
     The logo URL of the company
     """
@@ -1118,7 +1133,7 @@ class WebsetItemCustomPropertiesFields(ExaBaseModel):
     """
     The author(s) of the website
     """
-    published_at: Optional[str] = Field(..., alias='publishedAt')
+    published_at: Optional[str] = Field(None, alias='publishedAt')
     """
     The date and time the website was published
     """
@@ -1184,7 +1199,7 @@ class WebsetItemPersonPropertiesFields(ExaBaseModel):
     """
     The current work position of the person
     """
-    picture_url: Optional[AnyUrl] = Field(..., alias='pictureUrl')
+    picture_url: Optional[AnyUrl] = Field(None, alias='pictureUrl')
     """
     The image URL of the person
     """
@@ -1214,7 +1229,7 @@ class WebsetItemResearchPaperPropertiesFields(ExaBaseModel):
     """
     The author(s) of the research paper
     """
-    published_at: Optional[str] = Field(..., alias='publishedAt')
+    published_at: Optional[str] = Field(None, alias='publishedAt')
     """
     The date and time the research paper was published
     """
@@ -1256,13 +1271,13 @@ class WebsetSearch(ExaBaseModel):
     """
     The query used to create the search.
     """
-    entity: Union[
+    entity: Optional[Union[
         WebsetCompanyEntity,
         WebsetPersonEntity,
         WebsetArticleEntity,
         WebsetResearchPaperEntity,
         WebsetCustomEntity,
-    ]
+    ]] = None
     """
     The entity the search will return results for.
 
@@ -1291,11 +1306,11 @@ class WebsetSearch(ExaBaseModel):
     """
     Set of key-value pairs you want to associate with this object.
     """
-    canceled_at: Optional[datetime] = Field(..., alias='canceledAt')
+    canceled_at: Optional[datetime] = Field(None, alias='canceledAt')
     """
     The date and time the search was canceled
     """
-    canceled_reason: Optional[WebsetSearchCanceledReason] = Field(..., alias='canceledReason')
+    canceled_reason: Optional[WebsetSearchCanceledReason] = Field(None, alias='canceledReason')
     """
     The reason the search was canceled
     """

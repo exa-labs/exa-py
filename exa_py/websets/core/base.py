@@ -92,5 +92,9 @@ class WebsetsBaseClient:
             # If data is a model instance, convert it to a dict
             data = data.model_dump(by_alias=True, exclude_none=True)
             
+        # Ensure proper URL construction by removing leading slash from endpoint if present
+        if endpoint.startswith("/"):
+            endpoint = endpoint[1:]
+            
         return self._client.request("/websets/" + endpoint, data=data, method=method, params=params) 
-    
+
