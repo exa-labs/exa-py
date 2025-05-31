@@ -40,6 +40,4 @@ response = exa.answer(
         },
     },
 )
-
-for chunk in response:
-    print(chunk, end="", flush=True)
+print(response)
