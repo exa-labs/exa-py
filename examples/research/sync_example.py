@@ -7,7 +7,7 @@ EXA_API_KEY = os.environ.get("EXA_API_KEY")
 if not EXA_API_KEY:
     raise ValueError("EXA_API_KEY environment variable not set!")
 
-exa = Exa(EXA_API_KEY, "http://localhost:3006")
+exa = Exa(EXA_API_KEY)
 
 examples = [
     {
