@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
 from typing import List, Optional, Literal, Dict, Any, Union
 
 from .types import (
@@ -17,6 +16,7 @@ from .items import WebsetItemsClient
 from .searches import WebsetSearchesClient
 from .enrichments import WebsetEnrichmentsClient
 from .webhooks import WebsetWebhooksClient
+from .streams import StreamsClient
 
 class WebsetsClient(WebsetsBaseClient):
     """Client for managing Websets."""
@@ -27,6 +27,7 @@ class WebsetsClient(WebsetsBaseClient):
         self.searches = WebsetSearchesClient(client)
         self.enrichments = WebsetEnrichmentsClient(client)
         self.webhooks = WebsetWebhooksClient(client)
+        self.streams = StreamsClient(client)
 
     def create(self, params: Union[Dict[str, Any], CreateWebsetParameters]) -> Webset:
         """Create a new Webset.
