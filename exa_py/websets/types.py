@@ -184,11 +184,11 @@ class SearchCriterion(ExaBaseModel):
 class EnrichmentResult(ExaBaseModel):
     object: Literal['enrichment_result']
     format: WebsetEnrichmentFormat
-    result: List[str]
+    result: Optional[List[str]] = None
     """
-    The result of the enrichment.
+    The result of the enrichment. None if the enrichment wasn't successful.
     """
-    reasoning: str
+    reasoning: Optional[str] = None
     """
     The reasoning for the result when an Agent is used.
     """
@@ -202,7 +202,7 @@ class EnrichmentResult(ExaBaseModel):
     """
 
 
-class Enrichments(ExaBaseModel):
+class StreamRefreshBehaviorEnrichmentsConfigEnrichments(ExaBaseModel):
     """
     Only refresh specific enrichments
     """
@@ -560,7 +560,7 @@ class StreamRefreshBehaviorContentsConfig(ExaBaseModel):
 
 class StreamRefreshBehaviorEnrichmentsConfig(ExaBaseModel):
     target: Literal['enrichments']
-    enrichments: Optional[Enrichments] = None
+    enrichments: Optional[StreamRefreshBehaviorEnrichmentsConfigEnrichments] = None
     """
     Only refresh specific enrichments
     """
