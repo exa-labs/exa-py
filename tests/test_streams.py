@@ -13,11 +13,9 @@ from exa_py.websets.types import (
     StreamBehaviorSearch,
     StreamBehaviorRefresh,
     StreamBehaviorSearchConfig,
-    StreamBehaviorSearchParameters,
     StreamRefreshBehaviorEnrichmentsConfig,
     StreamRefreshBehaviorContentsConfig,
-    Cadence,
-    Frequency,
+    StreamCadence,
     StreamStatus,
     WebsetCompanyEntity,
 )
@@ -62,20 +60,17 @@ def sample_stream_response():
         "status": "open",
         "websetId": "ws_123",
         "cadence": {
-            "frequency": "daily",
-            "timezone": "Etc/UTC",
-            "time": "09:00"
+            "cron": "0 9 * * *",  # Daily at 9:00 AM
+            "timezone": "Etc/UTC"
         },
         "behavior": {
             "type": "search",
             "config": {
-                "parameters": {
-                    "query": "AI startups",
-                    "criteria": [{"description": "Must be AI focused"}],
-                    "entity": {"type": "company"},
-                    "count": 10,
-                    "behavior": "append"
-                }
+                "query": "AI startups",
+                "criteria": [{"description": "Must be AI focused"}],
+                "entity": {"type": "company"},
+                "count": 10,
+                "behavior": "append"
             }
         },
         "lastRun": {
@@ -128,20 +123,17 @@ def test_create_stream_with_search_behavior(streams_client, parent_mock, sample_
     # Create parameters with search behavior
     params = CreateStreamParameters(
         webset_id="ws_123",
-        cadence=Cadence(
-            frequency=Frequency.daily,
-            timezone="America/New_York",
-            time="09:00"
+        cadence=StreamCadence(
+            cron="0 9 * * *",  # Daily at 9:00 AM
+            timezone="America/New_York"
         ),
         behavior=StreamBehaviorSearch(
             type="search",
             config=StreamBehaviorSearchConfig(
-                parameters=StreamBehaviorSearchParameters(
-                    query="AI startups",
-                    criteria=[{"description": "Must be AI focused"}],
-                    entity=WebsetCompanyEntity(type="company"),
-                    count=10
-                )
+                query="AI startups",
+                criteria=[{"description": "Must be AI focused"}],
+                entity=WebsetCompanyEntity(type="company"),
+                count=10
             )
         ),
         metadata={"environment": "test"}
@@ -177,7 +169,7 @@ def test_create_stream_with_refresh_behavior(streams_client, parent_mock, sample
     
     params = CreateStreamParameters(
         webset_id="ws_123",
-        cadence=Cadence(frequency=Frequency.weekly),
+        cadence=StreamCadence(cron="0 9 * * 1"),  # Weekly on Monday at 9:00 AM
         behavior=StreamBehaviorRefresh(
             type="refresh",
             config=StreamRefreshBehaviorEnrichmentsConfig(
@@ -206,7 +198,7 @@ def test_create_stream_with_contents_refresh(streams_client, parent_mock, sample
     
     params = CreateStreamParameters(
         webset_id="ws_123",
-        cadence=Cadence(frequency=Frequency.monthly),
+        cadence=StreamCadence(cron="0 9 1 * *"),  # Monthly on the 1st at 9:00 AM
         behavior=StreamBehaviorRefresh(
             type="refresh",
             config=StreamRefreshBehaviorContentsConfig(target="contents")
@@ -225,19 +217,16 @@ def test_create_stream_with_dict_params(streams_client, parent_mock, sample_stre
     dict_params = {
         "websetId": "ws_123",
         "cadence": {
-            "frequency": "daily",
-            "timezone": "UTC",
-            "time": "10:00"
+            "cron": "0 10 * * *",  # Daily at 10:00 AM
+            "timezone": "UTC"
         },
         "behavior": {
             "type": "search",
             "config": {
-                "parameters": {
-                    "query": "tech companies",
-                    "criteria": [{"description": "Technology focused"}],
-                    "entity": {"type": "company"},
-                    "count": 20
-                }
+                "query": "tech companies",
+                "criteria": [{"description": "Technology focused"}],
+                "entity": {"type": "company"},
+                "count": 20
             }
         }
     }
@@ -272,8 +261,8 @@ def test_list_streams(streams_client, parent_mock):
                 "object": "stream",
                 "status": "open",
                 "websetId": "ws_123",
-                "cadence": {"frequency": "daily"},
-                "behavior": {"type": "search", "config": {"parameters": {"query": "test", "criteria": [], "entity": {"type": "company"}, "count": 10}}},
+                "cadence": {"cron": "0 9 * * *"},  # Daily at 9:00 AM
+                "behavior": {"type": "search", "config": {"query": "test", "criteria": [], "entity": {"type": "company"}, "count": 10}},
                 "lastRun": None,
                 "nextRunAt": "2023-01-02T09:00:00Z",
                 "metadata": {},
@@ -452,16 +441,14 @@ def test_case_conversion_in_stream_params(streams_client, parent_mock, sample_st
     
     params = CreateStreamParameters(
         webset_id="ws_123",  # snake_case
-        cadence=Cadence(frequency=Frequency.daily),
+        cadence=StreamCadence(cron="0 9 * * *"),  # Daily at 9:00 AM
         behavior=StreamBehaviorSearch(
             type="search",
             config=StreamBehaviorSearchConfig(
-                parameters=StreamBehaviorSearchParameters(
-                    query="test query",
-                    criteria=[{"description": "test"}],
-                    entity=WebsetCompanyEntity(type="company"),
-                    count=10
-                )
+                query="test query",
+                criteria=[{"description": "test"}],
+                entity=WebsetCompanyEntity(type="company"),
+                count=10
             )
         )
     )
@@ -476,17 +463,19 @@ def test_case_conversion_in_stream_params(streams_client, parent_mock, sample_st
     assert "websetId" in serialized_data  # Converted to camelCase
     assert "webset_id" not in serialized_data  # Original snake_case should not be present
 
-def test_frequency_enum_serialization(streams_client, parent_mock, sample_stream_response):
-    """Test that Frequency enum is properly serialized."""
+def test_cron_expression_serialization(streams_client, parent_mock, sample_stream_response):
+    """Test that cron expressions are properly serialized."""
     parent_mock.request.return_value = sample_stream_response
     
-    cadence = Cadence(frequency=Frequency.weekly)
+    cadence = StreamCadence(cron="0 9 * * 1", timezone="America/New_York")  # Weekly on Monday at 9:00 AM
     
-    # Test enum value is converted to string
-    assert cadence.frequency == Frequency.weekly.value  # Should be "weekly" string
+    # Test cron value is preserved as string
+    assert cadence.cron == "0 9 * * 1"
+    assert cadence.timezone == "America/New_York"
     
     serialized = cadence.model_dump()
-    assert serialized["frequency"] == "weekly"
+    assert serialized["cron"] == "0 9 * * 1"
+    assert serialized["timezone"] == "America/New_York"
 
 # ============================================================================
 # Error Handling Tests

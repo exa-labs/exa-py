@@ -12,7 +12,7 @@ from exa_py.api import snake_to_camel, camel_to_snake, to_camel_case, to_snake_c
 from exa_py.websets.types import (
     UpdateWebsetRequest,
     CreateWebsetParameters,
-    Search,
+    CreateWebsetParametersSearch,
     CreateEnrichmentParameters,
     Format
 )
@@ -128,14 +128,15 @@ def test_request_body_case_conversion(websets_client, parent_mock):
         "createdAt": "2023-01-01T00:00:00Z",
         "updatedAt": "2023-01-01T00:00:00Z",
         "searches": [],
-        "enrichments": []
+        "enrichments": [],
+        "streams": []
     }
     
     parent_mock.request.return_value = mock_response
     
     request = CreateWebsetParameters(
         external_id="test-id",
-        search=Search(
+        search=CreateWebsetParametersSearch(
             query="test query",
             count=10
         ),
@@ -164,7 +165,8 @@ def test_response_case_conversion(websets_client, parent_mock):
         "createdAt": "2023-01-01T00:00:00Z",
         "updatedAt": "2023-01-01T00:00:00Z",
         "searches": [],
-        "enrichments": []
+        "enrichments": [],
+        "streams": []
     }
     
     parent_mock.request.return_value = mock_response
@@ -192,6 +194,7 @@ def test_metadata_case_preservation(websets_client, parent_mock):
             "externalId": "test-id",
             "searches": [],
             "enrichments": [],
+            "streams": [],
             "createdAt": "2023-01-01T00:00:00Z",
             "updatedAt": "2023-01-01T00:00:00Z"
         }
@@ -201,10 +204,10 @@ def test_metadata_case_preservation(websets_client, parent_mock):
         request = UpdateWebsetRequest(metadata=metadata)
         result = websets_client.update(id="ws_123", params=request)
         
+        assert result.metadata == metadata
+        
         actual_data = parent_mock.request.call_args[1]['data']
         assert actual_data["metadata"] == metadata
-        
-        assert result.metadata == metadata
 
 def test_nested_property_case_conversion(items_client, parent_mock):
     """Test that nested property fields follow proper case conversion rules."""
@@ -249,9 +252,8 @@ def test_request_forwards_to_parent(base_client, parent_mock):
         params={"query": "test"}
     )
     
-    # WebsetsBaseClient prepends '/websets/' to all endpoints
     parent_mock.request.assert_called_once_with(
-        "/websets//test",  # Double slash is preserved
+        "/websets/test",
         data={"param": "value"},
         method="POST",
         params={"query": "test"}
@@ -299,7 +301,8 @@ def test_dict_and_model_parameter_support(websets_client, parent_mock):
         "createdAt": "2023-01-01T00:00:00Z",
         "updatedAt": "2023-01-01T00:00:00Z",
         "searches": [],
-        "enrichments": []
+        "enrichments": [],
+        "streams": []
     }
     parent_mock.request.return_value = mock_response
     
@@ -385,7 +388,7 @@ def test_webhook_attempts_list(websets_client, parent_mock):
     result = websets_client.webhooks.attempts.list(webhook_id="webhook_123")
     
     parent_mock.request.assert_called_with(
-        "/websets//v0/webhooks/webhook_123/attempts",
+        "/websets/v0/webhooks/webhook_123/attempts",
         params={},
         method="GET",
         data=None
@@ -408,7 +411,7 @@ def test_webhook_attempts_list(websets_client, parent_mock):
     )
     
     parent_mock.request.assert_called_with(
-        "/websets//v0/webhooks/webhook_123/attempts",
+        "/websets/v0/webhooks/webhook_123/attempts",
         params={"cursor": "cursor_value", "limit": 10, "eventType": "webset.created"},
         method="GET",
         data=None

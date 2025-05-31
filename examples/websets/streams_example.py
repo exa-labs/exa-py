@@ -55,20 +55,22 @@ def main():
     
     # Create a Stream using the same search parameters to keep finding new companies
     print("\nCreating stream...")
+    # Cron format: "minute hour day_of_month month day_of_week"
+    # Examples:
+    # "0 9 * * 1" = Every Monday at 9:00 AM
+    # "0 14 * * *" = Every day at 2:00 PM  
+    # "0 9 1 * *" = First day of every month at 9:00 AM
     stream = exa.websets.streams.create({
         "websetId": webset.id,
         "cadence": {
-            "frequency": "weekly",
-            "timezone": "America/New_York", 
-            "time": "09:00"
+            "cron": "0 9 * * 1",  # Every Monday at 9:00 AM (weekly)
+            "timezone": "America/New_York"
         },
         "behavior": {
             "type": "search",
             "config": {
-                "parameters": {
-                    **search_params,  # Use the same search parameters
-                    "behavior": "append"  # Add new items to the webset
-                }
+                "behavior": "append",  # Add new items to the webset
+                **search_params,  # Use the same search parameters
             }
         }
     })

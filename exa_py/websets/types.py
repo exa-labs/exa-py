@@ -8,30 +8,27 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import AnyUrl, Field, PositiveFloat, confloat, constr
+from pydantic import AnyUrl, Field, PositiveInt, confloat, constr
 from .core.base import ExaBaseModel
 
-class Cadence(ExaBaseModel):
-    """
-    How often the stream will run
-    """
-
-    frequency: Frequency
-    """
-    How often the stream will run
-    """
-    timezone: Optional[str] = 'Etc/UTC'
-    """
-    IANA timezone (e.g., "America/New_York")
-    """
-    time: Optional[str] = None
-    """
-    Customized time of day in HH:MM format (e.g., "14:30"). By default is the hour and minute of creation of the Stream.
-    """
-
-
 class StreamBehaviorSearchConfig(ExaBaseModel):
-    parameters: StreamBehaviorSearchParameters
+    query: constr(min_length=2, max_length=10000)
+    criteria: List[SearchCriterion] = Field(..., max_items=5)
+    entity: Union[
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
+    ] = Field(..., title='WebsetEntity')
+    count: PositiveInt
+    """
+    The maximum number of results to find
+    """
+    behavior: Optional[WebsetSearchBehavior] = 'append'
+    """
+    The behaviour of the Search when it is added to a Webset.
+    """
 
 
 class CreateCriterionParameters(ExaBaseModel):
@@ -67,7 +64,7 @@ class CreateStreamParameters(ExaBaseModel):
     """
     The id of the Webset
     """
-    cadence: Cadence
+    cadence: StreamCadence
     """
     How often the stream will run
     """
@@ -96,7 +93,7 @@ class CreateWebhookParameters(ExaBaseModel):
 
 
 class CreateWebsetParameters(ExaBaseModel):
-    search: Search
+    search: CreateWebsetParametersSearch
     """
     Create initial search for the Webset.
     """
@@ -117,7 +114,7 @@ class CreateWebsetParameters(ExaBaseModel):
 
 
 class CreateWebsetSearchParameters(ExaBaseModel):
-    count: confloat(ge=1.0)
+    count: PositiveInt
     """
     Number of Items the Search will attempt to find.
 
@@ -180,7 +177,7 @@ class WebsetSearchCriterion(ExaBaseModel):
     """
 
 
-class Criterion(ExaBaseModel):
+class SearchCriterion(ExaBaseModel):
     description: constr(min_length=2)
 
 
@@ -240,16 +237,6 @@ class Format(Enum):
     options = 'options'
     email = 'email'
     phone = 'phone'
-
-
-class Frequency(Enum):
-    """
-    How often the stream will run
-    """
-
-    daily = 'daily'
-    weekly = 'weekly'
-    monthly = 'monthly'
 
 
 class ListEventsResponse(ExaBaseModel):
@@ -369,49 +356,11 @@ class ListWebsetsResponse(ExaBaseModel):
     The cursor to paginate through the next set of results
     """
 
-
-class Object(Enum):
-    """
-    The type of object
-    """
-
-    stream_run = 'stream_run'
-
-
-class Object1(Enum):
-    """
-    The type of object
-    """
-
-    stream = 'stream'
-
-
 class Option(ExaBaseModel):
     label: str
     """
     The label of the option
     """
-
-
-class StreamBehaviorSearchParameters(ExaBaseModel):
-    query: constr(min_length=2)
-    criteria: List[Criterion]
-    entity: Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
-    ] = Field(..., title='WebsetEntity')
-    count: PositiveFloat
-    """
-    The maximum number of results to find
-    """
-    behavior: Optional[WebsetSearchBehavior] = 'append'
-    """
-    The behaviour of the Search when it is added to a Webset.
-    """
-
 
 class Progress(ExaBaseModel):
     """
@@ -453,7 +402,7 @@ class Satisfied(Enum):
     unclear = 'unclear'
 
 
-class Search(ExaBaseModel):
+class CreateWebsetParametersSearch(ExaBaseModel):
     """
     Create initial search for the Webset.
     """
@@ -471,7 +420,7 @@ class Search(ExaBaseModel):
 
     Any URL provided will be crawled and used as context for the search.
     """
-    count: Optional[confloat(ge=1.0)] = 10
+    count: Optional[PositiveInt] = 10
     """
     Number of Items the Webset will attempt to find.
 
@@ -547,7 +496,7 @@ class Stream(ExaBaseModel):
     """
     The id of the Webset the Stream belongs to
     """
-    cadence: Cadence
+    cadence: StreamCadence
     """
     How often the stream will run
     """
@@ -595,17 +544,13 @@ class StreamBehaviorSearch(ExaBaseModel):
 
 
 class StreamCadence(ExaBaseModel):
-    frequency: Frequency
+    cron: str
     """
-    How often the stream will run
+    Cron expression for stream cadence (must be a valid Unix cron with 5 fields). The schedule must trigger at most once per day.
     """
     timezone: Optional[str] = 'Etc/UTC'
     """
     IANA timezone (e.g., "America/New_York")
-    """
-    time: Optional[str] = None
-    """
-    Customized time of day in HH:MM format (e.g., "14:30"). By default is the hour and minute of creation of the Stream.
     """
 
 
@@ -1287,7 +1232,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The criteria the search will use to evaluate the results. If not provided, we will automatically generate them for you.
     """
-    count: confloat(ge=1.0)
+    count: PositiveInt
     """
     The number of results the search will attempt to find. The actual number of results may be less than this number depending on the search complexity.
     """
