@@ -103,7 +103,8 @@ exa = Exa(api_key="your-api-key")
       },
   }
   resp = exa.research.create_task(
-      input_instructions=QUESTION,
+      instructions=QUESTION,
+      model="exa-research",
       output_schema=OUTPUT_SCHEMA,
   )
 ```

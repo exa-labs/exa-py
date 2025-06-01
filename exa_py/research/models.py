@@ -92,7 +92,29 @@ class ResearchTask:
         )
 
 
+@dataclass
+class ListResearchTasksResponse:
+    """Paginated list of research tasks."""
+
+    data: List[ResearchTask]
+    has_more: bool
+    next_cursor: Optional[str]
+
+    # -----------------------------------------------------------------
+    # Pretty representation helpers
+    # -----------------------------------------------------------------
+    def __str__(self) -> str:  # pragma: no cover – convenience only
+        tasks_repr = "\n\n".join(str(task) for task in self.data)
+        cursor_repr = self.next_cursor or "None"
+        return (
+            f"Tasks:\n{tasks_repr}\n\n"
+            f"Has more: {self.has_more}\n"
+            f"Next cursor: {cursor_repr}"
+        )
+
+
 __all__ = [
     "ResearchTaskId",
     "ResearchTask",
+    "ListResearchTasksResponse",
 ]

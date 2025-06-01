@@ -1965,7 +1965,7 @@ class AsyncExa(Exa):
         res = await self.client.post(
             self.base_url + endpoint, json=data, headers=self.headers
         )
-        if res.status_code != 200:
+        if res.status_code != 200 and res.status_code != 201:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
             )

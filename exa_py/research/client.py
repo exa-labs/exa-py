@@ -9,14 +9,18 @@ block, but at runtime we only pay the cost if/when a helper is actually used.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:  # pragma: no cover – only for static analysers
     # Import with full type info when static type-checking.  `_Result` still
     # lives in ``exa_py.api`` but the response model moved to
     # ``exa_py.research.models``.
     from ..api import _Result  # noqa: F401
-    from .models import ResearchTask, ResearchTaskId  # noqa: F401
+    from .models import (
+        ResearchTask,
+        ResearchTaskId,
+        ListResearchTasksResponse,
+    )  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Public, user-facing clients
@@ -34,16 +38,20 @@ class ResearchClient:
     def create_task(
         self,
         *,
-        input_instructions: str,
+        instructions: str,
+        model: str = "exa-research",
         output_schema: Dict[str, Any],
     ) -> "ResearchTaskId":
         """Submit a research request and return the *task identifier*."""
         payload = {
-            "input": {"instructions": input_instructions},
+            "instructions": instructions,
+            "model": model,
             "output": {"schema": output_schema},
         }
 
-        raw_response: Dict[str, Any] = self._client.request("/research/tasks", payload)
+        raw_response: Dict[str, Any] = self._client.request(
+            "/research/v0/tasks", payload
+        )
 
         # Defensive checks so that we fail loudly if the contract changes.
         if not isinstance(raw_response, dict) or "id" not in raw_response:
@@ -60,7 +68,7 @@ class ResearchClient:
         self, id: str
     ) -> "ResearchTask":  # noqa: D401 – imperative mood is fine
         """Fetch the current status / result for a research task."""
-        endpoint = f"/research/tasks/{id}"
+        endpoint = f"/research/v0/tasks/{id}"
 
         # The new endpoint is a simple GET.
         raw_response: Dict[str, Any] = self._client.request(endpoint, method="GET")
@@ -108,6 +116,54 @@ class ResearchClient:
 
             time.sleep(poll_interval)
 
+    # ------------------------------------------------------------------
+    # Listing helpers
+    # ------------------------------------------------------------------
+
+    def list(
+        self,
+        *,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> "ListResearchTasksResponse":
+        """List research tasks with optional pagination.
+
+        Parameters
+        ----------
+        cursor:
+            Pagination cursor returned by a previous call (optional).
+        limit:
+            Maximum number of tasks to return (optional).
+        """
+
+        params = {
+            k: v for k, v in {"cursor": cursor, "limit": limit}.items() if v is not None
+        }
+
+        raw_response: Dict[str, Any] = self._client.request(
+            "/research/v0/tasks",
+            data=None,
+            method="GET",
+            params=params or None,
+        )
+
+        # Defensive checks so that we fail loudly if the contract changes.
+        if not isinstance(raw_response, dict) or "data" not in raw_response:
+            raise RuntimeError(
+                f"Unexpected response while listing research tasks: {raw_response}"
+            )
+
+        tasks = [_build_research_task(t) for t in raw_response.get("data", [])]
+
+        # Lazy import to avoid cycles.
+        from .models import ListResearchTasksResponse  # noqa: WPS433 – runtime import
+
+        return ListResearchTasksResponse(
+            data=tasks,
+            has_more=raw_response.get("hasMore", False),
+            next_cursor=raw_response.get("nextCursor"),
+        )
+
 
 class AsyncResearchClient:
     """Async counterpart used via :pyattr:`AsyncExa.research`."""
@@ -118,18 +174,20 @@ class AsyncResearchClient:
     async def create_task(
         self,
         *,
-        input_instructions: str,
+        instructions: str,
+        model: str = "exa-research",
         output_schema: Dict[str, Any],
     ) -> "ResearchTaskId":
         """Submit a research request and return the *task identifier* (async)."""
 
         payload = {
-            "input": {"instructions": input_instructions},
+            "instructions": instructions,
+            "model": model,
             "output": {"schema": output_schema},
         }
 
         raw_response: Dict[str, Any] = await self._client.async_request(
-            "/research/tasks", payload
+            "/research/v0/tasks", payload
         )
 
         # Defensive checks so that we fail loudly if the contract changes.
@@ -146,7 +204,7 @@ class AsyncResearchClient:
     async def get_task(self, id: str) -> "ResearchTask":  # noqa: D401
         """Fetch the current status / result for a research task (async)."""
 
-        endpoint = f"/research/tasks/{id}"
+        endpoint = f"/research/v0/tasks/{id}"
 
         # Perform GET using the underlying HTTP client because `async_request`
         # only supports POST semantics.
@@ -198,6 +256,50 @@ class AsyncResearchClient:
                 )
 
             await asyncio.sleep(poll_interval)
+
+    # ------------------------------------------------------------------
+    # Listing helpers
+    # ------------------------------------------------------------------
+
+    async def list(
+        self,
+        *,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> "ListResearchTasksResponse":
+        """Async list of research tasks with optional pagination."""
+
+        params = {
+            k: v for k, v in {"cursor": cursor, "limit": limit}.items() if v is not None
+        }
+
+        resp = await self._client.client.get(
+            self._client.base_url + "/research/v0/tasks",
+            headers=self._client.headers,
+            params=params or None,
+        )
+
+        if resp.status_code >= 400:
+            raise RuntimeError(
+                f"Request failed with status code {resp.status_code}: {resp.text}"
+            )
+
+        raw_response: Dict[str, Any] = resp.json()
+
+        if not isinstance(raw_response, dict) or "data" not in raw_response:
+            raise RuntimeError(
+                f"Unexpected response while listing research tasks: {raw_response}"
+            )
+
+        tasks = [_build_research_task(t) for t in raw_response.get("data", [])]
+
+        from .models import ListResearchTasksResponse  # noqa: WPS433 – runtime import
+
+        return ListResearchTasksResponse(
+            data=tasks,
+            has_more=raw_response.get("hasMore", False),
+            next_cursor=raw_response.get("nextCursor"),
+        )
 
 
 # ---------------------------------------------------------------------------
