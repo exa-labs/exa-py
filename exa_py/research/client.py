@@ -9,7 +9,7 @@ block, but at runtime we only pay the cost if/when a helper is actually used.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
 
 if TYPE_CHECKING:  # pragma: no cover – only for static analysers
     # Import with full type info when static type-checking.  `_Result` still
@@ -39,15 +39,20 @@ class ResearchClient:
         self,
         *,
         instructions: str,
-        model: str = "exa-research",
-        output_schema: Dict[str, Any],
+        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
+        output_infer_schema: bool = None,
+        output_schema: Dict[str, Any] = None,
     ) -> "ResearchTaskId":
         """Submit a research request and return the *task identifier*."""
-        payload = {
-            "instructions": instructions,
-            "model": model,
-            "output": {"schema": output_schema},
-        }
+        payload = {"instructions": instructions}
+        if model is not None:
+            payload["model"] = model
+        if output_schema is not None or output_infer_schema is not None:
+            payload["output"] = {}
+            if output_schema is not None:
+                payload["output"]["schema"] = output_schema
+            if output_infer_schema is not None:
+                payload["output"]["inferSchema"] = output_infer_schema
 
         raw_response: Dict[str, Any] = self._client.request(
             "/research/v0/tasks", payload
@@ -64,9 +69,7 @@ class ResearchClient:
 
         return ResearchTaskId(id=raw_response["id"])
 
-    def get_task(
-        self, id: str
-    ) -> "ResearchTask":  # noqa: D401 – imperative mood is fine
+    def get_task(self, id: str) -> "ResearchTask":  # noqa: D401 – imperative mood is fine
         """Fetch the current status / result for a research task."""
         endpoint = f"/research/v0/tasks/{id}"
 
@@ -175,7 +178,7 @@ class AsyncResearchClient:
         self,
         *,
         instructions: str,
-        model: str = "exa-research",
+        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
         output_schema: Dict[str, Any],
     ) -> "ResearchTaskId":
         """Submit a research request and return the *task identifier* (async)."""
