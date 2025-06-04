@@ -9,12 +9,12 @@ exa = Exa(os.environ.get("EXA_API_KEY"))
 response = exa.websets.create(
     params=CreateWebsetParameters(
         search={
-            "query": "Tech companies in San Francisco with more than 20 and less than 100 employees",
+            "query": "Tech companies in the United States with more than 20 and less than 100 employees",
             "count": 10,
         },
         enrichments=[
             CreateEnrichmentParameters(
-                description="LinkedIn profile of VP of Engineering or related role",
+                description="LinkedIn profile URL of VP of Engineering or related role",
                 format="text",
             ),
         ],

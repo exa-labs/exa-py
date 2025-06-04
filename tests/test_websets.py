@@ -129,7 +129,7 @@ def test_request_body_case_conversion(websets_client, parent_mock):
         "updatedAt": "2023-01-01T00:00:00Z",
         "searches": [],
         "enrichments": [],
-        "streams": []
+        "monitors": []
     }
     
     parent_mock.request.return_value = mock_response
@@ -166,7 +166,7 @@ def test_response_case_conversion(websets_client, parent_mock):
         "updatedAt": "2023-01-01T00:00:00Z",
         "searches": [],
         "enrichments": [],
-        "streams": []
+        "monitors": []
     }
     
     parent_mock.request.return_value = mock_response
@@ -194,7 +194,7 @@ def test_metadata_case_preservation(websets_client, parent_mock):
             "externalId": "test-id",
             "searches": [],
             "enrichments": [],
-            "streams": [],
+            "monitors": [],
             "createdAt": "2023-01-01T00:00:00Z",
             "updatedAt": "2023-01-01T00:00:00Z"
         }
@@ -302,7 +302,7 @@ def test_dict_and_model_parameter_support(websets_client, parent_mock):
         "updatedAt": "2023-01-01T00:00:00Z",
         "searches": [],
         "enrichments": [],
-        "streams": []
+        "monitors": []
     }
     parent_mock.request.return_value = mock_response
     
