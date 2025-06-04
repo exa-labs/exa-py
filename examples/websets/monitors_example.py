@@ -85,5 +85,16 @@ def main():
     for m in monitors.data:
         print(f"  - {m.id}: {m.behavior.type} monitor ({m.status})")
 
+    # Delete the monitor
+    print(f"\nDeleting monitor {monitor.id}...")
+    exa.websets.monitors.delete(monitor.id)
+    print("✓ Monitor deleted")
+
+    # Delete the webset
+    print(f"\nDeleting webset {webset.id}...")
+    exa.websets.delete(webset.id)
+    print("✓ Webset deleted")
+
+
 if __name__ == "__main__":
     main() 
