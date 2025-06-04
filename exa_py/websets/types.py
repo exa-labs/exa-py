@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import AnyUrl, Field, PositiveInt, confloat, constr
 from .core.base import ExaBaseModel
 
-class StreamBehaviorSearchConfig(ExaBaseModel):
+class MonitorBehaviorSearchConfig(ExaBaseModel):
     query: constr(min_length=2, max_length=10000)
     criteria: List[SearchCriterion] = Field(..., max_items=5)
     entity: Union[
@@ -59,20 +59,20 @@ class CreateEnrichmentParameters(ExaBaseModel):
     """
 
 
-class CreateStreamParameters(ExaBaseModel):
+class CreateMonitorParameters(ExaBaseModel):
     webset_id: str = Field(..., alias='websetId')
     """
     The id of the Webset
     """
-    cadence: StreamCadence
+    cadence: MonitorCadence
     """
-    How often the stream will run
+    How often the monitor will run
     """
-    behavior: Union[StreamBehaviorSearch, StreamBehaviorRefresh] = Field(
+    behavior: Union[MonitorBehaviorSearch, MonitorBehaviorRefresh] = Field(
         ..., discriminator='type'
     )
     """
-    Behavior to perform when stream runs
+    Behavior to perform when monitor runs
     """
     metadata: Optional[Dict[str, Any]] = None
 
@@ -198,11 +198,11 @@ class EnrichmentResult(ExaBaseModel):
     """
     enrichment_id: str = Field(..., alias='enrichmentId')
     """
-    The id of the Enrichment that generated the result
+    The unique identifier for the enrichment
     """
 
 
-class StreamRefreshBehaviorEnrichmentsConfigEnrichments(ExaBaseModel):
+class MonitorRefreshBehaviorEnrichmentsConfigEnrichments(ExaBaseModel):
     """
     Only refresh specific enrichments
     """
@@ -223,6 +223,7 @@ class EventType(Enum):
     webset_export_completed = 'webset.export.completed'
     webset_item_created = 'webset.item.created'
     webset_item_enriched = 'webset.item.enriched'
+
 
 class Format(Enum):
     """
@@ -263,14 +264,14 @@ class ListEventsResponse(ExaBaseModel):
     """
     next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
-    The cursor to paginate through the next set of results
+    The cursor to use for the next page of results
     """
 
 
-class ListStreamRunsResponse(ExaBaseModel):
-    data: List[StreamRun]
+class ListMonitorRunsResponse(ExaBaseModel):
+    data: List[MonitorRun]
     """
-    The list of stream runs
+    The list of monitor runs
     """
     has_more: bool = Field(..., alias='hasMore')
     """
@@ -278,14 +279,14 @@ class ListStreamRunsResponse(ExaBaseModel):
     """
     next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
-    The cursor to paginate through the next set of results
+    The cursor to use for the next page of results
     """
 
 
-class ListStreamsResponse(ExaBaseModel):
-    data: List[Stream]
+class ListMonitorsResponse(ExaBaseModel):
+    data: List[Monitor]
     """
-    The list of streams
+    The list of monitors
     """
     has_more: bool = Field(..., alias='hasMore')
     """
@@ -293,7 +294,7 @@ class ListStreamsResponse(ExaBaseModel):
     """
     next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
-    The cursor to paginate through the next set of results
+    The cursor to use for the next page of results
     """
 
 
@@ -308,7 +309,7 @@ class ListWebhookAttemptsResponse(ExaBaseModel):
     """
     next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
-    The cursor to paginate through the next set of results
+    The cursor to use for the next page of results
     """
 
 
@@ -323,7 +324,7 @@ class ListWebhooksResponse(ExaBaseModel):
     """
     next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
-    The cursor to paginate through the next set of results
+    The cursor to use for the next page of results
     """
 
 
@@ -338,7 +339,7 @@ class ListWebsetItemResponse(ExaBaseModel):
     """
     next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
-    The cursor to paginate through the next set of Items
+    The cursor to use for the next page of results
     """
 
 
@@ -353,14 +354,16 @@ class ListWebsetsResponse(ExaBaseModel):
     """
     next_cursor: Optional[str] = Field(None, alias='nextCursor')
     """
-    The cursor to paginate through the next set of results
+    The cursor to use for the next page of results
     """
+
 
 class Option(ExaBaseModel):
     label: str
     """
     The label of the option
     """
+
 
 class Progress(ExaBaseModel):
     """
@@ -446,7 +449,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     """
     Criteria every item is evaluated against.
 
-    It's not required to provide your own criteria, we automatically detect the criteria from all the information provided in the query. Only use this when you need more fine control.
+    It's not required to provide your own criteria, we automatically detect the criteria from all the information provided in the query.
     """
 
 
@@ -459,9 +462,9 @@ class Source(Enum):
     import_ = 'import'
 
 
-class StreamRunStatus(Enum):
+class MonitorRunStatus(Enum):
     """
-    The status of the Stream Run
+    The status of the Monitor Run
     """
 
     created = 'created'
@@ -470,45 +473,45 @@ class StreamRunStatus(Enum):
     canceled = 'canceled'
 
 
-class StreamStatus(Enum):
+class MonitorStatus(Enum):
     """
-    The status of the Stream
+    The status of the Monitor
     """
 
-    open = 'open'
-    closed = 'closed'
+    enabled = 'enabled'
+    disabled = 'disabled'
 
 
-class Stream(ExaBaseModel):
+class Monitor(ExaBaseModel):
     id: str
     """
-    The unique identifier for the Stream
+    The unique identifier for the Monitor
     """
-    object: str = 'stream'
+    object: str = 'monitor'
     """
     The type of object
     """
-    status: StreamStatus
+    status: MonitorStatus
     """
-    The status of the Stream
+    The status of the Monitor
     """
     webset_id: str = Field(..., alias='websetId')
     """
-    The id of the Webset the Stream belongs to
+    The id of the Webset the Monitor belongs to
     """
-    cadence: StreamCadence
+    cadence: MonitorCadence
     """
-    How often the stream will run
+    How often the monitor will run
     """
-    behavior: Union[StreamBehaviorSearch, StreamBehaviorRefresh] = Field(
+    behavior: Union[MonitorBehaviorSearch, MonitorBehaviorRefresh] = Field(
         ..., discriminator='type'
     )
     """
-    Behavior to perform when stream runs
+    Behavior to perform when monitor runs
     """
-    last_run: Optional[StreamRun] = Field(None, alias='lastRun', title='StreamRun')
+    last_run: Optional[MonitorRun] = Field(None, alias='lastRun', title='MonitorRun')
     """
-    The last run of the stream
+    The last run of the monitor
     """
     next_run_at: Optional[datetime] = Field(None, alias='nextRunAt')
     """
@@ -520,72 +523,66 @@ class Stream(ExaBaseModel):
     """
     created_at: datetime = Field(..., alias='createdAt')
     """
-    When the stream was created
+    When the monitor was created
     """
     updated_at: datetime = Field(..., alias='updatedAt')
     """
-    When the stream was last updated
+    When the monitor was last updated
     """
 
 
-class StreamBehaviorRefresh(ExaBaseModel):
+class MonitorBehaviorRefresh(ExaBaseModel):
     type: Literal['refresh']
     config: Union[
-        StreamRefreshBehaviorEnrichmentsConfig, StreamRefreshBehaviorContentsConfig
+        MonitorRefreshBehaviorEnrichmentsConfig, MonitorRefreshBehaviorContentsConfig
     ] = Field(..., discriminator='target')
-    """
-    Specify the target of the refresh
-    """
 
 
-class StreamBehaviorSearch(ExaBaseModel):
+class MonitorBehaviorSearch(ExaBaseModel):
     type: Literal['search']
-    config: StreamBehaviorSearchConfig
+    config: MonitorBehaviorSearchConfig
 
 
-class StreamCadence(ExaBaseModel):
+class MonitorCadence(ExaBaseModel):
     cron: str
     """
-    Cron expression for stream cadence (must be a valid Unix cron with 5 fields). The schedule must trigger at most once per day.
+    Cron expression for monitor cadence (must be a valid Unix cron with 5 fields). The schedule must trigger at most once per day.
     """
     timezone: Optional[str] = 'Etc/UTC'
     """
-    IANA timezone (e.g., "America/New_York")
+    Timezone for the cron expression
     """
 
 
-class StreamRefreshBehaviorContentsConfig(ExaBaseModel):
+class MonitorRefreshBehaviorContentsConfig(ExaBaseModel):
     target: Literal['contents']
 
 
-class StreamRefreshBehaviorEnrichmentsConfig(ExaBaseModel):
+class MonitorRefreshBehaviorEnrichmentsConfig(ExaBaseModel):
     target: Literal['enrichments']
-    enrichments: Optional[StreamRefreshBehaviorEnrichmentsConfigEnrichments] = None
-    """
-    Only refresh specific enrichments
-    """
+    enrichments: Optional[MonitorRefreshBehaviorEnrichmentsConfigEnrichments] = None
 
 
-class StreamRun(ExaBaseModel):
+class MonitorRun(ExaBaseModel):
     id: str
     """
-    The unique identifier for the Stream Run
+    The unique identifier for the Monitor Run
     """
-    object: str = 'stream_run'
+    object: str = 'monitor_run'
     """
     The type of object
     """
-    status: StreamRunStatus
+    status: MonitorRunStatus
     """
-    The status of the Stream Run
+    The status of the Monitor Run
     """
-    stream_id: str = Field(..., alias='streamId')
+    monitor_id: str = Field(..., alias='monitorId')
     """
-    The stream that the run is associated with
+    The monitor that the run is associated with
     """
     type: Type
     """
-    The type of the Stream Run
+    The type of the Monitor Run
     """
     completed_at: Optional[datetime] = Field(None, alias='completedAt')
     """
@@ -611,19 +608,22 @@ class StreamRun(ExaBaseModel):
 
 class Type(Enum):
     """
-    The type of the Stream Run
+    The type of the Monitor Run
     """
 
     search = 'search'
     refresh = 'refresh'
 
 
-class UpdateStream(ExaBaseModel):
-    status: Optional[StreamStatus] = None
+class UpdateMonitor(ExaBaseModel):
+    status: Optional[MonitorStatus] = None
     """
-    The status of the stream.
+    The status of the monitor.
     """
     metadata: Optional[Dict[str, str]] = None
+    """
+    Set of key-value pairs you want to associate with this object.
+    """
 
 
 class UpdateWebhookParameters(ExaBaseModel):
@@ -728,7 +728,7 @@ class WebhookAttempt(ExaBaseModel):
     """
     attempted_at: datetime = Field(..., alias='attemptedAt')
     """
-    The date and time the webhook attempt was made
+    The date and time the attempt was made
     """
 
 
@@ -763,9 +763,9 @@ class Webset(ExaBaseModel):
     """
     The Enrichments to apply to the Webset Items.
     """
-    streams: List[Stream]
+    monitors: List[Monitor]
     """
-    The Streams for the Webset.
+    The Monitors for the Webset.
     """
     metadata: Optional[Dict[str, Any]] = {}
     """
@@ -777,7 +777,7 @@ class Webset(ExaBaseModel):
     """
     updated_at: datetime = Field(..., alias='updatedAt')
     """
-    The date and time the webset was updated
+    The date and time the webset was last updated
     """
 
 
@@ -807,9 +807,7 @@ class WebsetCustomEntity(ExaBaseModel):
     type: Literal['custom']
     description: constr(min_length=2)
     """
-    When you decide to use a custom entity, this is the description of the entity.
-
-    The entity represents what type of results the Webset will return. For example, if you want results to be Job Postings, you might use "Job Postings" as the entity description.
+    The description of the custom entity
     """
 
 
@@ -877,7 +875,7 @@ class WebsetEnrichment(ExaBaseModel):
     """
     updated_at: datetime = Field(..., alias='updatedAt')
     """
-    The date and time the enrichment was updated
+    The date and time the enrichment was last updated
     """
 
 
@@ -981,6 +979,9 @@ class WebsetItemArticleProperties(ExaBaseModel):
     article: WebsetItemArticlePropertiesFields = Field(
         ..., title='WebsetItemArticlePropertiesFields'
     )
+    """
+    The article fields
+    """
 
 
 class WebsetItemArticlePropertiesFields(ExaBaseModel):
@@ -990,7 +991,7 @@ class WebsetItemArticlePropertiesFields(ExaBaseModel):
     """
     published_at: Optional[str] = Field(None, alias='publishedAt')
     """
-    The date and time the article was published
+    The date the article was published
     """
 
 
@@ -1011,6 +1012,9 @@ class WebsetItemCompanyProperties(ExaBaseModel):
     company: WebsetItemCompanyPropertiesFields = Field(
         ..., title='WebsetItemCompanyPropertiesFields'
     )
+    """
+    The company fields
+    """
 
 
 class WebsetItemCompanyPropertiesFields(ExaBaseModel):
@@ -1036,7 +1040,7 @@ class WebsetItemCompanyPropertiesFields(ExaBaseModel):
     """
     logo_url: Optional[AnyUrl] = Field(None, alias='logoUrl')
     """
-    The logo URL of the company
+    The URL of the company logo
     """
 
 
@@ -1071,6 +1075,9 @@ class WebsetItemCustomProperties(ExaBaseModel):
     custom: WebsetItemCustomPropertiesFields = Field(
         ..., title='WebsetItemCustomPropertiesFields'
     )
+    """
+    The custom fields
+    """
 
 
 class WebsetItemCustomPropertiesFields(ExaBaseModel):
@@ -1080,8 +1087,9 @@ class WebsetItemCustomPropertiesFields(ExaBaseModel):
     """
     published_at: Optional[str] = Field(None, alias='publishedAt')
     """
-    The date and time the website was published
+    The date the content was published
     """
+
 
 class WebsetItemEnrichedEvent(ExaBaseModel):
     id: str
@@ -1112,7 +1120,7 @@ class WebsetItemEvaluation(ExaBaseModel):
     """
     references: Optional[List[Reference]] = []
     """
-    The references used to generate the result.
+    The references used to evaluate the criterion
     """
 
 
@@ -1129,6 +1137,9 @@ class WebsetItemPersonProperties(ExaBaseModel):
     person: WebsetItemPersonPropertiesFields = Field(
         ..., title='WebsetItemPersonPropertiesFields'
     )
+    """
+    The person fields
+    """
 
 
 class WebsetItemPersonPropertiesFields(ExaBaseModel):
@@ -1146,7 +1157,7 @@ class WebsetItemPersonPropertiesFields(ExaBaseModel):
     """
     picture_url: Optional[AnyUrl] = Field(None, alias='pictureUrl')
     """
-    The image URL of the person
+    The URL of the person's picture
     """
 
 
@@ -1165,8 +1176,11 @@ class WebsetItemResearchPaperProperties(ExaBaseModel):
     The text content of the research paper
     """
     research_paper: WebsetItemResearchPaperPropertiesFields = Field(
-        ..., alias='researchPaper', title='WebsetItemResearchPaperPropertiesFields'
+        ..., title='WebsetItemResearchPaperPropertiesFields'
     )
+    """
+    The research paper fields
+    """
 
 
 class WebsetItemResearchPaperPropertiesFields(ExaBaseModel):
@@ -1176,7 +1190,7 @@ class WebsetItemResearchPaperPropertiesFields(ExaBaseModel):
     """
     published_at: Optional[str] = Field(None, alias='publishedAt')
     """
-    The date and time the research paper was published
+    The date the research paper was published
     """
 
 
@@ -1265,7 +1279,7 @@ class WebsetSearch(ExaBaseModel):
     """
     updated_at: datetime = Field(..., alias='updatedAt')
     """
-    The date and time the search was updated
+    The date and time the search was last updated
     """
 
 
@@ -1365,5 +1379,5 @@ class WebsetStatus(Enum):
 class GetWebsetResponse(Webset):
     items: Optional[List[WebsetItem]] = None
     """
-    When expand query parameter contains `items`, this will contain the items in the webset
+    The items in the webset
     """
