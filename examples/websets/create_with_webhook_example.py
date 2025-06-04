@@ -80,7 +80,7 @@ if not attempts.data:
     print("  No webhook attempts found. Please check your webhook endpoint configuration.")
 else:
     for attempt in attempts.data:
-        print(f"  - Event: {attempt.event_type.value}")
+        print(f"  - Event: {attempt.event_type}")
         print(f"    Time: {attempt.attempted_at}")
         print(f"    Success: {attempt.successful}")
         print()
