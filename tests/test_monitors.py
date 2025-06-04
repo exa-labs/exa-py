@@ -57,7 +57,7 @@ def sample_monitor_response():
     return {
         "id": "monitor_123",
         "object": "monitor",
-        "status": "open",
+        "status": "enabled",
         "websetId": "ws_123",
         "cadence": {
             "cron": "0 9 * * *",  # Daily at 9:00 AM
@@ -166,7 +166,7 @@ def test_create_monitor_with_search_behavior(monitors_client, parent_mock, sampl
     # Verify the response
     assert result.id == "monitor_123"
     assert result.webset_id == "ws_123"
-    assert result.status == "open"
+    assert result.status == "enabled"
 
 def test_create_monitor_with_refresh_behavior(monitors_client, parent_mock, sample_monitor_response):
     """Test creating a monitor with refresh behavior."""
@@ -265,7 +265,7 @@ def test_get_monitor(monitors_client, parent_mock, sample_monitor_response):
     )
     
     assert result.id == "monitor_123"
-    assert result.status == "open"
+    assert result.status == "enabled"
 
 def test_list_monitors(monitors_client, parent_mock):
     """Test listing monitors with parameters."""
@@ -274,7 +274,7 @@ def test_list_monitors(monitors_client, parent_mock):
             {
                 "id": "monitor_123",
                 "object": "monitor",
-                "status": "open",
+                "status": "enabled",
                 "websetId": "ws_123",
                 "cadence": {"cron": "0 9 * * *", "timezone": "Etc/UTC"},
                 "behavior": {
@@ -333,7 +333,7 @@ def test_list_monitors_no_params(monitors_client, parent_mock):
 def test_update_monitor(monitors_client, parent_mock, sample_monitor_response):
     """Test updating a monitor."""
     updated_response = sample_monitor_response.copy()
-    updated_response["status"] = "closed"
+    updated_response["status"] = "disabled"
     parent_mock.request.return_value = updated_response
     
     params = UpdateMonitor(status=MonitorStatus.disabled, metadata={"updated": "true"})
@@ -342,31 +342,31 @@ def test_update_monitor(monitors_client, parent_mock, sample_monitor_response):
     
     parent_mock.request.assert_called_once_with(
         "/websets/v0/monitors/monitor_123",
-        data={"status": "closed", "metadata": {"updated": "true"}},
+        data={"status": "disabled", "metadata": {"updated": "true"}},
         method="PATCH",
         params=None
     )
     
     assert result.id == "monitor_123"
-    assert result.status == "closed"
+    assert result.status == "disabled"
 
 def test_update_monitor_with_dict(monitors_client, parent_mock, sample_monitor_response):
     """Test updating a monitor with dictionary parameters."""
     updated_response = sample_monitor_response.copy()
-    updated_response["status"] = "closed"
+    updated_response["status"] = "disabled"
     parent_mock.request.return_value = updated_response
     
-    params = {"status": "closed", "metadata": {"updated": "true"}}
+    params = {"status": "disabled", "metadata": {"updated": "true"}}
     
     result = monitors_client.update("monitor_123", params)
     
     assert result.id == "monitor_123"
-    assert result.status == "closed"
+    assert result.status == "disabled"
 
 def test_delete_monitor(monitors_client, parent_mock, sample_monitor_response):
     """Test deleting a monitor."""
     deleted_response = sample_monitor_response.copy()
-    deleted_response["status"] = "closed"
+    deleted_response["status"] = "disabled"
     parent_mock.request.return_value = deleted_response
     
     result = monitors_client.delete("monitor_123")
