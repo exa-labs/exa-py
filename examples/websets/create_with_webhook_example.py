@@ -73,20 +73,17 @@ completed_webset = exa.websets.wait_until_idle(webset.id)
 print("Webset processing complete!")
 
 # Check for webhook attempts again after completion
-try:
-    print("\nListing webhook attempts after completion:")
-    attempts = exa.websets.webhooks.attempts.list(webhook_id=webhook.id, limit=10)
-    
-    if not attempts.data:
-        print("  No webhook attempts found. Please check your webhook endpoint configuration.")
-    else:
-        for attempt in attempts.data:
-            print(f"  - Event: {attempt.event_type.value}")
-            print(f"    Time: {attempt.attempted_at}")
-            print(f"    Success: {attempt.successful}")
-            print()
-except Exception as e:
-    print(f"Could not fetch webhook attempts: {e}")
+print("\nListing webhook attempts after completion:")
+attempts = exa.websets.webhooks.attempts.list(webhook_id=webhook.id, limit=10)
+
+if not attempts.data:
+    print("  No webhook attempts found. Please check your webhook endpoint configuration.")
+else:
+    for attempt in attempts.data:
+        print(f"  - Event: {attempt.event_type.value}")
+        print(f"    Time: {attempt.attempted_at}")
+        print(f"    Success: {attempt.successful}")
+        print()
 
 # Get the items that were found
 items = exa.websets.items.list(webset_id=webset.id)
