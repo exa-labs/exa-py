@@ -1,7 +1,7 @@
 """
-Basic Streams Example
+Basic Monitors Example
 
-This example shows how to use Streams to automatically keep your Websets 
+This example shows how to use Monitors to automatically keep your Websets 
 updated with fresh data on a schedule.
 """
 
@@ -19,7 +19,7 @@ if not api_key:
 exa = Exa(api_key)
 
 def main():
-    # Define search parameters that we'll use for both the initial webset and stream
+    # Define search parameters that we'll use for both the initial webset and monitor
     search_params = {
         "query": "AI startups that raised Series A funding",
         "count": 10,
@@ -53,14 +53,14 @@ def main():
         for item in items_response.data[:3]:  # Show first 3 results
             print(f"  - {item.properties.description}")
     
-    # Create a Stream using the same search parameters to keep finding new companies
-    print("\nCreating stream...")
+    # Create a Monitor using the same search parameters to keep finding new companies
+    print("\nCreating monitor...")
     # Cron format: "minute hour day_of_month month day_of_week"
     # Examples:
     # "0 9 * * 1" = Every Monday at 9:00 AM
     # "0 14 * * *" = Every day at 2:00 PM  
     # "0 9 1 * *" = First day of every month at 9:00 AM
-    stream = exa.websets.streams.create({
+    monitor = exa.websets.monitors.create({
         "websetId": webset.id,
         "cadence": {
             "cron": "0 9 * * 1",  # Every Monday at 9:00 AM (weekly)
@@ -75,15 +75,15 @@ def main():
         }
     })
     
-    print(f"✓ Created stream: {stream.id}")
-    print(f"  Status: {stream.status}")
-    print(f"  Next run: {stream.next_run_at}")
+    print(f"✓ Created monitor: {monitor.id}")
+    print(f"  Status: {monitor.status}")
+    print(f"  Next run: {monitor.next_run_at}")
     
-    # List all streams for the webset
-    print(f"\nStreams for webset {webset.id}:")
-    streams = exa.websets.streams.list(webset_id=webset.id)
-    for s in streams.data:
-        print(f"  - {s.id}: {s.behavior.type} stream ({s.status})")
+    # List all monitors for the webset
+    print(f"\nMonitors for webset {webset.id}:")
+    monitors = exa.websets.monitors.list(webset_id=webset.id)
+    for m in monitors.data:
+        print(f"  - {m.id}: {m.behavior.type} monitor ({m.status})")
 
 if __name__ == "__main__":
     main() 
