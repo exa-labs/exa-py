@@ -96,3 +96,7 @@ print(f"\nFound {len(items.data)} companies matching the criteria.")
 print("\nCleaning up webhook...")
 exa.websets.webhooks.delete(id=webhook.id)
 print("Webhook deleted successfully.")
+
+print("\nCleaning up webset...")
+exa.websets.delete(id=webset.id)
+print("Webset deleted successfully.")
