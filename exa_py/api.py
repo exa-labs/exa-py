@@ -159,7 +159,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
 }
 
 # the livecrawl options
-LIVECRAWL_OPTIONS = Literal["always", "fallback", "never", "auto"]
+LIVECRAWL_OPTIONS = Literal["always", "fallback", "never", "auto", "preferred"]
 
 CONTENTS_OPTIONS_TYPES = {
     "urls": [list],
