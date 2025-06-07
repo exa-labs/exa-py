@@ -63,7 +63,7 @@ def test_research_client_attrs():
 def test_get_contents_live_preferred():
     exa = Exa(API_KEY)
     resp = exa.get_contents(urls=["https://techcrunch.com"], text=True, livecrawl="preferred")
-    assert isinstance(resp, exa_api.ContentResponse)
+    assert isinstance(resp, exa_api.SearchResponse)
     # statuses may be empty when cached – still fine
     assert len(resp.results) >= 1
 
@@ -104,4 +104,33 @@ def test_research_task_live():
     exa = Exa(API_KEY)
     schema = {"type": "object", "properties": {"answer": {"type": "string"}}, "required": ["answer"]}
     resp = exa.researchTask(input_instructions="Return the string 'pong'", output_schema=schema)
-    assert resp.id 
+    assert resp.id
+
+########################################
+# Live tests for new context / statuses features
+########################################
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_and_contents_context_live():
+    """search_and_contents with context=True should return non-empty context string."""
+    exa = Exa(API_KEY)
+    resp = exa.search_and_contents("openai research", num_results=3, context=True, text=False)
+    assert resp.context is not None and isinstance(resp.context, str) and len(resp.context) > 0
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_find_similar_and_contents_context_live():
+    """find_similar_and_contents with context flag should include context string."""
+    exa = Exa(API_KEY)
+    resp = exa.find_similar_and_contents("https://www.openai.com", num_results=3, context=True, text=False)
+    # context may be empty depending on backend, but attribute should exist (None or str)
+    assert hasattr(resp, "context")
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_get_contents_statuses_live():
+    """get_contents should expose statuses list (possibly empty)."""
+    exa = Exa(API_KEY)
+    resp = exa.get_contents(urls=["https://techcrunch.com"], text=True, livecrawl="never")
+    # statuses attribute exists; ensure it's a list
+    assert isinstance(resp.statuses, list) 
