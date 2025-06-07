@@ -166,6 +166,7 @@ CONTENTS_OPTIONS_TYPES = {
     "text": [dict, bool],
     "highlights": [dict, bool],
     "summary": [dict, bool],
+    "context": [dict, bool],
     "metadata": [dict, bool],
     "livecrawl_timeout": [int],
     "livecrawl": [LIVECRAWL_OPTIONS],
@@ -290,6 +291,16 @@ class SummaryContentsOptions(TypedDict, total=False):
 
     query: str
     schema: JSONSchema
+
+
+class ContextContentsOptions(TypedDict, total=False):
+    """Options for retrieving aggregated context from a set of search results.
+
+    Attributes:
+        max_characters (int): The maximum number of characters to include in the context string.
+    """
+
+    max_characters: int
 
 
 class ExtrasOptions(TypedDict, total=False):
@@ -807,17 +818,23 @@ class SearchResponse(Generic[T]):
         autoprompt_string (str, optional): The Exa query created by autoprompt.
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
+        context (str, optional): Combined context string when requested via contents.context.
+        statuses (List[ContentStatus], optional): Status list from get_contents.
+        cost_dollars (CostDollars, optional): Cost breakdown.
     """
 
     results: List[T]
     autoprompt_string: Optional[str]
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
+    context: Optional[str] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
+        if self.context:
+            output += f"\nContext: {self.context}"
         if self.autoprompt_string:
             output += f"\n\nAutoprompt String: {self.autoprompt_string}"
         if self.resolved_search_type:
@@ -1254,6 +1271,7 @@ class Exa:
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -1270,6 +1288,7 @@ class Exa:
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            context=data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -1414,7 +1433,6 @@ class Exa:
             options,
             {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES},
         )
-        
         options = to_camel_case(options)
         data = self.request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
@@ -1424,6 +1442,7 @@ class Exa:
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            context=data.get("context"),
             cost_dollars=cost_dollars,
             statuses=statuses,
         )
@@ -1715,6 +1734,7 @@ class Exa:
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -1731,6 +1751,7 @@ class Exa:
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            context=data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -2067,6 +2088,7 @@ class AsyncExa(Exa):
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -2083,6 +2105,7 @@ class AsyncExa(Exa):
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            context=data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -2113,6 +2136,7 @@ class AsyncExa(Exa):
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            context=data.get("context"),
             cost_dollars=cost_dollars,
             statuses=statuses,
         )
@@ -2192,6 +2216,7 @@ class AsyncExa(Exa):
                 "text",
                 "highlights",
                 "summary",
+                "context",
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -2208,6 +2233,7 @@ class AsyncExa(Exa):
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            context=data.get("context"),
             cost_dollars=cost_dollars,
         )
 
