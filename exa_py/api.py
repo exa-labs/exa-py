@@ -788,6 +788,15 @@ class AsyncStreamAnswerResponse:
 
 T = TypeVar("T")
 
+@dataclass
+class ContentStatus:
+    """A class representing the status of a content retrieval operation."""
+
+    id: str
+    status: str
+    source: str
+
+
 
 @dataclass
 class SearchResponse(Generic[T]):
@@ -804,6 +813,7 @@ class SearchResponse(Generic[T]):
     autoprompt_string: Optional[str]
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
+    statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
 
     def __str__(self):
@@ -818,6 +828,8 @@ class SearchResponse(Generic[T]):
                 output += f"\n  - search: {self.cost_dollars.search}"
             if self.cost_dollars.contents:
                 output += f"\n  - contents: {self.cost_dollars.contents}"
+        if self.statuses:
+            output += f"\nStatuses: {self.statuses}"
         return output
 
 
@@ -1402,15 +1414,18 @@ class Exa:
             options,
             {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES},
         )
+        
         options = to_camel_case(options)
         data = self.request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        statuses = [ContentStatus(**status) for status in data.get("statuses", [])]
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             cost_dollars=cost_dollars,
+            statuses=statuses,
         )
 
     def find_similar(
@@ -2092,12 +2107,14 @@ class AsyncExa(Exa):
         options = to_camel_case(options)
         data = await self.async_request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        statuses = [ContentStatus(**status) for status in data.get("statuses", [])]
         return SearchResponse(
             [Result(**to_snake_case(result)) for result in data["results"]],
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             cost_dollars=cost_dollars,
+            statuses=statuses,
         )
 
     async def find_similar(
