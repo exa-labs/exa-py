@@ -93,9 +93,13 @@ class CreateWebhookParameters(ExaBaseModel):
 
 
 class CreateWebsetParameters(ExaBaseModel):
-    search: CreateWebsetParametersSearch
+    search: Optional[CreateWebsetParametersSearch] = None
     """
     Create initial search for the Webset.
+    """
+    imports: Optional[List[ImportItem]] = Field(None, alias='import')
+    """
+    Import data from existing Websets and Imports into this Webset.
     """
     enrichments: Optional[List[CreateEnrichmentParameters]] = None
     """
@@ -152,6 +156,10 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     Criteria every item is evaluated against.
 
     It's not required to provide your own criteria, we automatically detect the criteria from all the information provided in the query.
+    """
+    exclude: Optional[List[ExcludeItem]] = None
+    """
+    Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
     behavior: Optional[WebsetSearchBehavior] = 'override'
     """
@@ -219,6 +227,9 @@ class EventType(Enum):
     webset_search_canceled = 'webset.search.canceled'
     webset_search_completed = 'webset.search.completed'
     webset_search_updated = 'webset.search.updated'
+    import_created = 'import.created'
+    import_completed = 'import.completed'
+    import_processing = 'import.processing'
     webset_export_created = 'webset.export.created'
     webset_export_completed = 'webset.export.completed'
     webset_item_created = 'webset.item.created'
@@ -238,6 +249,41 @@ class Format(Enum):
     options = 'options'
     email = 'email'
     phone = 'phone'
+
+
+class ImportFormat(Enum):
+    """
+    The format of the import.
+    """
+    csv = 'csv'
+    webset = 'webset'
+
+
+class ImportStatus(Enum):
+    """
+    The status of the import.
+    """
+    pending = 'pending'
+    processing = 'processing'
+    completed = 'completed'
+    failed = 'failed'
+
+
+class ImportFailedReason(Enum):
+    """
+    The reason the import failed.
+    """
+    invalid_format = 'invalid_format'
+    invalid_file_content = 'invalid_file_content'
+    missing_identifier = 'missing_identifier'
+
+
+class ImportSource(Enum):
+    """
+    The source type for imports and excludes.
+    """
+    import_ = 'import'
+    webset = 'webset'
 
 
 class ListEventsResponse(ExaBaseModel):
@@ -358,6 +404,252 @@ class ListWebsetsResponse(ExaBaseModel):
     """
 
 
+class ImportItem(ExaBaseModel):
+    """
+    Represents a source to import from.
+    """
+    source: ImportSource
+    """
+    The type of source (import or webset)
+    """
+    id: constr(min_length=1)
+    """
+    The ID of the source to import from
+    """
+
+
+class ExcludeItem(ExaBaseModel):
+    """
+    Represents a source to exclude from search results.
+    """
+    source: ImportSource
+    """
+    The type of source (import or webset)
+    """
+    id: constr(min_length=1)
+    """
+    The ID of the source to exclude
+    """
+
+
+class CsvImportConfig(ExaBaseModel):
+    """
+    Configuration for CSV imports.
+    """
+    identifier: Optional[PositiveInt] = None
+    """
+    Column index containing the key identifier for the entity (e.g., URL). If not provided, will be inferred.
+    """
+
+
+class CreateImportParameters(ExaBaseModel):
+    """
+    Parameters for creating an import.
+    """
+    size: confloat(le=50000000.0)
+    """
+    The size of the file in bytes. Maximum size is 50 MB.
+    """
+    count: float
+    """
+    The number of records to import
+    """
+    title: Optional[str] = None
+    """
+    The title of the import
+    """
+    format: ImportFormat
+    """
+    The format of the import data
+    """
+    entity: Union[
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
+    ]
+    """
+    The type of entity the import contains
+    """
+    csv: Optional[CsvImportConfig] = None
+    """
+    CSV-specific configuration when format is 'csv'
+    """
+    metadata: Optional[Dict[str, Any]] = None
+    """
+    Set of key-value pairs you want to associate with this object.
+    """
+
+
+class CreateImportResponse(ExaBaseModel):
+    """
+    Response from creating an import.
+    """
+    id: str
+    """
+    The unique identifier for the Import
+    """
+    object: Literal['import']
+    """
+    The type of object
+    """
+    status: ImportStatus
+    """
+    The status of the Import
+    """
+    format: ImportFormat
+    """
+    The format of the import
+    """
+    entity: Optional[Union[
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
+    ]] = None
+    """
+    The type of entity the import contains
+    """
+    title: str
+    """
+    The title of the import
+    """
+    count: float
+    """
+    The number of entities in the import
+    """
+    metadata: Dict[str, Any]
+    """
+    Set of key-value pairs associated with this object
+    """
+    failed_reason: Optional[ImportFailedReason] = Field(None, alias='failedReason')
+    """
+    The reason the import failed, if applicable
+    """
+    failed_at: Optional[datetime] = Field(None, alias='failedAt')
+    """
+    When the import failed, if applicable
+    """
+    failed_message: Optional[str] = Field(None, alias='failedMessage')
+    """
+    A human readable message describing the import failure
+    """
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    When the import was created
+    """
+    updated_at: datetime = Field(..., alias='updatedAt')
+    """
+    When the import was last updated
+    """
+    upload_url: str = Field(..., alias='uploadUrl')
+    """
+    The URL to upload the file to
+    """
+    upload_valid_until: str = Field(..., alias='uploadValidUntil')
+    """
+    The date and time until the upload URL is valid
+    """
+
+
+class Import(ExaBaseModel):
+    """
+    Represents an import.
+    """
+    id: str
+    """
+    The unique identifier for the Import
+    """
+    object: Literal['import']
+    """
+    The type of object
+    """
+    status: ImportStatus
+    """
+    The status of the Import
+    """
+    format: ImportFormat
+    """
+    The format of the import
+    """
+    entity: Optional[Union[
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
+    ]] = None
+    """
+    The type of entity the import contains
+    """
+    title: str
+    """
+    The title of the import
+    """
+    count: float
+    """
+    The number of entities in the import
+    """
+    metadata: Dict[str, Any]
+    """
+    Set of key-value pairs associated with this object
+    """
+    failed_reason: Optional[ImportFailedReason] = Field(None, alias='failedReason')
+    """
+    The reason the import failed, if applicable
+    """
+    failed_at: Optional[datetime] = Field(None, alias='failedAt')
+    """
+    When the import failed, if applicable
+    """
+    failed_message: Optional[str] = Field(None, alias='failedMessage')
+    """
+    A human readable message describing the import failure
+    """
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    When the import was created
+    """
+    updated_at: datetime = Field(..., alias='updatedAt')
+    """
+    When the import was last updated
+    """
+
+
+class ListImportsResponse(ExaBaseModel):
+    """
+    Response from listing imports.
+    """
+    data: List[Import]
+    """
+    The list of imports
+    """
+    has_more: bool = Field(..., alias='hasMore')
+    """
+    Whether there are more results to paginate through
+    """
+    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    """
+    The cursor to use for the next page of results
+    """
+
+
+class UpdateImport(ExaBaseModel):
+    """
+    Parameters for updating an import.
+    """
+    metadata: Optional[Dict[str, Any]] = None
+    """
+    Set of key-value pairs you want to associate with this object.
+    """
+    title: Optional[str] = None
+    """
+    The title of the import
+    """
+
+
 class Option(ExaBaseModel):
     label: str
     """
@@ -450,6 +742,10 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     Criteria every item is evaluated against.
 
     It's not required to provide your own criteria, we automatically detect the criteria from all the information provided in the query.
+    """
+    exclude: Optional[List[ExcludeItem]] = None
+    """
+    Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
 
 
