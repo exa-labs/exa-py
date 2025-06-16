@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 import time
+import os
+import csv
+import io
+import requests
 from typing import Dict, Any, Union, Optional
+from pathlib import Path
 
 from ..types import (
     CreateImportParameters,
@@ -9,7 +14,6 @@ from ..types import (
     Import,
     ListImportsResponse,
     UpdateImport,
-    ImportStatus,
 )
 from ..core.base import WebsetsBaseClient
 
@@ -19,7 +23,12 @@ class ImportsClient(WebsetsBaseClient):
     def __init__(self, client):
         super().__init__(client)
 
-    def create(self, params: Union[Dict[str, Any], CreateImportParameters]) -> CreateImportResponse:
+    def create(
+        self, 
+        params: Union[Dict[str, Any], CreateImportParameters], 
+        *,
+        csv_data: Optional[Union[str, Path]] = None
+    ) -> Union[CreateImportResponse, Import]:
         """Create a new import to upload your data into Websets.
         
         Imports can be used to:
@@ -27,16 +36,85 @@ class ImportsClient(WebsetsBaseClient):
         - Search: Query your data using Websets' agentic search with natural language filters
         - Exclude: Prevent duplicate or already known results from appearing in your searches
 
-        Once the import is created, you can upload your data to the returned uploadUrl until uploadValidUntil (by default 1 hour).
-        
         Args:
             params (CreateImportParameters): The parameters for creating an import.
+            csv_data (Union[str, Path], optional): CSV data to upload. Can be raw CSV string or file path.
+                                                   When provided, size and count will be automatically calculated 
+                                                   if not specified in params.
         
         Returns:
-            CreateImportResponse: The created import with upload URL.
+            CreateImportResponse: If csv_data is None (traditional usage with upload URL).
+            Import: If csv_data is provided (uploaded and processing).
         """
+        # If CSV data is provided, read it and auto-calculate size/count if not specified
+        if csv_data is not None:
+            # Determine if input is file path or raw CSV data
+            if isinstance(csv_data, (str, Path)) and os.path.isfile(csv_data):
+                # It's a file path
+                with open(csv_data, 'r', encoding='utf-8') as f:
+                    csv_content = f.read()
+            else:
+                # It's raw CSV data
+                csv_content = str(csv_data)
+            
+            # Check if we need to calculate size and count
+            if isinstance(params, dict):
+                current_size = params.get('size')
+                current_count = params.get('count')
+            else:
+                current_size = getattr(params, 'size', None)
+                current_count = getattr(params, 'count', None)
+            
+            # Auto-calculate if not provided (None)
+            if current_size is None or current_count is None:
+                calculated_size = len(csv_content.encode('utf-8'))
+                csv_reader = csv.reader(io.StringIO(csv_content))
+                rows = list(csv_reader)
+                calculated_count = max(0, len(rows) - 1)  # Subtract 1 for header
+                
+                # Update params with calculated values only if not specified
+                if isinstance(params, dict):
+                    params = params.copy()  # Don't modify the original
+                    if current_size is None:
+                        params['size'] = calculated_size
+                    if current_count is None:
+                        params['count'] = calculated_count
+                else:
+                    params_dict = params.model_dump()
+                    if current_size is None:
+                        params_dict['size'] = calculated_size
+                    if current_count is None:
+                        params_dict['count'] = calculated_count
+                    params = CreateImportParameters.model_validate(params_dict)
+        
+        # Create the import
         response = self.request("/v0/imports", data=params)
-        return CreateImportResponse.model_validate(response)
+        import_response = CreateImportResponse.model_validate(response)
+        
+        # If no CSV data provided, return the create response
+        if csv_data is None:
+            return import_response
+        
+        # Handle CSV data upload
+        try:
+            # Upload the CSV data (csv_content was already read above)
+            upload_response = requests.put(
+                import_response.upload_url,
+                data=csv_content,
+                headers={'Content-Type': 'text/csv'}
+            )
+            upload_response.raise_for_status()
+            
+            # Return the import object (not the create response)
+            return self.get(import_response.id)
+                
+        except Exception as e:
+            # Clean up the import if something goes wrong
+            try:
+                self.delete(import_response.id)
+            except:
+                pass  # Ignore cleanup errors
+            raise e
 
     def get(self, import_id: str) -> Import:
         """Get a specific import.

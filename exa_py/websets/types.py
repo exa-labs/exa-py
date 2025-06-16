@@ -446,13 +446,15 @@ class CreateImportParameters(ExaBaseModel):
     """
     Parameters for creating an import.
     """
-    size: confloat(le=50000000.0)
+    size: Optional[confloat(le=50000000.0)] = None
     """
     The size of the file in bytes. Maximum size is 50 MB.
+    Auto-calculated when csv_data is provided and size is not specified.
     """
-    count: float
+    count: Optional[float] = None
     """
     The number of records to import
+    Auto-calculated when csv_data is provided and count is not specified.
     """
     title: Optional[str] = None
     """
