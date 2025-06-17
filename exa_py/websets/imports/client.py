@@ -46,18 +46,13 @@ class ImportsClient(WebsetsBaseClient):
             CreateImportResponse: If csv_data is None (traditional usage with upload URL).
             Import: If csv_data is provided (uploaded and processing).
         """
-        # If CSV data is provided, read it and auto-calculate size/count if not specified
         if csv_data is not None:
-            # Determine if input is file path or raw CSV data
             if isinstance(csv_data, (str, Path)) and os.path.isfile(csv_data):
-                # It's a file path
                 with open(csv_data, 'r', encoding='utf-8') as f:
                     csv_content = f.read()
             else:
-                # It's raw CSV data
                 csv_content = str(csv_data)
             
-            # Check if we need to calculate size and count
             if isinstance(params, dict):
                 current_size = params.get('size')
                 current_count = params.get('count')
@@ -65,16 +60,14 @@ class ImportsClient(WebsetsBaseClient):
                 current_size = getattr(params, 'size', None)
                 current_count = getattr(params, 'count', None)
             
-            # Auto-calculate if not provided (None)
             if current_size is None or current_count is None:
                 calculated_size = len(csv_content.encode('utf-8'))
                 csv_reader = csv.reader(io.StringIO(csv_content))
                 rows = list(csv_reader)
-                calculated_count = max(0, len(rows) - 1)  # Subtract 1 for header
+                calculated_count = max(0, len(rows) - 1)
                 
-                # Update params with calculated values only if not specified
                 if isinstance(params, dict):
-                    params = params.copy()  # Don't modify the original
+                    params = params.copy()
                     if current_size is None:
                         params['size'] = calculated_size
                     if current_count is None:
@@ -87,34 +80,20 @@ class ImportsClient(WebsetsBaseClient):
                         params_dict['count'] = calculated_count
                     params = CreateImportParameters.model_validate(params_dict)
         
-        # Create the import
         response = self.request("/v0/imports", data=params)
         import_response = CreateImportResponse.model_validate(response)
         
-        # If no CSV data provided, return the create response
         if csv_data is None:
             return import_response
         
-        # Handle CSV data upload
-        try:
-            # Upload the CSV data (csv_content was already read above)
-            upload_response = requests.put(
-                import_response.upload_url,
-                data=csv_content,
-                headers={'Content-Type': 'text/csv'}
-            )
-            upload_response.raise_for_status()
-            
-            # Return the import object (not the create response)
-            return self.get(import_response.id)
-                
-        except Exception as e:
-            # Clean up the import if something goes wrong
-            try:
-                self.delete(import_response.id)
-            except:
-                pass  # Ignore cleanup errors
-            raise e
+        upload_response = requests.put(
+            import_response.upload_url,
+            data=csv_content,
+            headers={'Content-Type': 'text/csv'}
+        )
+        upload_response.raise_for_status()
+        
+        return self.get(import_response.id)
 
     def get(self, import_id: str) -> Import:
         """Get a specific import.
