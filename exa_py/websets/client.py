@@ -17,6 +17,7 @@ from .searches import WebsetSearchesClient
 from .enrichments import WebsetEnrichmentsClient
 from .webhooks import WebsetWebhooksClient
 from .monitors import MonitorsClient
+from .imports import ImportsClient
 
 class WebsetsClient(WebsetsBaseClient):
     """Client for managing Websets."""
@@ -28,6 +29,7 @@ class WebsetsClient(WebsetsBaseClient):
         self.enrichments = WebsetEnrichmentsClient(client)
         self.webhooks = WebsetWebhooksClient(client)
         self.monitors = MonitorsClient(client)
+        self.imports = ImportsClient(client)
 
     def create(self, params: Union[Dict[str, Any], CreateWebsetParameters]) -> Webset:
         """Create a new Webset.
