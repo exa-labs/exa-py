@@ -11,7 +11,6 @@ print(response)
 response = exa.answer(
     "What is the meaning of life? ",
     text=True,
-    model="exa-pro",
 )
 print(response)
 

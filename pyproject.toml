@@ -25,7 +25,7 @@ in-project = true
 
 [project]
 name = "exa-py"
-version = "1.14.7"
+version = "1.14.8"
 description = "Python SDK for Exa API."
 readme = "README.md"
 requires-python = ">=3.9"
