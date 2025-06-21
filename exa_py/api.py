@@ -1909,7 +1909,7 @@ class Exa:
             query (str): The query to answer.
             text (bool, optional): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
-            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+            model (str, optional): The model to use for answering. Defaults to None.
             output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
 
         Returns:
@@ -1948,7 +1948,7 @@ class Exa:
             query (str): The query to answer.
             text (bool): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
-            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+            model (str, optional): The model to use for answering. Defaults to None.
             output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
         Returns:
             StreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
@@ -2253,7 +2253,7 @@ class AsyncExa(Exa):
             query (str): The query to answer.
             text (bool, optional): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
-            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+            model (str, optional): The model to use for answering. Defaults to None.
             output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
 
         Returns:
@@ -2292,7 +2292,7 @@ class AsyncExa(Exa):
             query (str): The query to answer.
             text (bool): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
-            model (str, optional): The model to use for answering. Either "exa" or "exa-pro". Defaults to None.
+            model (str, optional): The model to use for answering. Defaults to None.
             output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
         Returns:
             AsyncStreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).

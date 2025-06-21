@@ -13,7 +13,7 @@ async def main():
     response = await exa.answer(
         "What is the meaning of life? ",
         text=True,
-        model="exa-pro",
+        model="exa",
     )
     print(response)
 
