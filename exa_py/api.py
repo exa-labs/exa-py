@@ -362,17 +362,17 @@ class _Result:
     subpages: Optional[List[_Result]] = None
     extras: Optional[Dict] = None
 
-    def __init__(self, **kwargs):
-        self.url = kwargs["url"]
-        self.id = kwargs["id"]
-        self.title = kwargs.get("title")
-        self.score = kwargs.get("score")
-        self.published_date = kwargs.get("published_date")
-        self.author = kwargs.get("author")
-        self.image = kwargs.get("image")
-        self.favicon = kwargs.get("favicon")
-        self.subpages = kwargs.get("subpages")
-        self.extras = kwargs.get("extras")
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None):
+        self.url = url
+        self.id = id
+        self.title = title
+        self.score = score
+        self.published_date = published_date
+        self.author = author
+        self.image = image
+        self.favicon = favicon
+        self.subpages = subpages
+        self.extras = extras
 
     def __str__(self):
         return (
@@ -406,12 +406,12 @@ class Result(_Result):
     highlight_scores: Optional[List[float]] = None
     summary: Optional[str] = None
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.text = kwargs.get("text")
-        self.highlights = kwargs.get("highlights")
-        self.highlight_scores = kwargs.get("highlight_scores")
-        self.summary = kwargs.get("summary")
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text=None, highlights=None, highlight_scores=None, summary=None):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.text = text
+        self.highlights = highlights
+        self.highlight_scores = highlight_scores
+        self.summary = summary
 
     def __str__(self):
         base_str = super().__str__()
@@ -434,9 +434,9 @@ class ResultWithText(_Result):
 
     text: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.text = kwargs["text"]
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text=""):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.text = text
 
     def __str__(self):
         base_str = super().__str__()
@@ -456,10 +456,10 @@ class ResultWithHighlights(_Result):
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.highlights = kwargs["highlights"]
-        self.highlight_scores = kwargs["highlight_scores"]
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, highlights=None, highlight_scores=None):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.highlights = highlights if highlights is not None else []
+        self.highlight_scores = highlight_scores if highlight_scores is not None else []
 
     def __str__(self):
         base_str = super().__str__()
@@ -484,11 +484,11 @@ class ResultWithTextAndHighlights(_Result):
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.text = kwargs["text"]
-        self.highlights = kwargs["highlights"]
-        self.highlight_scores = kwargs["highlight_scores"]
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text="", highlights=None, highlight_scores=None):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.text = text
+        self.highlights = highlights if highlights is not None else []
+        self.highlight_scores = highlight_scores if highlight_scores is not None else []
 
     def __str__(self):
         base_str = super().__str__()
@@ -510,9 +510,9 @@ class ResultWithSummary(_Result):
 
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.summary = kwargs["summary"]
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, summary=""):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.summary = summary
 
     def __str__(self):
         base_str = super().__str__()
@@ -532,10 +532,10 @@ class ResultWithTextAndSummary(_Result):
     text: str = dataclasses.field(default_factory=str)
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.text = kwargs["text"]
-        self.summary = kwargs["summary"]
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text="", summary=""):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.text = text
+        self.summary = summary
 
     def __str__(self):
         base_str = super().__str__()
@@ -557,11 +557,11 @@ class ResultWithHighlightsAndSummary(_Result):
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.highlights = kwargs["highlights"]
-        self.highlight_scores = kwargs["highlight_scores"]
-        self.summary = kwargs["summary"]
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, highlights=None, highlight_scores=None, summary=""):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.highlights = highlights if highlights is not None else []
+        self.highlight_scores = highlight_scores if highlight_scores is not None else []
+        self.summary = summary
 
     def __str__(self):
         base_str = super().__str__()
@@ -589,12 +589,12 @@ class ResultWithTextAndHighlightsAndSummary(_Result):
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.text = kwargs["text"]
-        self.highlights = kwargs["highlights"]
-        self.highlight_scores = kwargs["highlight_scores"]
-        self.summary = kwargs["summary"]
+    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text="", highlights=None, highlight_scores=None, summary=""):
+        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+        self.text = text
+        self.highlights = highlights if highlights is not None else []
+        self.highlight_scores = highlight_scores if highlight_scores is not None else []
+        self.summary = summary
 
     def __str__(self):
         base_str = super().__str__()
@@ -626,13 +626,13 @@ class AnswerResult:
     author: Optional[str] = None
     text: Optional[str] = None
 
-    def __init__(self, **kwargs):
-        self.id = kwargs["id"]
-        self.url = kwargs["url"]
-        self.title = kwargs.get("title")
-        self.published_date = kwargs.get("published_date")
-        self.author = kwargs.get("author")
-        self.text = kwargs.get("text")
+    def __init__(self, id, url, title=None, published_date=None, author=None, text=None):
+        self.id = id
+        self.url = url
+        self.title = title
+        self.published_date = published_date
+        self.author = author
+        self.text = text
 
     def __str__(self):
         return (
@@ -733,9 +733,17 @@ class StreamAnswerResponse:
                 and chunk["citations"]
                 and chunk["citations"] != "null"
             ):
-                citations = [
-                    AnswerResult(**to_snake_case(s)) for s in chunk["citations"]
-                ]
+                citations = []
+                for s in chunk["citations"]:
+                    snake_s = to_snake_case(s)
+                    citations.append(AnswerResult(
+                        id=snake_s.get("id"),
+                        url=snake_s.get("url"),
+                        title=snake_s.get("title"),
+                        published_date=snake_s.get("published_date"),
+                        author=snake_s.get("author"),
+                        text=snake_s.get("text")
+                    ))
 
             stream_chunk = StreamChunk(content=content, citations=citations)
             if stream_chunk.has_data():
@@ -782,9 +790,17 @@ class AsyncStreamAnswerResponse:
                     and chunk["citations"]
                     and chunk["citations"] != "null"
                 ):
-                    citations = [
-                        AnswerResult(**to_snake_case(s)) for s in chunk["citations"]
-                    ]
+                    citations = []
+                    for s in chunk["citations"]:
+                        snake_s = to_snake_case(s)
+                        citations.append(AnswerResult(
+                            id=snake_s.get("id"),
+                            url=snake_s.get("url"),
+                            title=snake_s.get("title"),
+                            published_date=snake_s.get("published_date"),
+                            author=snake_s.get("author"),
+                            text=snake_s.get("text")
+                        ))
 
                 stream_chunk = StreamChunk(content=content, citations=citations)
                 if stream_chunk.has_data():
@@ -1008,8 +1024,27 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
@@ -1245,7 +1280,10 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
     def search_and_contents(self, query: str, **kwargs):
-        options = {k: v for k, v in {"query": query, **kwargs}.items() if v is not None}
+        options = {"query": query}
+        for k, v in kwargs.items():
+            if v is not None:
+                options[k] = v
         # If user didn't ask for any particular content, default to text
         if (
             "text" not in options
@@ -1255,14 +1293,11 @@ class Exa:
         ):
             options["text"] = True
 
-        validate_search_options(
-            options,
-            {
-                **SEARCH_OPTIONS_TYPES,
-                **CONTENTS_OPTIONS_TYPES,
-                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
-            },
-        )
+        merged_options = {}
+        merged_options.update(SEARCH_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        validate_search_options(options, merged_options)
 
         # Nest the appropriate fields under "contents"
         options = nest_fields(
@@ -1283,8 +1318,27 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
@@ -1416,11 +1470,11 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
     def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
-        options = {
-            k: v
-            for k, v in {"urls": urls, **kwargs}.items()
-            if k != "self" and v is not None
-        }
+        options = {"urls": urls}
+        for k, v in kwargs.items():
+            if k != "self" and v is not None:
+                options[k] = v
+        
         if (
             "text" not in options
             and "highlights" not in options
@@ -1429,16 +1483,41 @@ class Exa:
         ):
             options["text"] = True
 
-        validate_search_options(
-            options,
-            {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES},
-        )
+        merged_options = {}
+        merged_options.update(CONTENTS_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        validate_search_options(options, merged_options)
         options = to_camel_case(options)
         data = self.request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        statuses = [ContentStatus(**status) for status in data.get("statuses", [])]
+        statuses = []
+        for status in data.get("statuses", []):
+            statuses.append(ContentStatus(
+                id=status.get("id"),
+                status=status.get("status"),
+                source=status.get("source")
+            ))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
@@ -1489,8 +1568,27 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
@@ -1710,7 +1808,10 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
     def find_similar_and_contents(self, url: str, **kwargs):
-        options = {k: v for k, v in {"url": url, **kwargs}.items() if v is not None}
+        options = {"url": url}
+        for k, v in kwargs.items():
+            if v is not None:
+                options[k] = v
         # Default to text if none specified
         if (
             "text" not in options
@@ -1719,14 +1820,11 @@ class Exa:
         ):
             options["text"] = True
 
-        validate_search_options(
-            options,
-            {
-                **FIND_SIMILAR_OPTIONS_TYPES,
-                **CONTENTS_OPTIONS_TYPES,
-                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
-            },
-        )
+        merged_options = {}
+        merged_options.update(FIND_SIMILAR_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        validate_search_options(options, merged_options)
         # We nest the content fields
         options = nest_fields(
             options,
@@ -1746,8 +1844,27 @@ class Exa:
         options = to_camel_case(options)
         data = self.request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
@@ -1813,10 +1930,8 @@ class Exa:
                 "flags": flags,
             }
 
-            create_kwargs = {
-                "model": model,
-                **openai_kwargs,
-            }
+            create_kwargs = {"model": model}
+            create_kwargs.update(openai_kwargs)
 
             return self._create_with_tool(
                 create_fn=func,
@@ -1871,7 +1986,23 @@ class Exa:
             )
 
         # We do a search_and_contents automatically
-        exa_result = self.search_and_contents(query, **exa_kwargs)
+        exa_result = self.search_and_contents(
+            query=query,
+            num_results=exa_kwargs.get("num_results"),
+            include_domains=exa_kwargs.get("include_domains"),
+            exclude_domains=exa_kwargs.get("exclude_domains"),
+            highlights=exa_kwargs.get("highlights"),
+            start_crawl_date=exa_kwargs.get("start_crawl_date"),
+            end_crawl_date=exa_kwargs.get("end_crawl_date"),
+            start_published_date=exa_kwargs.get("start_published_date"),
+            end_published_date=exa_kwargs.get("end_published_date"),
+            include_text=exa_kwargs.get("include_text"),
+            exclude_text=exa_kwargs.get("exclude_text"),
+            use_autoprompt=exa_kwargs.get("use_autoprompt"),
+            type=exa_kwargs.get("type"),
+            category=exa_kwargs.get("category"),
+            flags=exa_kwargs.get("flags")
+        )
         exa_str = format_exa_result(exa_result, max_len=max_len)
         new_messages = add_message_to_messages(completion, messages, exa_str)
         completion = create_fn(messages=new_messages, **create_kwargs)
@@ -1928,10 +2059,18 @@ class Exa:
         options = to_camel_case(options)
         response = self.request("/answer", options)
 
-        return AnswerResponse(
-            response["answer"],
-            [AnswerResult(**to_snake_case(result)) for result in response["citations"]],
-        )
+        citations = []
+        for result in response["citations"]:
+            snake_result = to_snake_case(result)
+            citations.append(AnswerResult(
+                id=snake_result.get("id"),
+                url=snake_result.get("url"),
+                title=snake_result.get("title"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                text=snake_result.get("text")
+            ))
+        return AnswerResponse(response["answer"], citations)
 
     def stream_answer(
         self,
@@ -2053,8 +2192,27 @@ class AsyncExa(Exa):
         options = to_camel_case(options)
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
@@ -2062,7 +2220,10 @@ class AsyncExa(Exa):
         )
 
     async def search_and_contents(self, query: str, **kwargs):
-        options = {k: v for k, v in {"query": query, **kwargs}.items() if v is not None}
+        options = {"query": query}
+        for k, v in kwargs.items():
+            if v is not None:
+                options[k] = v
         # If user didn't ask for any particular content, default to text
         if (
             "text" not in options
@@ -2072,14 +2233,11 @@ class AsyncExa(Exa):
         ):
             options["text"] = True
 
-        validate_search_options(
-            options,
-            {
-                **SEARCH_OPTIONS_TYPES,
-                **CONTENTS_OPTIONS_TYPES,
-                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
-            },
-        )
+        merged_options = {}
+        merged_options.update(SEARCH_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        validate_search_options(options, merged_options)
 
         # Nest the appropriate fields under "contents"
         options = nest_fields(
@@ -2100,8 +2258,27 @@ class AsyncExa(Exa):
         options = to_camel_case(options)
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data["autopromptString"] if "autopromptString" in data else None,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
@@ -2110,11 +2287,11 @@ class AsyncExa(Exa):
         )
 
     async def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
-        options = {
-            k: v
-            for k, v in {"urls": urls, **kwargs}.items()
-            if k != "self" and v is not None
-        }
+        options = {"urls": urls}
+        for k, v in kwargs.items():
+            if k != "self" and v is not None:
+                options[k] = v
+        
         if (
             "text" not in options
             and "highlights" not in options
@@ -2123,16 +2300,41 @@ class AsyncExa(Exa):
         ):
             options["text"] = True
 
-        validate_search_options(
-            options,
-            {**CONTENTS_OPTIONS_TYPES, **CONTENTS_ENDPOINT_OPTIONS_TYPES},
-        )
+        merged_options = {}
+        merged_options.update(CONTENTS_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        validate_search_options(options, merged_options)
         options = to_camel_case(options)
         data = await self.async_request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        statuses = [ContentStatus(**status) for status in data.get("statuses", [])]
+        statuses = []
+        for status in data.get("statuses", []):
+            statuses.append(ContentStatus(
+                id=status.get("id"),
+                status=status.get("status"),
+                source=status.get("source")
+            ))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
@@ -2183,8 +2385,27 @@ class AsyncExa(Exa):
         options = to_camel_case(options)
         data = await self.async_request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
@@ -2192,7 +2413,10 @@ class AsyncExa(Exa):
         )
 
     async def find_similar_and_contents(self, url: str, **kwargs):
-        options = {k: v for k, v in {"url": url, **kwargs}.items() if v is not None}
+        options = {"url": url}
+        for k, v in kwargs.items():
+            if v is not None:
+                options[k] = v
         # Default to text if none specified
         if (
             "text" not in options
@@ -2201,14 +2425,11 @@ class AsyncExa(Exa):
         ):
             options["text"] = True
 
-        validate_search_options(
-            options,
-            {
-                **FIND_SIMILAR_OPTIONS_TYPES,
-                **CONTENTS_OPTIONS_TYPES,
-                **CONTENTS_ENDPOINT_OPTIONS_TYPES,
-            },
-        )
+        merged_options = {}
+        merged_options.update(FIND_SIMILAR_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_OPTIONS_TYPES)
+        merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        validate_search_options(options, merged_options)
         # We nest the content fields
         options = nest_fields(
             options,
@@ -2228,8 +2449,27 @@ class AsyncExa(Exa):
         options = to_camel_case(options)
         data = await self.async_request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        results = []
+        for result in data["results"]:
+            snake_result = to_snake_case(result)
+            results.append(Result(
+                url=snake_result.get("url"),
+                id=snake_result.get("id"),
+                title=snake_result.get("title"),
+                score=snake_result.get("score"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                image=snake_result.get("image"),
+                favicon=snake_result.get("favicon"),
+                subpages=snake_result.get("subpages"),
+                extras=snake_result.get("extras"),
+                text=snake_result.get("text"),
+                highlights=snake_result.get("highlights"),
+                highlight_scores=snake_result.get("highlight_scores"),
+                summary=snake_result.get("summary")
+            ))
         return SearchResponse(
-            [Result(**to_snake_case(result)) for result in data["results"]],
+            results,
             data.get("autopromptString"),
             data.get("resolvedSearchType"),
             data.get("autoDate"),
@@ -2272,10 +2512,18 @@ class AsyncExa(Exa):
         options = to_camel_case(options)
         response = await self.async_request("/answer", options)
 
-        return AnswerResponse(
-            response["answer"],
-            [AnswerResult(**to_snake_case(result)) for result in response["citations"]],
-        )
+        citations = []
+        for result in response["citations"]:
+            snake_result = to_snake_case(result)
+            citations.append(AnswerResult(
+                id=snake_result.get("id"),
+                url=snake_result.get("url"),
+                title=snake_result.get("title"),
+                published_date=snake_result.get("published_date"),
+                author=snake_result.get("author"),
+                text=snake_result.get("text")
+            ))
+        return AnswerResponse(response["answer"], citations)
 
     async def stream_answer(
         self,

@@ -322,10 +322,24 @@ def _build_research_task(raw: Dict[str, Any]):
     from ..api import _Result, to_snake_case  # noqa: WPS433 – runtime import
 
     citations_raw = raw.get("citations", {}) or {}
-    citations_parsed = {
-        key: [_Result(**to_snake_case(c)) for c in cites]
-        for key, cites in citations_raw.items()
-    }
+    citations_parsed = {}
+    for key, cites in citations_raw.items():
+        results = []
+        for c in cites:
+            snake_c = to_snake_case(c)
+            results.append(_Result(
+                url=snake_c.get("url"),
+                id=snake_c.get("id"),
+                title=snake_c.get("title"),
+                score=snake_c.get("score"),
+                published_date=snake_c.get("published_date"),
+                author=snake_c.get("author"),
+                image=snake_c.get("image"),
+                favicon=snake_c.get("favicon"),
+                subpages=snake_c.get("subpages"),
+                extras=snake_c.get("extras")
+            ))
+        citations_parsed[key] = results
 
     return ResearchTask(
         id=raw["id"],

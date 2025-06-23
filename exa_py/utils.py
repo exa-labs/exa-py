@@ -54,8 +54,8 @@ def format_exa_result(exa_result, max_len: int=-1):
 
 class ExaOpenAICompletion(ChatCompletion):
     """Exa wrapper for OpenAI completion."""
-    def __init__(self, exa_result: Optional["SearchResponse[ResultWithText]"], **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, exa_result: Optional["SearchResponse[ResultWithText]"], id, choices, created, model, object, system_fingerprint=None, usage=None):
+        super().__init__(id=id, choices=choices, created=created, model=model, object=object, system_fingerprint=system_fingerprint, usage=usage)
         self.exa_result = exa_result
     
 
