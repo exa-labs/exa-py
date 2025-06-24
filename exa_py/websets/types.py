@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, Annotated
 
 from pydantic import AnyUrl, Field, PositiveInt, confloat, constr
 from .core.base import ExaBaseModel
@@ -287,20 +287,21 @@ class ImportSource(Enum):
 
 
 class ListEventsResponse(ExaBaseModel):
-    data: List[
-        Union[
-            WebsetCreatedEvent,
-            WebsetDeletedEvent,
-            WebsetIdleEvent,
-            WebsetPausedEvent,
-            WebsetItemCreatedEvent,
-            WebsetItemEnrichedEvent,
-            WebsetSearchCreatedEvent,
-            WebsetSearchUpdatedEvent,
-            WebsetSearchCanceledEvent,
-            WebsetSearchCompletedEvent,
-        ]
-    ] = Field(..., discriminator='type')
+    data: List[Annotated[
+      Union[
+          WebsetCreatedEvent,
+          WebsetDeletedEvent,
+          WebsetIdleEvent,
+          WebsetPausedEvent,
+          WebsetItemCreatedEvent,
+          WebsetItemEnrichedEvent,
+          WebsetSearchCreatedEvent,
+          WebsetSearchUpdatedEvent,
+          WebsetSearchCanceledEvent,
+          WebsetSearchCompletedEvent,
+      ],
+      Field(discriminator='type')
+  ]]
     """
     The list of events
     """

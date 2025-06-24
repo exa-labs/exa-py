@@ -36,7 +36,47 @@ def events_client(parent_mock):
     return EventsClient(parent_mock)
 
 @pytest.fixture
-def sample_list_events_response():
+def sample_webset_data():
+    """Sample complete webset data for events."""
+    return {
+        "id": "ws_123",
+        "object": "webset",
+        "status": "idle",
+        "externalId": None,
+        "searches": [],
+        "enrichments": [],
+        "monitors": [],
+        "metadata": {},
+        "createdAt": "2023-01-01T00:00:00Z",
+        "updatedAt": "2023-01-01T00:00:00Z"
+    }
+
+@pytest.fixture
+def sample_webset_item_data():
+    """Sample complete webset item data for events."""
+    return {
+        "id": "item_456",
+        "object": "webset_item",
+        "source": "search",
+        "sourceId": "search_123",
+        "websetId": "ws_123",
+        "properties": {
+            "type": "company",
+            "url": "https://example.com",
+            "description": "Example company",
+            "company": {
+                "name": "Example Corp",
+                "location": "San Francisco, CA"
+            }
+        },
+        "evaluations": [],
+        "enrichments": [],
+        "createdAt": "2023-01-01T00:10:00Z",
+        "updatedAt": "2023-01-01T00:10:00Z"
+    }
+
+@pytest.fixture
+def sample_list_events_response(sample_webset_data, sample_webset_item_data):
     """Sample response for list events."""
     return {
         "data": [
@@ -45,28 +85,21 @@ def sample_list_events_response():
                 "object": "event",
                 "type": "webset.created",
                 "createdAt": "2023-01-01T00:00:00Z",
-                "data": {
-                    "websetId": "ws_123"
-                }
+                "data": sample_webset_data
             },
             {
                 "id": "event_124",
                 "object": "event",
                 "type": "webset.idle",
                 "createdAt": "2023-01-01T00:05:00Z",
-                "data": {
-                    "websetId": "ws_123"
-                }
+                "data": sample_webset_data
             },
             {
                 "id": "event_125",
                 "object": "event",
                 "type": "webset.item.created",
                 "createdAt": "2023-01-01T00:10:00Z",
-                "data": {
-                    "websetId": "ws_123",
-                    "itemId": "item_456"
-                }
+                "data": sample_webset_item_data
             }
         ],
         "hasMore": True,
@@ -74,16 +107,14 @@ def sample_list_events_response():
     }
 
 @pytest.fixture
-def sample_event_response():
+def sample_event_response(sample_webset_data):
     """Sample response for a single event."""
     return {
         "id": "event_123",
         "object": "event",
         "type": "webset.created",
         "createdAt": "2023-01-01T00:00:00Z",
-        "data": {
-            "websetId": "ws_123"
-        }
+        "data": sample_webset_data
     }
 
 # ============================================================================
@@ -106,7 +137,7 @@ def test_list_events_basic(events_client, parent_mock, sample_list_events_respon
     
     # Verify request was called correctly
     parent_mock.request.assert_called_once_with(
-        "/v0/events", 
+        "/websets/v0/events", 
         params={}, 
         method="GET",
         data=None
@@ -124,7 +155,7 @@ def test_list_events_with_params(events_client, parent_mock, sample_list_events_
 
     # Verify request parameters
     parent_mock.request.assert_called_once_with(
-        "/v0/events",
+        "/websets/v0/events",
         params={
             "cursor": "cursor_xyz",
             "limit": 5,
@@ -142,7 +173,7 @@ def test_list_events_with_single_type(events_client, parent_mock, sample_list_ev
 
     # Verify request parameters
     parent_mock.request.assert_called_once_with(
-        "/v0/events",
+        "/websets/v0/events",
         params={
             "types": ["webset.item.created"]
         },
@@ -177,32 +208,50 @@ def test_get_event(events_client, parent_mock, sample_event_response):
     
     # Verify request was called correctly
     parent_mock.request.assert_called_once_with(
-        "/v0/events/event_123",
+        "/websets/v0/events/event_123",
         method="GET",
         data=None,
         params=None
     )
 
-def test_get_event_different_types(events_client, parent_mock):
+def test_get_event_different_types(events_client, parent_mock, sample_webset_data, sample_webset_item_data):
     """Test getting events of different types."""
+    # Create sample search data
+    sample_search_data = {
+        "id": "search_123",
+        "object": "webset_search",
+        "status": "completed",
+        "query": "test query",
+        "entity": {"type": "company"},
+        "criteria": [],
+        "count": 10,
+        "behavior": "override",
+        "progress": {"found": 10, "completion": 100.0},
+        "metadata": {},
+        "canceledAt": None,
+        "canceledReason": None,
+        "createdAt": "2023-01-01T00:00:00Z",
+        "updatedAt": "2023-01-01T00:00:00Z"
+    }
+    
     event_types = [
-        ("webset.deleted", "event_deleted"),
-        ("webset.idle", "event_idle"),
-        ("webset.paused", "event_paused"),
-        ("webset.item.enriched", "event_enriched"),
-        ("webset.search.created", "event_search_created"),
-        ("webset.search.updated", "event_search_updated"),
-        ("webset.search.canceled", "event_search_canceled"),
-        ("webset.search.completed", "event_search_completed"),
+        ("webset.deleted", "event_deleted", sample_webset_data),
+        ("webset.idle", "event_idle", sample_webset_data),
+        ("webset.paused", "event_paused", sample_webset_data),
+        ("webset.item.enriched", "event_enriched", sample_webset_item_data),
+        ("webset.search.created", "event_search_created", sample_search_data),
+        ("webset.search.updated", "event_search_updated", sample_search_data),
+        ("webset.search.canceled", "event_search_canceled", sample_search_data),
+        ("webset.search.completed", "event_search_completed", sample_search_data),
     ]
     
-    for event_type, event_id in event_types:
+    for event_type, event_id, event_data in event_types:
         response = {
             "id": event_id,
             "object": "event",
             "type": event_type,
             "createdAt": "2023-01-01T00:00:00Z",
-            "data": {"websetId": "ws_123"}
+            "data": event_data
         }
         parent_mock.request.return_value = response
         
@@ -240,7 +289,7 @@ def test_list_events_type_enum_handling(events_client, parent_mock, sample_list_
     # Verify the enum values were converted to strings
     expected_types = ["webset.created", "webset.item.created", "webset.search.completed"]
     parent_mock.request.assert_called_once_with(
-        "/v0/events",
+        "/websets/v0/events",
         params={"types": expected_types},
         method="GET",
         data=None
@@ -268,17 +317,18 @@ def test_get_event_not_found(events_client, parent_mock):
 # Case Conversion Tests
 # ============================================================================
 
-def test_case_conversion_in_event_response(events_client, parent_mock):
+def test_case_conversion_in_event_response(events_client, parent_mock, sample_webset_data):
     """Test that camelCase fields are properly converted to snake_case."""
+    # Add externalId to the webset data
+    webset_data_with_external = sample_webset_data.copy()
+    webset_data_with_external["externalId"] = "external_123"
+    
     response = {
         "id": "event_case",
         "object": "event",
         "type": "webset.created",
         "createdAt": "2023-01-01T00:00:00Z",
-        "data": {
-            "websetId": "ws_123",
-            "externalId": "external_123"
-        }
+        "data": webset_data_with_external
     }
     parent_mock.request.return_value = response
     
@@ -289,8 +339,8 @@ def test_case_conversion_in_event_response(events_client, parent_mock):
     assert hasattr(result, 'created_at')
     
     # Verify data field conversion if applicable
-    if hasattr(result.data, 'webset_id'):
-        assert result.data.webset_id == "ws_123"  # websetId -> webset_id
+    if hasattr(result.data, 'id'):
+        assert result.data.id == "ws_123"
     if hasattr(result.data, 'external_id'):
         assert result.data.external_id == "external_123"  # externalId -> external_id
 
@@ -310,13 +360,13 @@ def test_list_events_with_none_cursor(events_client, parent_mock, sample_list_ev
     
     # Should not include None values in params
     parent_mock.request.assert_called_once_with(
-        "/v0/events",
+        "/websets/v0/events",
         params={},
         method="GET",
         data=None
     )
 
-def test_list_events_pagination_flow(events_client, parent_mock):
+def test_list_events_pagination_flow(events_client, parent_mock, sample_webset_data):
     """Test paginating through multiple pages of events."""
     # First page
     first_page = {
@@ -326,7 +376,7 @@ def test_list_events_pagination_flow(events_client, parent_mock):
                 "object": "event",
                 "type": "webset.created",
                 "createdAt": "2023-01-01T00:00:00Z",
-                "data": {}
+                "data": sample_webset_data
             }
         ],
         "hasMore": True,
@@ -341,7 +391,7 @@ def test_list_events_pagination_flow(events_client, parent_mock):
                 "object": "event",
                 "type": "webset.idle",
                 "createdAt": "2023-01-01T00:01:00Z",
-                "data": {}
+                "data": sample_webset_data
             }
         ],
         "hasMore": False,
