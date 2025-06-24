@@ -1440,6 +1440,17 @@ class WebsetItemPersonProperties(ExaBaseModel):
     """
 
 
+class WebsetItemPersonCompanyPropertiesFields(ExaBaseModel):
+    name: str
+    """
+    The name of the company
+    """
+    location: Optional[str] = None
+    """
+    The location the person is working at the company
+    """
+
+
 class WebsetItemPersonPropertiesFields(ExaBaseModel):
     name: str
     """
@@ -1452,6 +1463,10 @@ class WebsetItemPersonPropertiesFields(ExaBaseModel):
     position: Optional[str] = None
     """
     The current work position of the person
+    """
+    company: Optional[WebsetItemPersonCompanyPropertiesFields] = None
+    """
+    The company the person is working at
     """
     picture_url: Optional[AnyUrl] = Field(None, alias='pictureUrl')
     """
