@@ -110,7 +110,7 @@ class CreateWebsetParameters(ExaBaseModel):
     """
     Create initial search for the Webset.
     """
-    imports: Optional[List[ImportItem]] = Field(None, alias='import')
+    imports: Optional[List[ImportItem]] = Field(default=None, alias='import')
     """
     Import data from existing Websets and Imports into this Webset.
     """
@@ -118,7 +118,7 @@ class CreateWebsetParameters(ExaBaseModel):
     """
     Add Enrichments for the Webset.
     """
-    external_id: Optional[str] = Field(None, alias='externalId')
+    external_id: Optional[str] = Field(default=None, alias='externalId')
     """
     The external identifier for the webset.
 
@@ -320,7 +320,7 @@ class ListEventsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -335,7 +335,7 @@ class ListMonitorRunsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -350,7 +350,7 @@ class ListMonitorsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -365,7 +365,7 @@ class ListWebhookAttemptsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -380,7 +380,7 @@ class ListWebhooksResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -395,7 +395,7 @@ class ListWebsetItemResponse(ExaBaseModel):
     """
     Whether there are more Items to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -410,7 +410,7 @@ class ListWebsetsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -538,15 +538,15 @@ class CreateImportResponse(ExaBaseModel):
     """
     Set of key-value pairs associated with this object
     """
-    failed_reason: Optional[ImportFailedReason] = Field(None, alias='failedReason')
+    failed_reason: Optional[ImportFailedReason] = Field(default=None, alias='failedReason')
     """
     The reason the import failed, if applicable
     """
-    failed_at: Optional[datetime] = Field(None, alias='failedAt')
+    failed_at: Optional[datetime] = Field(default=None, alias='failedAt')
     """
     When the import failed, if applicable
     """
-    failed_message: Optional[str] = Field(None, alias='failedMessage')
+    failed_message: Optional[str] = Field(default=None, alias='failedMessage')
     """
     A human readable message describing the import failure
     """
@@ -610,15 +610,15 @@ class Import(ExaBaseModel):
     """
     Set of key-value pairs associated with this object
     """
-    failed_reason: Optional[ImportFailedReason] = Field(None, alias='failedReason')
+    failed_reason: Optional[ImportFailedReason] = Field(default=None, alias='failedReason')
     """
     The reason the import failed, if applicable
     """
-    failed_at: Optional[datetime] = Field(None, alias='failedAt')
+    failed_at: Optional[datetime] = Field(default=None, alias='failedAt')
     """
     When the import failed, if applicable
     """
-    failed_message: Optional[str] = Field(None, alias='failedMessage')
+    failed_message: Optional[str] = Field(default=None, alias='failedMessage')
     """
     A human readable message describing the import failure
     """
@@ -644,7 +644,7 @@ class ListImportsResponse(ExaBaseModel):
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(None, alias='nextCursor')
+    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
     """
     The cursor to use for the next page of results
     """
@@ -817,11 +817,11 @@ class Monitor(ExaBaseModel):
     """
     Behavior to perform when monitor runs
     """
-    last_run: Optional[MonitorRun] = Field(None, alias='lastRun', title='MonitorRun')
+    last_run: Optional[MonitorRun] = Field(default=None, alias='lastRun', title='MonitorRun')
     """
     The last run of the monitor
     """
-    next_run_at: Optional[datetime] = Field(None, alias='nextRunAt')
+    next_run_at: Optional[datetime] = Field(default=None, alias='nextRunAt')
     """
     When the next run will occur
     """
@@ -892,15 +892,15 @@ class MonitorRun(ExaBaseModel):
     """
     The type of the Monitor Run
     """
-    completed_at: Optional[datetime] = Field(None, alias='completedAt')
+    completed_at: Optional[datetime] = Field(default=None, alias='completedAt')
     """
     When the run completed
     """
-    failed_at: Optional[datetime] = Field(None, alias='failedAt')
+    failed_at: Optional[datetime] = Field(default=None, alias='failedAt')
     """
     When the run failed
     """
-    canceled_at: Optional[datetime] = Field(None, alias='canceledAt')
+    canceled_at: Optional[datetime] = Field(default=None, alias='canceledAt')
     """
     When the run was canceled
     """
@@ -1022,7 +1022,7 @@ class WebhookAttempt(ExaBaseModel):
     """
     The headers of the response
     """
-    response_body: Optional[str] = Field(None, alias='responseBody')
+    response_body: Optional[str] = Field(default=None, alias='responseBody')
     """
     The body of the response
     """
@@ -1059,7 +1059,7 @@ class Webset(ExaBaseModel):
     """
     The status of the webset
     """
-    external_id: Optional[str] = Field(None, alias='externalId')
+    external_id: Optional[str] = Field(default=None, alias='externalId')
     """
     The external identifier for the webset
     """
@@ -1297,7 +1297,7 @@ class WebsetItemArticlePropertiesFields(ExaBaseModel):
     """
     The author(s) of the article
     """
-    published_at: Optional[str] = Field(None, alias='publishedAt')
+    published_at: Optional[str] = Field(default=None, alias='publishedAt')
     """
     The date the article was published
     """
@@ -1346,7 +1346,7 @@ class WebsetItemCompanyPropertiesFields(ExaBaseModel):
     """
     A short description of the company
     """
-    logo_url: Optional[AnyUrl] = Field(None, alias='logoUrl')
+    logo_url: Optional[AnyUrl] = Field(default=None, alias='logoUrl')
     """
     The URL of the company logo
     """
@@ -1393,7 +1393,7 @@ class WebsetItemCustomPropertiesFields(ExaBaseModel):
     """
     The author(s) of the website
     """
-    published_at: Optional[str] = Field(None, alias='publishedAt')
+    published_at: Optional[str] = Field(default=None, alias='publishedAt')
     """
     The date the content was published
     """
@@ -1478,7 +1478,7 @@ class WebsetItemPersonPropertiesFields(ExaBaseModel):
     """
     The company the person is working at
     """
-    picture_url: Optional[AnyUrl] = Field(None, alias='pictureUrl')
+    picture_url: Optional[AnyUrl] = Field(default=None, alias='pictureUrl')
     """
     The URL of the person's picture
     """
@@ -1511,7 +1511,7 @@ class WebsetItemResearchPaperPropertiesFields(ExaBaseModel):
     """
     The author(s) of the research paper
     """
-    published_at: Optional[str] = Field(None, alias='publishedAt')
+    published_at: Optional[str] = Field(default=None, alias='publishedAt')
     """
     The date the research paper was published
     """
@@ -1588,11 +1588,11 @@ class WebsetSearch(ExaBaseModel):
     """
     Set of key-value pairs you want to associate with this object.
     """
-    canceled_at: Optional[datetime] = Field(None, alias='canceledAt')
+    canceled_at: Optional[datetime] = Field(default=None, alias='canceledAt')
     """
     The date and time the search was canceled
     """
-    canceled_reason: Optional[WebsetSearchCanceledReason] = Field(None, alias='canceledReason')
+    canceled_reason: Optional[WebsetSearchCanceledReason] = Field(default=None, alias='canceledReason')
     """
     The reason the search was canceled
     """
