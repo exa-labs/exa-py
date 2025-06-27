@@ -26,7 +26,7 @@ class WebsetSearchBehavior(Enum):
 
 class MonitorBehaviorSearchConfig(ExaBaseModel):
     query: Annotated[str, StringConstraints(min_length=2, max_length=10000)]
-    criteria: List[SearchCriterion] = Field(..., max_items=5)
+    criteria: Annotated[List[SearchCriterion], Field(max_length=5)]
     entity: Union[
         WebsetCompanyEntity,
         WebsetPersonEntity,
@@ -62,7 +62,7 @@ class CreateEnrichmentParameters(ExaBaseModel):
 
     We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
     """
-    options: Optional[List[Option]] = Field(None, max_items=20, min_items=1)
+    options: Optional[Annotated[List[Option], Field(min_length=1, max_length=20)]] = None
     """
     When the format is options, the different options for the enrichment agent to choose from.
     """
@@ -91,7 +91,7 @@ class CreateMonitorParameters(ExaBaseModel):
 
 
 class CreateWebhookParameters(ExaBaseModel):
-    events: List[EventType] = Field(..., max_items=12, min_items=1)
+    events: Annotated[List[EventType], Field(min_length=1, max_length=12)]
     """
     The events to trigger the webhook
     """
@@ -162,9 +162,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query.
     """
-    criteria: Optional[List[CreateCriterionParameters]] = Field(
-        None, max_items=5, min_items=1
-    )
+    criteria: Optional[Annotated[List[CreateCriterionParameters], Field(min_length=1, max_length=5)]] = None
     """
     Criteria every item is evaluated against.
 
@@ -751,9 +749,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query. Only use this when you need more fine control.
     """
-    criteria: Optional[List[CreateCriterionParameters]] = Field(
-        None, max_items=5, min_items=1
-    )
+    criteria: Optional[Annotated[List[CreateCriterionParameters], Field(min_length=1, max_length=5)]] = None
     """
     Criteria every item is evaluated against.
 
@@ -939,7 +935,7 @@ class UpdateMonitor(ExaBaseModel):
 
 
 class UpdateWebhookParameters(ExaBaseModel):
-    events: Optional[List[EventType]] = Field(None, max_items=12, min_items=1)
+    events: Optional[Annotated[List[EventType], Field(min_length=1, max_length=12)]] = None
     """
     The events to trigger the webhook
     """
@@ -970,7 +966,7 @@ class Webhook(ExaBaseModel):
     """
     The status of the webhook
     """
-    events: List[EventType] = Field(..., min_items=1)
+    events: Annotated[List[EventType], Field(min_length=1)]
     """
     The events to trigger the webhook
     """
