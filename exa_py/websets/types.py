@@ -6,26 +6,30 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union, Annotated
+from typing import Any, Dict, List, Literal, Optional, Union, Annotated, TYPE_CHECKING
 
 from pydantic import AnyUrl, Field, PositiveInt, confloat, constr
 from .core.base import ExaBaseModel
 
+# Forward reference declarations for proper type checking
+if TYPE_CHECKING:
+    from typing import Self
+
 class MonitorBehaviorSearchConfig(ExaBaseModel):
     query: constr(min_length=2, max_length=10000)
-    criteria: List[SearchCriterion] = Field(..., max_items=5)
+    criteria: List["SearchCriterion"] = Field(..., max_items=5)
     entity: Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
+        "WebsetCompanyEntity",
+        "WebsetPersonEntity",
+        "WebsetArticleEntity",
+        "WebsetResearchPaperEntity",
+        "WebsetCustomEntity",
     ] = Field(..., title='WebsetEntity')
     count: PositiveInt
     """
     The maximum number of results to find
     """
-    behavior: Optional[WebsetSearchBehavior] = 'append'
+    behavior: Optional["WebsetSearchBehavior"] = None
     """
     The behaviour of the Search when it is added to a Webset.
     """
@@ -64,11 +68,11 @@ class CreateMonitorParameters(ExaBaseModel):
     """
     The id of the Webset
     """
-    cadence: MonitorCadence
+    cadence: "MonitorCadence"
     """
     How often the monitor will run
     """
-    behavior: Union[MonitorBehaviorSearch, MonitorBehaviorRefresh] = Field(
+    behavior: Union["MonitorBehaviorSearch", "MonitorBehaviorRefresh"] = Field(
         ..., discriminator='type'
     )
     """
@@ -93,15 +97,15 @@ class CreateWebhookParameters(ExaBaseModel):
 
 
 class CreateWebsetParameters(ExaBaseModel):
-    search: Optional[CreateWebsetParametersSearch] = None
+    search: Optional["CreateWebsetParametersSearch"] = None
     """
     Create initial search for the Webset.
     """
-    imports: Optional[List[ImportItem]] = Field(None, alias='import')
+    imports: Optional[List["ImportItem"]] = Field(None, alias='import')
     """
     Import data from existing Websets and Imports into this Webset.
     """
-    enrichments: Optional[List[CreateEnrichmentParameters]] = None
+    enrichments: Optional[List["CreateEnrichmentParameters"]] = None
     """
     Add Enrichments for the Webset.
     """
@@ -137,11 +141,11 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     entity: Optional[
         Union[
-            WebsetCompanyEntity,
-            WebsetPersonEntity,
-            WebsetArticleEntity,
-            WebsetResearchPaperEntity,
-            WebsetCustomEntity,
+            "WebsetCompanyEntity",
+            "WebsetPersonEntity",
+            "WebsetArticleEntity",
+            "WebsetResearchPaperEntity",
+            "WebsetCustomEntity",
         ]
     ] = None
     """
@@ -149,7 +153,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query.
     """
-    criteria: Optional[List[CreateCriterionParameters]] = Field(
+    criteria: Optional[List["CreateCriterionParameters"]] = Field(
         None, max_items=5, min_items=1
     )
     """
@@ -157,11 +161,11 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
     It's not required to provide your own criteria, we automatically detect the criteria from all the information provided in the query.
     """
-    exclude: Optional[List[ExcludeItem]] = None
+    exclude: Optional[List["ExcludeItem"]] = None
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
-    behavior: Optional[WebsetSearchBehavior] = 'override'
+    behavior: Optional["WebsetSearchBehavior"] = None
     """
     The behavior of the Search when it is added to a Webset.
 
@@ -191,7 +195,7 @@ class SearchCriterion(ExaBaseModel):
 
 class EnrichmentResult(ExaBaseModel):
     object: Literal['enrichment_result']
-    format: WebsetEnrichmentFormat
+    format: "WebsetEnrichmentFormat"
     result: Optional[List[str]] = None
     """
     The result of the enrichment. None if the enrichment wasn't successful.
@@ -200,7 +204,7 @@ class EnrichmentResult(ExaBaseModel):
     """
     The reasoning for the result when an Agent is used.
     """
-    references: List[Reference]
+    references: List["Reference"]
     """
     The references used to generate the result.
     """
@@ -726,11 +730,11 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     """
     entity: Optional[
         Union[
-            WebsetCompanyEntity,
-            WebsetPersonEntity,
-            WebsetArticleEntity,
-            WebsetResearchPaperEntity,
-            WebsetCustomEntity,
+            "WebsetCompanyEntity",
+            "WebsetPersonEntity",
+            "WebsetArticleEntity",
+            "WebsetResearchPaperEntity",
+            "WebsetCustomEntity",
         ]
     ] = None
     """
@@ -738,7 +742,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query. Only use this when you need more fine control.
     """
-    criteria: Optional[List[CreateCriterionParameters]] = Field(
+    criteria: Optional[List["CreateCriterionParameters"]] = Field(
         None, max_items=5, min_items=1
     )
     """
@@ -746,7 +750,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
 
     It's not required to provide your own criteria, we automatically detect the criteria from all the information provided in the query.
     """
-    exclude: Optional[List[ExcludeItem]] = None
+    exclude: Optional[List["ExcludeItem"]] = None
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
