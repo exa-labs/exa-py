@@ -73,7 +73,7 @@ class CreateEnrichmentParameters(ExaBaseModel):
 
 
 class CreateMonitorParameters(ExaBaseModel):
-    webset_id: str = Field(..., alias='websetId')
+    webset_id: Annotated[str, Field(alias='websetId')]
     """
     The id of the Webset
     """
@@ -110,7 +110,7 @@ class CreateWebsetParameters(ExaBaseModel):
     """
     Create initial search for the Webset.
     """
-    imports: Optional[List[ImportItem]] = Field(default=None, alias='import')
+    imports: Annotated[Optional[List[ImportItem]], Field(default=None, alias='import')]
     """
     Import data from existing Websets and Imports into this Webset.
     """
@@ -118,7 +118,7 @@ class CreateWebsetParameters(ExaBaseModel):
     """
     Add Enrichments for the Webset.
     """
-    external_id: Optional[str] = Field(default=None, alias='externalId')
+    external_id: Annotated[Optional[str], Field(default=None, alias='externalId')]
     """
     The external identifier for the webset.
 
@@ -215,7 +215,7 @@ class EnrichmentResult(ExaBaseModel):
     """
     The references used to generate the result.
     """
-    enrichment_id: str = Field(..., alias='enrichmentId')
+    enrichment_id: Annotated[str, Field(alias='enrichmentId')]
     """
     The unique identifier for the enrichment
     """
@@ -316,11 +316,11 @@ class ListEventsResponse(ExaBaseModel):
     """
     The list of events
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -331,11 +331,11 @@ class ListMonitorRunsResponse(ExaBaseModel):
     """
     The list of monitor runs
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -346,11 +346,11 @@ class ListMonitorsResponse(ExaBaseModel):
     """
     The list of monitors
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -361,11 +361,11 @@ class ListWebhookAttemptsResponse(ExaBaseModel):
     """
     The list of webhook attempts
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -376,11 +376,11 @@ class ListWebhooksResponse(ExaBaseModel):
     """
     The list of webhooks
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -391,11 +391,11 @@ class ListWebsetItemResponse(ExaBaseModel):
     """
     The list of webset items
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more Items to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -406,11 +406,11 @@ class ListWebsetsResponse(ExaBaseModel):
     """
     The list of websets
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -538,31 +538,31 @@ class CreateImportResponse(ExaBaseModel):
     """
     Set of key-value pairs associated with this object
     """
-    failed_reason: Optional[ImportFailedReason] = Field(default=None, alias='failedReason')
+    failed_reason: Annotated[Optional[ImportFailedReason], Field(default=None, alias='failedReason')]
     """
     The reason the import failed, if applicable
     """
-    failed_at: Optional[datetime] = Field(default=None, alias='failedAt')
+    failed_at: Annotated[Optional[datetime], Field(default=None, alias='failedAt')]
     """
     When the import failed, if applicable
     """
-    failed_message: Optional[str] = Field(default=None, alias='failedMessage')
+    failed_message: Annotated[Optional[str], Field(default=None, alias='failedMessage')]
     """
     A human readable message describing the import failure
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     When the import was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     When the import was last updated
     """
-    upload_url: str = Field(..., alias='uploadUrl')
+    upload_url: Annotated[str, Field(alias='uploadUrl')]
     """
     The URL to upload the file to
     """
-    upload_valid_until: str = Field(..., alias='uploadValidUntil')
+    upload_valid_until: Annotated[str, Field(alias='uploadValidUntil')]
     """
     The date and time until the upload URL is valid
     """
@@ -610,23 +610,23 @@ class Import(ExaBaseModel):
     """
     Set of key-value pairs associated with this object
     """
-    failed_reason: Optional[ImportFailedReason] = Field(default=None, alias='failedReason')
+    failed_reason: Annotated[Optional[ImportFailedReason], Field(default=None, alias='failedReason')]
     """
     The reason the import failed, if applicable
     """
-    failed_at: Optional[datetime] = Field(default=None, alias='failedAt')
+    failed_at: Annotated[Optional[datetime], Field(default=None, alias='failedAt')]
     """
     When the import failed, if applicable
     """
-    failed_message: Optional[str] = Field(default=None, alias='failedMessage')
+    failed_message: Annotated[Optional[str], Field(default=None, alias='failedMessage')]
     """
     A human readable message describing the import failure
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     When the import was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     When the import was last updated
     """
@@ -640,11 +640,11 @@ class ListImportsResponse(ExaBaseModel):
     """
     The list of imports
     """
-    has_more: bool = Field(..., alias='hasMore')
+    has_more: Annotated[bool, Field(alias='hasMore')]
     """
     Whether there are more results to paginate through
     """
-    next_cursor: Optional[str] = Field(default=None, alias='nextCursor')
+    next_cursor: Annotated[Optional[str], Field(default=None, alias='nextCursor')]
     """
     The cursor to use for the next page of results
     """
@@ -803,7 +803,7 @@ class Monitor(ExaBaseModel):
     """
     The status of the Monitor
     """
-    webset_id: str = Field(..., alias='websetId')
+    webset_id: Annotated[str, Field(alias='websetId')]
     """
     The id of the Webset the Monitor belongs to
     """
@@ -817,11 +817,11 @@ class Monitor(ExaBaseModel):
     """
     Behavior to perform when monitor runs
     """
-    last_run: Optional[MonitorRun] = Field(default=None, alias='lastRun', title='MonitorRun')
+    last_run: Annotated[Optional[MonitorRun], Field(default=None, alias='lastRun', title='MonitorRun')]
     """
     The last run of the monitor
     """
-    next_run_at: Optional[datetime] = Field(default=None, alias='nextRunAt')
+    next_run_at: Annotated[Optional[datetime], Field(default=None, alias='nextRunAt')]
     """
     When the next run will occur
     """
@@ -829,11 +829,11 @@ class Monitor(ExaBaseModel):
     """
     Set of key-value pairs you want to associate with this object.
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     When the monitor was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     When the monitor was last updated
     """
@@ -884,7 +884,7 @@ class MonitorRun(ExaBaseModel):
     """
     The status of the Monitor Run
     """
-    monitor_id: str = Field(..., alias='monitorId')
+    monitor_id: Annotated[str, Field(alias='monitorId')]
     """
     The monitor that the run is associated with
     """
@@ -892,23 +892,23 @@ class MonitorRun(ExaBaseModel):
     """
     The type of the Monitor Run
     """
-    completed_at: Optional[datetime] = Field(default=None, alias='completedAt')
+    completed_at: Annotated[Optional[datetime], Field(default=None, alias='completedAt')]
     """
     When the run completed
     """
-    failed_at: Optional[datetime] = Field(default=None, alias='failedAt')
+    failed_at: Annotated[Optional[datetime], Field(default=None, alias='failedAt')]
     """
     When the run failed
     """
-    canceled_at: Optional[datetime] = Field(default=None, alias='canceledAt')
+    canceled_at: Annotated[Optional[datetime], Field(default=None, alias='canceledAt')]
     """
     When the run was canceled
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     When the run was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     When the run was last updated
     """
@@ -982,11 +982,11 @@ class Webhook(ExaBaseModel):
     """
     The metadata of the webhook
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the webhook was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     The date and time the webhook was last updated
     """
@@ -998,15 +998,15 @@ class WebhookAttempt(ExaBaseModel):
     The unique identifier for the webhook attempt
     """
     object: Literal['webhook_attempt']
-    event_id: str = Field(..., alias='eventId')
+    event_id: Annotated[str, Field(alias='eventId')]
     """
     The unique identifier for the event
     """
-    event_type: EventType = Field(..., alias='eventType')
+    event_type: Annotated[EventType, Field(alias='eventType')]
     """
     The type of event
     """
-    webhook_id: str = Field(..., alias='webhookId')
+    webhook_id: Annotated[str, Field(alias='webhookId')]
     """
     The unique identifier for the webhook
     """
@@ -1018,15 +1018,15 @@ class WebhookAttempt(ExaBaseModel):
     """
     Whether the attempt was successful
     """
-    response_headers: Dict[str, Any] = Field(..., alias='responseHeaders')
+    response_headers: Annotated[Dict[str, Any], Field(alias='responseHeaders')]
     """
     The headers of the response
     """
-    response_body: Optional[str] = Field(default=None, alias='responseBody')
+    response_body: Annotated[Optional[str], Field(default=None, alias='responseBody')]
     """
     The body of the response
     """
-    response_status_code: float = Field(..., alias='responseStatusCode')
+    response_status_code: Annotated[float, Field(alias='responseStatusCode')]
     """
     The status code of the response
     """
@@ -1034,7 +1034,7 @@ class WebhookAttempt(ExaBaseModel):
     """
     The attempt number of the webhook
     """
-    attempted_at: datetime = Field(..., alias='attemptedAt')
+    attempted_at: Annotated[datetime, Field(alias='attemptedAt')]
     """
     The date and time the attempt was made
     """
@@ -1059,7 +1059,7 @@ class Webset(ExaBaseModel):
     """
     The status of the webset
     """
-    external_id: Optional[str] = Field(default=None, alias='externalId')
+    external_id: Annotated[Optional[str], Field(default=None, alias='externalId')]
     """
     The external identifier for the webset
     """
@@ -1079,11 +1079,11 @@ class Webset(ExaBaseModel):
     """
     Set of key-value pairs you want to associate with this object.
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the webset was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     The date and time the webset was last updated
     """
@@ -1105,7 +1105,7 @@ class WebsetCreatedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.created']
     data: Webset
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1127,7 +1127,7 @@ class WebsetDeletedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.deleted']
     data: Webset
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1143,7 +1143,7 @@ class WebsetEnrichment(ExaBaseModel):
     """
     The status of the enrichment
     """
-    webset_id: str = Field(..., alias='websetId')
+    webset_id: Annotated[str, Field(alias='websetId')]
     """
     The unique identifier for the Webset this enrichment belongs to.
     """
@@ -1177,11 +1177,11 @@ class WebsetEnrichment(ExaBaseModel):
     """
     The metadata of the enrichment
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the enrichment was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     The date and time the enrichment was last updated
     """
@@ -1218,7 +1218,7 @@ class WebsetIdleEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.idle']
     data: Webset
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1234,11 +1234,11 @@ class WebsetItem(ExaBaseModel):
     """
     The source of the Item
     """
-    source_id: str = Field(..., alias='sourceId')
+    source_id: Annotated[str, Field(alias='sourceId')]
     """
     The unique identifier for the source
     """
-    webset_id: str = Field(..., alias='websetId')
+    webset_id: Annotated[str, Field(alias='websetId')]
     """
     The unique identifier for the Webset this Item belongs to.
     """
@@ -1260,11 +1260,11 @@ class WebsetItem(ExaBaseModel):
     """
     The enrichments results of the Webset item
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the item was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     The date and time the item was last updated
     """
@@ -1297,7 +1297,7 @@ class WebsetItemArticlePropertiesFields(ExaBaseModel):
     """
     The author(s) of the article
     """
-    published_at: Optional[str] = Field(default=None, alias='publishedAt')
+    published_at: Annotated[Optional[str], Field(default=None, alias='publishedAt')]
     """
     The date the article was published
     """
@@ -1346,7 +1346,7 @@ class WebsetItemCompanyPropertiesFields(ExaBaseModel):
     """
     A short description of the company
     """
-    logo_url: Optional[AnyUrl] = Field(default=None, alias='logoUrl')
+    logo_url: Annotated[Optional[AnyUrl], Field(default=None, alias='logoUrl')]
     """
     The URL of the company logo
     """
@@ -1360,7 +1360,7 @@ class WebsetItemCreatedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.item.created']
     data: WebsetItem
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1393,7 +1393,7 @@ class WebsetItemCustomPropertiesFields(ExaBaseModel):
     """
     The author(s) of the website
     """
-    published_at: Optional[str] = Field(default=None, alias='publishedAt')
+    published_at: Annotated[Optional[str], Field(default=None, alias='publishedAt')]
     """
     The date the content was published
     """
@@ -1407,7 +1407,7 @@ class WebsetItemEnrichedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.item.enriched']
     data: WebsetItem
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1478,7 +1478,7 @@ class WebsetItemPersonPropertiesFields(ExaBaseModel):
     """
     The company the person is working at
     """
-    picture_url: Optional[AnyUrl] = Field(default=None, alias='pictureUrl')
+    picture_url: Annotated[Optional[AnyUrl], Field(default=None, alias='pictureUrl')]
     """
     The URL of the person's picture
     """
@@ -1511,7 +1511,7 @@ class WebsetItemResearchPaperPropertiesFields(ExaBaseModel):
     """
     The author(s) of the research paper
     """
-    published_at: Optional[str] = Field(default=None, alias='publishedAt')
+    published_at: Annotated[Optional[str], Field(default=None, alias='publishedAt')]
     """
     The date the research paper was published
     """
@@ -1525,7 +1525,7 @@ class WebsetPausedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.paused']
     data: Webset
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1588,19 +1588,19 @@ class WebsetSearch(ExaBaseModel):
     """
     Set of key-value pairs you want to associate with this object.
     """
-    canceled_at: Optional[datetime] = Field(default=None, alias='canceledAt')
+    canceled_at: Annotated[Optional[datetime], Field(default=None, alias='canceledAt')]
     """
     The date and time the search was canceled
     """
-    canceled_reason: Optional[WebsetSearchCanceledReason] = Field(default=None, alias='canceledReason')
+    canceled_reason: Annotated[Optional[WebsetSearchCanceledReason], Field(default=None, alias='canceledReason')]
     """
     The reason the search was canceled
     """
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the search was created
     """
-    updated_at: datetime = Field(..., alias='updatedAt')
+    updated_at: Annotated[datetime, Field(alias='updatedAt')]
     """
     The date and time the search was last updated
     """
@@ -1614,7 +1614,7 @@ class WebsetSearchCanceledEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.search.canceled']
     data: WebsetSearch
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1633,7 +1633,7 @@ class WebsetSearchCompletedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.search.completed']
     data: WebsetSearch
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1647,7 +1647,7 @@ class WebsetSearchCreatedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.search.created']
     data: WebsetSearch
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
@@ -1672,7 +1672,7 @@ class WebsetSearchUpdatedEvent(ExaBaseModel):
     object: Literal['event']
     type: Literal['webset.search.updated']
     data: WebsetSearch
-    created_at: datetime = Field(..., alias='createdAt')
+    created_at: Annotated[datetime, Field(alias='createdAt')]
     """
     The date and time the event was created
     """
