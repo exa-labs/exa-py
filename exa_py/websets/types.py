@@ -11,6 +11,18 @@ from typing import Any, Dict, List, Literal, Optional, Union, Annotated
 from pydantic import AnyUrl, Field, PositiveInt, confloat, constr
 from .core.base import ExaBaseModel
 
+
+class WebsetSearchBehavior(Enum):
+    """
+    The behavior of the Search when it is added to a Webset.
+
+    - `override`: the search will replace the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will be discarded.
+    - `append`: the search will add the new Items found to the existing Webset. Any Items that don't match the new criteria will be discarded.
+    """
+    override = 'override'
+    append = 'append'
+
+
 class MonitorBehaviorSearchConfig(ExaBaseModel):
     query: constr(min_length=2, max_length=10000)
     criteria: List[SearchCriterion] = Field(..., max_items=5)
@@ -25,7 +37,7 @@ class MonitorBehaviorSearchConfig(ExaBaseModel):
     """
     The maximum number of results to find
     """
-    behavior: Optional[WebsetSearchBehavior] = 'append'
+    behavior: Optional[WebsetSearchBehavior] = WebsetSearchBehavior.append
     """
     The behaviour of the Search when it is added to a Webset.
     """
@@ -161,7 +173,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
-    behavior: Optional[WebsetSearchBehavior] = 'override'
+    behavior: Optional[WebsetSearchBehavior] = WebsetSearchBehavior.override
     """
     The behavior of the Search when it is added to a Webset.
 
@@ -1564,7 +1576,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The number of results the search will attempt to find. The actual number of results may be less than this number depending on the search complexity.
     """
-    behavior: Optional[WebsetSearchBehavior] = 'override'
+    behavior: Optional[WebsetSearchBehavior] = WebsetSearchBehavior.override
     """
     The behavior of the search when it is added to a Webset.
 
@@ -1595,17 +1607,6 @@ class WebsetSearch(ExaBaseModel):
     """
     The date and time the search was last updated
     """
-
-
-class WebsetSearchBehavior(Enum):
-    """
-    The behavior of the Search when it is added to a Webset.
-
-    - `override`: the search will replace the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will be discarded.
-    - `append`: the search will add the new Items found to the existing Webset. Any Items that don't match the new criteria will be discarded.
-    """
-    override = 'override'
-    append = 'append'
 
 
 class WebsetSearchCanceledEvent(ExaBaseModel):
