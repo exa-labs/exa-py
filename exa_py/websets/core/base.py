@@ -62,10 +62,10 @@ class WebsetsBaseClient:
         elif isinstance(data, dict) and model_class:
             # Convert dict to model instance
             model_instance = model_class.model_validate(data)
-            return model_instance.model_dump(by_alias=True, exclude_none=True)
+            return model_instance.model_dump(mode='json', by_alias=True, exclude_none=True)
         elif isinstance(data, ExaBaseModel):
             # Use model's dump method
-            return data.model_dump(by_alias=True, exclude_none=True)
+            return data.model_dump(mode='json', by_alias=True, exclude_none=True)
         elif isinstance(data, dict):
             # Use dict directly
             return data
@@ -90,7 +90,7 @@ class WebsetsBaseClient:
             pass
         elif data is not None and isinstance(data, ExaBaseModel):
             # If data is a model instance, convert it to a dict
-            data = data.model_dump(by_alias=True, exclude_none=True)
+            data = data.model_dump(mode='json', by_alias=True, exclude_none=True)
             
         # Ensure proper URL construction by removing leading slash from endpoint if present
         if endpoint.startswith("/"):
