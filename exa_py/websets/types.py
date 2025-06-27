@@ -9,7 +9,6 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, Annotated
 
 from pydantic import AnyUrl, Field, PositiveInt
-from pydantic.types import StringConstraints
 from .core.base import ExaBaseModel
 
 
@@ -25,8 +24,8 @@ class WebsetSearchBehavior(Enum):
 
 
 class MonitorBehaviorSearchConfig(ExaBaseModel):
-    query: Annotated[str, StringConstraints(min_length=2, max_length=10000)]
-    criteria: Annotated[List[SearchCriterion], Field(max_length=5)]
+    query: str
+    criteria: List[SearchCriterion]
     entity: Union[
         WebsetCompanyEntity,
         WebsetPersonEntity,
@@ -34,7 +33,7 @@ class MonitorBehaviorSearchConfig(ExaBaseModel):
         WebsetResearchPaperEntity,
         WebsetCustomEntity,
     ] = Field(..., title='WebsetEntity')
-    count: PositiveInt
+    count: int
     """
     The maximum number of results to find
     """
@@ -45,14 +44,14 @@ class MonitorBehaviorSearchConfig(ExaBaseModel):
 
 
 class CreateCriterionParameters(ExaBaseModel):
-    description: Annotated[str, StringConstraints(min_length=1)]
+    description: str
     """
     The description of the criterion
     """
 
 
 class CreateEnrichmentParameters(ExaBaseModel):
-    description: Annotated[str, StringConstraints(min_length=1)]
+    description: str
     """
     Provide a description of the enrichment task you want to perform to each Webset Item.
     """
@@ -62,7 +61,7 @@ class CreateEnrichmentParameters(ExaBaseModel):
 
     We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
     """
-    options: Optional[Annotated[List[Option], Field(min_length=1, max_length=20)]] = None
+    options: Optional[List[Option]] = None
     """
     When the format is options, the different options for the enrichment agent to choose from.
     """
@@ -91,7 +90,7 @@ class CreateMonitorParameters(ExaBaseModel):
 
 
 class CreateWebhookParameters(ExaBaseModel):
-    events: Annotated[List[EventType], Field(min_length=1, max_length=12)]
+    events: List[EventType]
     """
     The events to trigger the webhook
     """
@@ -131,13 +130,13 @@ class CreateWebsetParameters(ExaBaseModel):
 
 
 class CreateWebsetSearchParameters(ExaBaseModel):
-    count: PositiveInt
+    count: int
     """
     Number of Items the Search will attempt to find.
 
     The actual number of Items found may be less than this number depending on the query complexity.
     """
-    query: Annotated[str, StringConstraints(min_length=1)] = Field(
+    query: str = Field(
         ...,
         examples=[
             'Marketing agencies based in the US, that focus on consumer products. Get brands worked with and city'
@@ -162,7 +161,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query.
     """
-    criteria: Optional[Annotated[List[CreateCriterionParameters], Field(min_length=1, max_length=5)]] = None
+    criteria: Optional[List[CreateCriterionParameters]] = None
     """
     Criteria every item is evaluated against.
 
@@ -186,7 +185,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
 
 class WebsetSearchCriterion(ExaBaseModel):
-    description: Annotated[str, StringConstraints(min_length=1)]
+    description: str
     """
     The description of the criterion
     """
@@ -197,7 +196,7 @@ class WebsetSearchCriterion(ExaBaseModel):
 
 
 class SearchCriterion(ExaBaseModel):
-    description: Annotated[str, StringConstraints(min_length=2)]
+    description: str
 
 
 class EnrichmentResult(ExaBaseModel):
@@ -424,7 +423,7 @@ class ImportItem(ExaBaseModel):
     """
     The type of source (import or webset)
     """
-    id: Annotated[str, StringConstraints(min_length=1)]
+    id: str
     """
     The ID of the source to import from
     """
@@ -438,7 +437,7 @@ class ExcludeItem(ExaBaseModel):
     """
     The type of source (import or webset)
     """
-    id: Annotated[str, StringConstraints(min_length=1)]
+    id: str
     """
     The ID of the source to exclude
     """
@@ -448,7 +447,7 @@ class CsvImportConfig(ExaBaseModel):
     """
     Configuration for CSV imports.
     """
-    identifier: Optional[PositiveInt] = None
+    identifier: Optional[int] = None
     """
     Column index containing the key identifier for the entity (e.g., URL). If not provided, will be inferred.
     """
@@ -716,7 +715,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     Create initial search for the Webset.
     """
 
-    query: Annotated[str, StringConstraints(min_length=1)] = Field(
+    query: str = Field(
         ...,
         examples=[
             'Marketing agencies based in the US, that focus on consumer products.'
@@ -729,7 +728,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
 
     Any URL provided will be crawled and used as context for the search.
     """
-    count: Optional[PositiveInt] = 10
+    count: Optional[int] = 10
     """
     Number of Items the Webset will attempt to find.
 
@@ -749,7 +748,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query. Only use this when you need more fine control.
     """
-    criteria: Optional[Annotated[List[CreateCriterionParameters], Field(min_length=1, max_length=5)]] = None
+    criteria: Optional[List[CreateCriterionParameters]] = None
     """
     Criteria every item is evaluated against.
 
@@ -825,7 +824,7 @@ class Monitor(ExaBaseModel):
     """
     When the next run will occur
     """
-    metadata: Dict[str, Annotated[str, StringConstraints(max_length=1000)]]
+    metadata: Dict[str, str]
     """
     Set of key-value pairs you want to associate with this object.
     """
@@ -935,7 +934,7 @@ class UpdateMonitor(ExaBaseModel):
 
 
 class UpdateWebhookParameters(ExaBaseModel):
-    events: Optional[Annotated[List[EventType], Field(min_length=1, max_length=12)]] = None
+    events: Optional[List[EventType]] = None
     """
     The events to trigger the webhook
     """
@@ -966,7 +965,7 @@ class Webhook(ExaBaseModel):
     """
     The status of the webhook
     """
-    events: Annotated[List[EventType], Field(min_length=1)]
+    events: List[EventType]
     """
     The events to trigger the webhook
     """
@@ -1113,7 +1112,7 @@ class WebsetCreatedEvent(ExaBaseModel):
 
 class WebsetCustomEntity(ExaBaseModel):
     type: Literal['custom']
-    description: Annotated[str, StringConstraints(min_length=2)]
+    description: str
     """
     The description of the custom entity
     """
@@ -1549,7 +1548,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The status of the search
     """
-    query: Annotated[str, StringConstraints(min_length=1)]
+    query: str
     """
     The query used to create the search.
     """
