@@ -36,9 +36,6 @@ exa = Exa(api_key="your-api-key")
 
   # search with URL filters
   results = exa.search("This is a Exa query:", include_urls=["https://arxiv.org/*", "https://openai.com/blog/*"])
-  
-  # search excluding specific URLs
-  results = exa.search("This is a Exa query:", exclude_urls=["https://example-spam-site.com/*"])
 
   # search and get text contents
   results = exa.search_and_contents("This is a Exa query:")
