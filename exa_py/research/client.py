@@ -9,15 +9,15 @@ block, but at runtime we only pay the cost if/when a helper is actually used.
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
+
+from exa_py.utils import JSONSchemaInput
 from ..api import _convert_schema_input
 
 if TYPE_CHECKING:  # pragma: no cover – only for static analysers
     # Import with full type info when static type-checking.  `_Result` still
     # lives in ``exa_py.api`` but the response model moved to
     # ``exa_py.research.models``.
-    from ..api import JSONSchemaInput  # noqa: F401
     from .models import (
         ResearchTask,
         ResearchTaskId,
@@ -55,8 +55,6 @@ class ResearchClient:
                 payload["output"]["schema"] = _convert_schema_input(output_schema)
             if output_infer_schema is not None:
                 payload["output"]["inferSchema"] = output_infer_schema
-
-        print("mork - SEEING SCHEMA", json.dumps(payload["output"]["schema"]))
 
         raw_response: Dict[str, Any] = self._client.request(
             "/research/v0/tasks", payload

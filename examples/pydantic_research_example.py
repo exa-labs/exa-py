@@ -164,7 +164,6 @@ def analyze_technology_landscape():
         return
 
     analysis = final_task.data
-    print("mork - hmm raw analysis", analysis)
 
     print("Emerging Technologies:")
     for tech in analysis["emerging_technologies"]:

@@ -1,5 +1,6 @@
 import json
-from typing import Any, Optional
+import os
+from typing import Any, Optional, Union
 from openai.types.chat import ChatCompletion
 
 from typing import TYPE_CHECKING
@@ -8,7 +9,7 @@ from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema
 
 if TYPE_CHECKING:
-    from exa_py.api import ResultWithText, SearchResponse, JSONSchemaInput
+    from exa_py.api import ResultWithText, SearchResponse
 
 
 def maybe_get_query(completion) -> Optional[str]:
@@ -98,6 +99,9 @@ class ExaOpenAICompletion(ChatCompletion):
         )
 
 
+JSONSchemaInput = Union[type[BaseModel], dict[str, Any]]
+
+
 class InlineJsonSchemaGenerator(GenerateJsonSchema):
     """Custom JSON schema generator that inlines all schemas without creating $defs references."""
 
@@ -164,3 +168,27 @@ def _convert_schema_input(schema_input: "JSONSchemaInput") -> dict[str, Any]:
         raise ValueError(
             f"Unsupported schema type: {type(schema_input)}. Expected BaseModel class or dict."
         )
+
+
+def _get_package_version() -> str:
+    """Get the package version from pyproject.toml."""
+    try:
+        try:
+            import tomllib  # Python 3.11+
+        except ImportError:
+            import tomli as tomllib  # fallback for older versions
+
+        import os
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        pyproject_path = os.path.join(project_root, "pyproject.toml")
+
+        if os.path.exists(pyproject_path):
+            with open(pyproject_path, "rb") as f:
+                data = tomllib.load(f)
+                return data.get("project", {}).get("version", "unknown")
+    except Exception:
+        pass
+
+    return "unknown"

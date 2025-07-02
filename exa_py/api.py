@@ -29,72 +29,22 @@ from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
 from typing_extensions import TypedDict
-from pydantic import BaseModel
 
 from exa_py.utils import (
     ExaOpenAICompletion,
     _convert_schema_input,
+    _get_package_version,
     add_message_to_messages,
     format_exa_result,
     maybe_get_query,
+    JSONSchemaInput,
 )
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
 from .research.client import ResearchClient, AsyncResearchClient
 
-# Define JSONSchemaInput type alias
-JSONSchemaInput = Union[type[BaseModel], dict[str, Any]]
 
 is_beta = os.getenv("IS_BETA") == "True"
-
-
-def _get_package_version() -> str:
-    """Get the package version dynamically from metadata.
-
-    Returns:
-        str: The package version (e.g., "1.14.13")
-    """
-    try:
-        # Python 3.8+ standard library approach
-        from importlib.metadata import version
-
-        return version("exa-py")
-    except ImportError:
-        # Fallback for older Python versions
-        try:
-            import pkg_resources
-
-            return pkg_resources.get_distribution("exa-py").version
-        except Exception:
-            pass
-    except Exception:
-        pass
-
-    # Final fallback - read from pyproject.toml if available
-    try:
-        import tomllib  # Python 3.11+
-    except ImportError:
-        try:
-            import tomli as tomllib  # fallback
-        except ImportError:
-            tomllib = None
-
-    if tomllib:
-        try:
-            # Get the directory containing this file, then go up to project root
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(current_dir)
-            pyproject_path = os.path.join(project_root, "pyproject.toml")
-
-            if os.path.exists(pyproject_path):
-                with open(pyproject_path, "rb") as f:
-                    data = tomllib.load(f)
-                    return data.get("project", {}).get("version", "unknown")
-        except Exception:
-            pass
-
-    # Last resort fallback
-    return "unknown"
 
 
 def snake_to_camel(snake_str: str) -> str:
