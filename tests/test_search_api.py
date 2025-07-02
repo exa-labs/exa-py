@@ -12,9 +12,11 @@ API_KEY = os.getenv("EXA_API_KEY", "test-key")
 def _have_real_key() -> bool:
     return API_KEY != "test-key" and len(API_KEY) > 10
 
+
 ########################################
 # Offline unit tests (no network)
 ########################################
+
 
 def test_contentstatus_parsing_offline():
     payload_status = {"id": "u", "status": "success", "source": "cached"}
@@ -44,10 +46,14 @@ async def test_async_request_accepts_201():
 # Live integration tests (skipped without key)
 ########################################
 
+
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_user_agent_header():
     exa = Exa(API_KEY)
-    assert exa.headers["User-Agent"] == "exa-py 1.12.4"
+    # Get the expected version dynamically
+    expected_version = exa_api._get_package_version()
+    expected_user_agent = f"exa-py {expected_version}"
+    assert exa.headers["User-Agent"] == expected_user_agent
 
 
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
@@ -59,10 +65,13 @@ def test_research_client_attrs():
 
 # ---- Core live endpoint smoke checks ----
 
+
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_get_contents_live_preferred():
     exa = Exa(API_KEY)
-    resp = exa.get_contents(urls=["https://techcrunch.com"], text=True, livecrawl="preferred")
+    resp = exa.get_contents(
+        urls=["https://techcrunch.com"], text=True, livecrawl="preferred"
+    )
     assert isinstance(resp, exa_api.SearchResponse)
     # statuses may be empty when cached – still fine
     assert len(resp.results) >= 1
@@ -93,36 +102,55 @@ def test_get_contents_sync_live():
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 async def test_get_contents_async_live():
     ax = AsyncExa(API_KEY)
-    resp = await ax.get_contents(urls=["https://example.com"], text=True, livecrawl="never")
+    resp = await ax.get_contents(
+        urls=["https://example.com"], text=True, livecrawl="never"
+    )
     assert resp.results
 
 
 # researchTask endpoint is still beta; mark as xfail if 404 returned
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-@pytest.mark.xfail(strict=False)
 def test_research_task_live():
     exa = Exa(API_KEY)
-    schema = {"type": "object", "properties": {"answer": {"type": "string"}}, "required": ["answer"]}
-    resp = exa.researchTask(input_instructions="Return the string 'pong'", output_schema=schema)
+    schema = {
+        "type": "object",
+        "properties": {"answer": {"type": "string"}},
+        "required": ["answer"],
+    }
+    resp = exa.research.create_task(
+        instructions="What is the capital of Minnesota?", output_schema=schema
+    )
     assert resp.id
+    final = exa.research.poll_task(resp.id)
+    assert final.status == "completed"
+
 
 ########################################
 # Live tests for new context / statuses features
 ########################################
 
+
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_search_and_contents_context_live():
     """search_and_contents with context=True should return non-empty context string."""
     exa = Exa(API_KEY)
-    resp = exa.search_and_contents("openai research", num_results=3, context=True, text=False)
-    assert resp.context is not None and isinstance(resp.context, str) and len(resp.context) > 0
+    resp = exa.search_and_contents(
+        "openai research", num_results=3, context=True, text=False
+    )
+    assert (
+        resp.context is not None
+        and isinstance(resp.context, str)
+        and len(resp.context) > 0
+    )
 
 
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_find_similar_and_contents_context_live():
     """find_similar_and_contents with context flag should include context string."""
     exa = Exa(API_KEY)
-    resp = exa.find_similar_and_contents("https://www.openai.com", num_results=3, context=True, text=False)
+    resp = exa.find_similar_and_contents(
+        "https://www.openai.com", num_results=3, context=True, text=False
+    )
     # context may be empty depending on backend, but attribute should exist (None or str)
     assert hasattr(resp, "context")
 
@@ -131,6 +159,8 @@ def test_find_similar_and_contents_context_live():
 def test_get_contents_statuses_live():
     """get_contents should expose statuses list (possibly empty)."""
     exa = Exa(API_KEY)
-    resp = exa.get_contents(urls=["https://techcrunch.com"], text=True, livecrawl="never")
+    resp = exa.get_contents(
+        urls=["https://techcrunch.com"], text=True, livecrawl="never"
+    )
     # statuses attribute exists; ensure it's a list
-    assert isinstance(resp.statuses, list) 
+    assert isinstance(resp.statuses, list)

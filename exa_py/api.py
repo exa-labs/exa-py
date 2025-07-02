@@ -44,6 +44,55 @@ from .research.client import ResearchClient, AsyncResearchClient
 is_beta = os.getenv("IS_BETA") == "True"
 
 
+def _get_package_version() -> str:
+    """Get the package version dynamically from metadata.
+
+    Returns:
+        str: The package version (e.g., "1.14.13")
+    """
+    try:
+        # Python 3.8+ standard library approach
+        from importlib.metadata import version
+
+        return version("exa-py")
+    except ImportError:
+        # Fallback for older Python versions
+        try:
+            import pkg_resources
+
+            return pkg_resources.get_distribution("exa-py").version
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+    # Final fallback - read from pyproject.toml if available
+    try:
+        import tomllib  # Python 3.11+
+    except ImportError:
+        try:
+            import tomli as tomllib  # fallback
+        except ImportError:
+            tomllib = None
+
+    if tomllib:
+        try:
+            # Get the directory containing this file, then go up to project root
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            pyproject_path = os.path.join(project_root, "pyproject.toml")
+
+            if os.path.exists(pyproject_path):
+                with open(pyproject_path, "rb") as f:
+                    data = tomllib.load(f)
+                    return data.get("project", {}).get("version", "unknown")
+        except Exception:
+            pass
+
+    # Last resort fallback
+    return "unknown"
+
+
 # New flexible type for JSON schemas
 JSONSchemaInput = Union[type[BaseModel], dict[str, Any]]
 
@@ -1143,13 +1192,14 @@ class Exa:
         self,
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
-        user_agent: str = "exa-py 1.14.9",
+        user_agent: Optional[str] = None,
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
         Args:
             api_key (str): The API key for authenticating with the Exa API.
             base_url (str, optional): The base URL for the Exa API. Defaults to "https://api.exa.ai".
+            user_agent (str, optional): Custom user agent. Defaults to "exa-py {version}".
         """
         if api_key is None:
             import os
@@ -1159,6 +1209,11 @@ class Exa:
                 raise ValueError(
                     "API key must be provided as an argument or in EXA_API_KEY environment variable"
                 )
+
+        # Set default user agent with dynamic version if not provided
+        if user_agent is None:
+            user_agent = f"exa-py {_get_package_version()}"
+
         self.base_url = base_url
         self.headers = {
             "x-api-key": api_key,
