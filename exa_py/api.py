@@ -136,7 +136,7 @@ def snake_to_camel(snake_str: str) -> str:
     return components[0] + "".join(x.title() for x in components[1:])
 
 
-def to_camel_case(data: dict) -> dict:
+def to_camel_case(data: dict, skip_keys: list[str] = []) -> dict:
     """
     Convert keys in a dictionary from snake_case to camelCase recursively.
 
@@ -148,7 +148,9 @@ def to_camel_case(data: dict) -> dict:
     """
     if isinstance(data, dict):
         return {
-            snake_to_camel(k): to_camel_case(v) if isinstance(v, dict) else v
+            snake_to_camel(k): to_camel_case(v)
+            if isinstance(v, dict) and k not in skip_keys
+            else v
             for k, v in data.items()
             if v is not None
         }
@@ -2401,7 +2403,7 @@ class Exa:
         if "output_schema" in options and options["output_schema"] is not None:
             options["output_schema"] = _convert_schema_input(options["output_schema"])
 
-        options = to_camel_case(options)
+        options = to_camel_case(options, ["output_schema"])
         response = self.request("/answer", options)
 
         citations = []
@@ -2673,7 +2675,7 @@ class AsyncExa(Exa):
             if "schema" in summary_opts:
                 summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
-        options = to_camel_case(options)
+        options = to_camel_case(options, ["schema"])
         data = await self.async_request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []

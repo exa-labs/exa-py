@@ -7,11 +7,10 @@ with the Exa API, including nested models, optional fields, and validation.
 
 import os
 import json
-from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Optional
 from enum import Enum
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 from exa_py import Exa
 
 # Set up API key
@@ -116,12 +115,6 @@ class CompanyProfile(BaseModel):
     founders: Optional[List[str]] = Field(
         default=None, description="List of company founders"
     )
-
-    @validator("founded_year")
-    def validate_founded_year(cls, v):
-        if v is not None and v > datetime.now().year:
-            raise ValueError("Founded year cannot be in the future")
-        return v
 
 
 # ===============================================
