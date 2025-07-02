@@ -26,7 +26,7 @@ exa = Exa(EXA_API_KEY, EXA_BASE_URL)
 
 
 class CompanyInformation(BaseModel):
-    """Structured company data extraction."""
+    """Structured company data extraction. This should describe the company mentioned in the article, NOT the company publishing it."""
 
     name: str = Field(description="The name of the company")
     industry: str = Field(description="The industry the company operates in")
@@ -106,7 +106,7 @@ def extract_company_data():
     print("=" * 40)
 
     response = exa.search_and_contents(
-        "Anthropic AI company information",
+        "news articles about AI companies",
         summary={"schema": CompanyInformation},
         category="company",
         num_results=10,
@@ -193,7 +193,7 @@ def extract_product_info():
     print("=" * 40)
 
     response = exa.search_and_contents(
-        "iPhone 15 Pro specifications features",
+        "mechanical keyboards",
         summary={"schema": ProductInformation},
         num_results=10,
     )
