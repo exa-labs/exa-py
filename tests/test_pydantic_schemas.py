@@ -53,7 +53,7 @@ class TestSchemaConversion:
         assert properties["age"]["description"] == "The age field"
 
     def test_nested_pydantic_model_conversion(self):
-        """Test that nested Pydantic models are correctly converted."""
+        """Test that nested Pydantic models are correctly converted and inlined."""
         model = NestedModel
         result = _convert_schema_input(model)
 
@@ -65,9 +65,41 @@ class TestSchemaConversion:
         assert "tags" in properties
         assert "metadata" in properties
 
-        # The metadata field should reference the nested model
+        # With our inline schema generator, there should be NO $defs
+        assert "$defs" not in result
+        assert "definitions" not in result
+
+        # The metadata field should have the nested model schema inlined
         metadata_prop = properties["metadata"]
-        assert "$defs" in result or "definitions" in result
+
+        # metadata is Optional[SimpleModel], so it should be anyOf with null
+        assert "anyOf" in metadata_prop
+        anyof_schemas = metadata_prop["anyOf"]
+
+        # Should have two options: the SimpleModel schema and null
+        assert len(anyof_schemas) == 2
+
+        # Find the SimpleModel schema (not the null type)
+        simple_model_schema = None
+        for schema in anyof_schemas:
+            if schema.get("type") == "object":
+                simple_model_schema = schema
+                break
+
+        assert simple_model_schema is not None, "Should find inlined SimpleModel schema"
+
+        # Verify the SimpleModel schema is properly inlined
+        assert simple_model_schema["title"] == "SimpleModel"
+        assert "properties" in simple_model_schema
+
+        # Should have the fields from SimpleModel
+        simple_props = simple_model_schema["properties"]
+        assert "name" in simple_props
+        assert "age" in simple_props
+
+        # Verify field descriptions are preserved
+        assert simple_props["name"]["description"] == "The name field"
+        assert simple_props["age"]["description"] == "The age field"
 
     def test_dict_passthrough(self):
         """Test that dictionaries are passed through unchanged."""
