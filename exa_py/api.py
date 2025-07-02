@@ -29,6 +29,7 @@ from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
 from typing_extensions import TypedDict
+from pydantic import BaseModel
 
 from exa_py.utils import (
     ExaOpenAICompletion,
@@ -41,6 +42,30 @@ from .websets.core.base import ExaJSONEncoder
 from .research.client import ResearchClient, AsyncResearchClient
 
 is_beta = os.getenv("IS_BETA") == "True"
+
+
+# New flexible type for JSON schemas
+JSONSchemaInput = Union[type[BaseModel], dict[str, Any]]
+
+
+def _convert_schema_input(schema_input) -> dict[str, Any]:
+    """Convert various schema input types to JSON Schema dict.
+
+    Args:
+        schema_input: Either a Pydantic BaseModel class or a dict containing JSON Schema
+
+    Returns:
+        dict: JSON Schema representation
+    """
+    # Check if it's a Pydantic model class (not instance)
+    if isinstance(schema_input, type) and issubclass(schema_input, BaseModel):
+        return schema_input.model_json_schema()
+    elif isinstance(schema_input, dict):
+        return schema_input
+    else:
+        raise ValueError(
+            f"Unsupported schema type: {type(schema_input)}. Expected BaseModel class or dict."
+        )
 
 
 def snake_to_camel(snake_str: str) -> str:
@@ -261,6 +286,11 @@ class HighlightsContentsOptions(TypedDict, total=False):
 
 class JSONSchema(TypedDict, total=False):
     """Represents a JSON Schema definition used for structured summary output.
+
+    .. deprecated:: 1.15.0
+        Use Pydantic models or dict[str, Any] directly instead.
+        This will be removed in a future version.
+
     To learn more visit https://json-schema.org/overview/what-is-jsonschema.
     """
 
@@ -286,11 +316,12 @@ class SummaryContentsOptions(TypedDict, total=False):
 
     Attributes:
         query (str): The query string for the summary. Summary will bias towards answering the query.
-        schema (JSONSchema): JSON schema for structured output from summary.
+        schema (Union[BaseModel, dict[str, Any]]): JSON schema for structured output from summary.
+            Can be a Pydantic model (automatically converted) or a dict containing JSON Schema.
     """
 
     query: str
-    schema: JSONSchema
+    schema: JSONSchemaInput
 
 
 class ContextContentsOptions(TypedDict, total=False):
@@ -362,7 +393,19 @@ class _Result:
     subpages: Optional[List[_Result]] = None
     extras: Optional[Dict] = None
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None):
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+    ):
         self.url = url
         self.id = id
         self.title = title
@@ -406,8 +449,35 @@ class Result(_Result):
     highlight_scores: Optional[List[float]] = None
     summary: Optional[str] = None
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text=None, highlights=None, highlight_scores=None, summary=None):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        text=None,
+        highlights=None,
+        highlight_scores=None,
+        summary=None,
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.text = text
         self.highlights = highlights
         self.highlight_scores = highlight_scores
@@ -434,8 +504,32 @@ class ResultWithText(_Result):
 
     text: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text=""):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        text="",
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.text = text
 
     def __str__(self):
@@ -456,8 +550,33 @@ class ResultWithHighlights(_Result):
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, highlights=None, highlight_scores=None):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        highlights=None,
+        highlight_scores=None,
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.highlights = highlights if highlights is not None else []
         self.highlight_scores = highlight_scores if highlight_scores is not None else []
 
@@ -484,8 +603,34 @@ class ResultWithTextAndHighlights(_Result):
     highlights: List[str] = dataclasses.field(default_factory=list)
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text="", highlights=None, highlight_scores=None):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        text="",
+        highlights=None,
+        highlight_scores=None,
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.text = text
         self.highlights = highlights if highlights is not None else []
         self.highlight_scores = highlight_scores if highlight_scores is not None else []
@@ -510,8 +655,32 @@ class ResultWithSummary(_Result):
 
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, summary=""):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        summary="",
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.summary = summary
 
     def __str__(self):
@@ -532,8 +701,33 @@ class ResultWithTextAndSummary(_Result):
     text: str = dataclasses.field(default_factory=str)
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text="", summary=""):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        text="",
+        summary="",
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.text = text
         self.summary = summary
 
@@ -557,8 +751,34 @@ class ResultWithHighlightsAndSummary(_Result):
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, highlights=None, highlight_scores=None, summary=""):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        highlights=None,
+        highlight_scores=None,
+        summary="",
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.highlights = highlights if highlights is not None else []
         self.highlight_scores = highlight_scores if highlight_scores is not None else []
         self.summary = summary
@@ -589,8 +809,35 @@ class ResultWithTextAndHighlightsAndSummary(_Result):
     highlight_scores: List[float] = dataclasses.field(default_factory=list)
     summary: str = dataclasses.field(default_factory=str)
 
-    def __init__(self, url, id, title=None, score=None, published_date=None, author=None, image=None, favicon=None, subpages=None, extras=None, text="", highlights=None, highlight_scores=None, summary=""):
-        super().__init__(url, id, title, score, published_date, author, image, favicon, subpages, extras)
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        text="",
+        highlights=None,
+        highlight_scores=None,
+        summary="",
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+        )
         self.text = text
         self.highlights = highlights if highlights is not None else []
         self.highlight_scores = highlight_scores if highlight_scores is not None else []
@@ -626,7 +873,9 @@ class AnswerResult:
     author: Optional[str] = None
     text: Optional[str] = None
 
-    def __init__(self, id, url, title=None, published_date=None, author=None, text=None):
+    def __init__(
+        self, id, url, title=None, published_date=None, author=None, text=None
+    ):
         self.id = id
         self.url = url
         self.title = title
@@ -736,14 +985,16 @@ class StreamAnswerResponse:
                 citations = []
                 for s in chunk["citations"]:
                     snake_s = to_snake_case(s)
-                    citations.append(AnswerResult(
-                        id=snake_s.get("id"),
-                        url=snake_s.get("url"),
-                        title=snake_s.get("title"),
-                        published_date=snake_s.get("published_date"),
-                        author=snake_s.get("author"),
-                        text=snake_s.get("text")
-                    ))
+                    citations.append(
+                        AnswerResult(
+                            id=snake_s.get("id"),
+                            url=snake_s.get("url"),
+                            title=snake_s.get("title"),
+                            published_date=snake_s.get("published_date"),
+                            author=snake_s.get("author"),
+                            text=snake_s.get("text"),
+                        )
+                    )
 
             stream_chunk = StreamChunk(content=content, citations=citations)
             if stream_chunk.has_data():
@@ -793,14 +1044,16 @@ class AsyncStreamAnswerResponse:
                     citations = []
                     for s in chunk["citations"]:
                         snake_s = to_snake_case(s)
-                        citations.append(AnswerResult(
-                            id=snake_s.get("id"),
-                            url=snake_s.get("url"),
-                            title=snake_s.get("title"),
-                            published_date=snake_s.get("published_date"),
-                            author=snake_s.get("author"),
-                            text=snake_s.get("text")
-                        ))
+                        citations.append(
+                            AnswerResult(
+                                id=snake_s.get("id"),
+                                url=snake_s.get("url"),
+                                title=snake_s.get("title"),
+                                published_date=snake_s.get("published_date"),
+                                author=snake_s.get("author"),
+                                text=snake_s.get("text"),
+                            )
+                        )
 
                 stream_chunk = StreamChunk(content=content, citations=citations)
                 if stream_chunk.has_data():
@@ -815,6 +1068,7 @@ class AsyncStreamAnswerResponse:
 
 T = TypeVar("T")
 
+
 @dataclass
 class ContentStatus:
     """A class representing the status of a content retrieval operation."""
@@ -822,7 +1076,6 @@ class ContentStatus:
     id: str
     status: str
     source: str
-
 
 
 @dataclass
@@ -1027,22 +1280,24 @@ class Exa:
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data["autopromptString"] if "autopromptString" in data else None,
@@ -1299,6 +1554,12 @@ class Exa:
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
 
+        # Convert schema if present in summary options
+        if "summary" in options and isinstance(options["summary"], dict):
+            summary_opts = options["summary"]
+            if "schema" in summary_opts:
+                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+
         # Nest the appropriate fields under "contents"
         options = nest_fields(
             options,
@@ -1321,22 +1582,24 @@ class Exa:
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data["autopromptString"] if "autopromptString" in data else None,
@@ -1474,7 +1737,7 @@ class Exa:
         for k, v in kwargs.items():
             if k != "self" and v is not None:
                 options[k] = v
-        
+
         if (
             "text" not in options
             and "highlights" not in options
@@ -1487,35 +1750,46 @@ class Exa:
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
+
+        # Convert schema if present in summary options
+        if "summary" in options and isinstance(options["summary"], dict):
+            summary_opts = options["summary"]
+            if "schema" in summary_opts:
+                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+
         options = to_camel_case(options)
         data = self.request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []
         for status in data.get("statuses", []):
-            statuses.append(ContentStatus(
-                id=status.get("id"),
-                status=status.get("status"),
-                source=status.get("source")
-            ))
+            statuses.append(
+                ContentStatus(
+                    id=status.get("id"),
+                    status=status.get("status"),
+                    source=status.get("source"),
+                )
+            )
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data.get("autopromptString"),
@@ -1571,22 +1845,24 @@ class Exa:
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data.get("autopromptString"),
@@ -1825,6 +2101,13 @@ class Exa:
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
+
+        # Convert schema if present in summary options
+        if "summary" in options and isinstance(options["summary"], dict):
+            summary_opts = options["summary"]
+            if "schema" in summary_opts:
+                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+
         # We nest the content fields
         options = nest_fields(
             options,
@@ -1847,22 +2130,24 @@ class Exa:
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data.get("autopromptString"),
@@ -2001,7 +2286,7 @@ class Exa:
             use_autoprompt=exa_kwargs.get("use_autoprompt"),
             type=exa_kwargs.get("type"),
             category=exa_kwargs.get("category"),
-            flags=exa_kwargs.get("flags")
+            flags=exa_kwargs.get("flags"),
         )
         exa_str = format_exa_result(exa_result, max_len=max_len)
         new_messages = add_message_to_messages(completion, messages, exa_str)
@@ -2021,7 +2306,7 @@ class Exa:
         text: Optional[bool] = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
-        output_schema: Optional[dict[str, Any]] = None,
+        output_schema: Optional[JSONSchemaInput] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]: ...
 
     def answer(
@@ -2032,7 +2317,7 @@ class Exa:
         text: Optional[bool] = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
-        output_schema: Optional[dict[str, Any]] = None,
+        output_schema: Optional[JSONSchemaInput] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
@@ -2056,20 +2341,27 @@ class Exa:
             )
 
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        # Convert output_schema if present
+        if "output_schema" in options and options["output_schema"] is not None:
+            options["output_schema"] = _convert_schema_input(options["output_schema"])
+
         options = to_camel_case(options)
         response = self.request("/answer", options)
 
         citations = []
         for result in response["citations"]:
             snake_result = to_snake_case(result)
-            citations.append(AnswerResult(
-                id=snake_result.get("id"),
-                url=snake_result.get("url"),
-                title=snake_result.get("title"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                text=snake_result.get("text")
-            ))
+            citations.append(
+                AnswerResult(
+                    id=snake_result.get("id"),
+                    url=snake_result.get("url"),
+                    title=snake_result.get("title"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    text=snake_result.get("text"),
+                )
+            )
         return AnswerResponse(response["answer"], citations)
 
     def stream_answer(
@@ -2079,7 +2371,7 @@ class Exa:
         text: bool = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
-        output_schema: Optional[dict[str, Any]] = None,
+        output_schema: Optional[JSONSchemaInput] = None,
     ) -> StreamAnswerResponse:
         """Generate a streaming answer response.
 
@@ -2094,6 +2386,11 @@ class Exa:
                 Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        # Convert output_schema if present
+        if "output_schema" in options and options["output_schema"] is not None:
+            options["output_schema"] = _convert_schema_input(options["output_schema"])
+
         options = to_camel_case(options)
         options["stream"] = True
         raw_response = self.request("/answer", options)
@@ -2195,22 +2492,24 @@ class AsyncExa(Exa):
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data["autopromptString"] if "autopromptString" in data else None,
@@ -2239,6 +2538,12 @@ class AsyncExa(Exa):
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
 
+        # Convert schema if present in summary options
+        if "summary" in options and isinstance(options["summary"], dict):
+            summary_opts = options["summary"]
+            if "schema" in summary_opts:
+                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+
         # Nest the appropriate fields under "contents"
         options = nest_fields(
             options,
@@ -2261,22 +2566,24 @@ class AsyncExa(Exa):
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data["autopromptString"] if "autopromptString" in data else None,
@@ -2291,7 +2598,7 @@ class AsyncExa(Exa):
         for k, v in kwargs.items():
             if k != "self" and v is not None:
                 options[k] = v
-        
+
         if (
             "text" not in options
             and "highlights" not in options
@@ -2304,35 +2611,46 @@ class AsyncExa(Exa):
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
+
+        # Convert schema if present in summary options
+        if "summary" in options and isinstance(options["summary"], dict):
+            summary_opts = options["summary"]
+            if "schema" in summary_opts:
+                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+
         options = to_camel_case(options)
         data = await self.async_request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []
         for status in data.get("statuses", []):
-            statuses.append(ContentStatus(
-                id=status.get("id"),
-                status=status.get("status"),
-                source=status.get("source")
-            ))
+            statuses.append(
+                ContentStatus(
+                    id=status.get("id"),
+                    status=status.get("status"),
+                    source=status.get("source"),
+                )
+            )
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data.get("autopromptString"),
@@ -2388,22 +2706,24 @@ class AsyncExa(Exa):
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data.get("autopromptString"),
@@ -2430,6 +2750,13 @@ class AsyncExa(Exa):
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
+
+        # Convert schema if present in summary options
+        if "summary" in options and isinstance(options["summary"], dict):
+            summary_opts = options["summary"]
+            if "schema" in summary_opts:
+                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+
         # We nest the content fields
         options = nest_fields(
             options,
@@ -2452,22 +2779,24 @@ class AsyncExa(Exa):
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
-            results.append(Result(
-                url=snake_result.get("url"),
-                id=snake_result.get("id"),
-                title=snake_result.get("title"),
-                score=snake_result.get("score"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                image=snake_result.get("image"),
-                favicon=snake_result.get("favicon"),
-                subpages=snake_result.get("subpages"),
-                extras=snake_result.get("extras"),
-                text=snake_result.get("text"),
-                highlights=snake_result.get("highlights"),
-                highlight_scores=snake_result.get("highlight_scores"),
-                summary=snake_result.get("summary")
-            ))
+            results.append(
+                Result(
+                    url=snake_result.get("url"),
+                    id=snake_result.get("id"),
+                    title=snake_result.get("title"),
+                    score=snake_result.get("score"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    image=snake_result.get("image"),
+                    favicon=snake_result.get("favicon"),
+                    subpages=snake_result.get("subpages"),
+                    extras=snake_result.get("extras"),
+                    text=snake_result.get("text"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
+                    summary=snake_result.get("summary"),
+                )
+            )
         return SearchResponse(
             results,
             data.get("autopromptString"),
@@ -2485,7 +2814,7 @@ class AsyncExa(Exa):
         text: Optional[bool] = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
-        output_schema: Optional[dict[str, Any]] = None,
+        output_schema: Optional[JSONSchemaInput] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
@@ -2509,20 +2838,27 @@ class AsyncExa(Exa):
             )
 
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        # Convert output_schema if present
+        if "output_schema" in options and options["output_schema"] is not None:
+            options["output_schema"] = _convert_schema_input(options["output_schema"])
+
         options = to_camel_case(options)
         response = await self.async_request("/answer", options)
 
         citations = []
         for result in response["citations"]:
             snake_result = to_snake_case(result)
-            citations.append(AnswerResult(
-                id=snake_result.get("id"),
-                url=snake_result.get("url"),
-                title=snake_result.get("title"),
-                published_date=snake_result.get("published_date"),
-                author=snake_result.get("author"),
-                text=snake_result.get("text")
-            ))
+            citations.append(
+                AnswerResult(
+                    id=snake_result.get("id"),
+                    url=snake_result.get("url"),
+                    title=snake_result.get("title"),
+                    published_date=snake_result.get("published_date"),
+                    author=snake_result.get("author"),
+                    text=snake_result.get("text"),
+                )
+            )
         return AnswerResponse(response["answer"], citations)
 
     async def stream_answer(
@@ -2532,7 +2868,7 @@ class AsyncExa(Exa):
         text: bool = False,
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
-        output_schema: Optional[dict[str, Any]] = None,
+        output_schema: Optional[JSONSchemaInput] = None,
     ) -> AsyncStreamAnswerResponse:
         """Generate a streaming answer response.
 
@@ -2547,6 +2883,11 @@ class AsyncExa(Exa):
                 Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        # Convert output_schema if present
+        if "output_schema" in options and options["output_schema"] is not None:
+            options["output_schema"] = _convert_schema_input(options["output_schema"])
+
         options = to_camel_case(options)
         options["stream"] = True
         raw_response = await self.async_request("/answer", options)
