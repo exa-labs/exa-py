@@ -33,6 +33,7 @@ from pydantic import BaseModel
 
 from exa_py.utils import (
     ExaOpenAICompletion,
+    _convert_schema_input,
     add_message_to_messages,
     format_exa_result,
     maybe_get_query,
@@ -40,6 +41,9 @@ from exa_py.utils import (
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
 from .research.client import ResearchClient, AsyncResearchClient
+
+# Define JSONSchemaInput type alias
+JSONSchemaInput = Union[type[BaseModel], dict[str, Any]]
 
 is_beta = os.getenv("IS_BETA") == "True"
 
@@ -93,30 +97,6 @@ def _get_package_version() -> str:
     return "unknown"
 
 
-# New flexible type for JSON schemas
-JSONSchemaInput = Union[type[BaseModel], dict[str, Any]]
-
-
-def _convert_schema_input(schema_input) -> dict[str, Any]:
-    """Convert various schema input types to JSON Schema dict.
-
-    Args:
-        schema_input: Either a Pydantic BaseModel class or a dict containing JSON Schema
-
-    Returns:
-        dict: JSON Schema representation
-    """
-    # Check if it's a Pydantic model class (not instance)
-    if isinstance(schema_input, type) and issubclass(schema_input, BaseModel):
-        return schema_input.model_json_schema()
-    elif isinstance(schema_input, dict):
-        return schema_input
-    else:
-        raise ValueError(
-            f"Unsupported schema type: {type(schema_input)}. Expected BaseModel class or dict."
-        )
-
-
 def snake_to_camel(snake_str: str) -> str:
     """Convert snake_case string to camelCase.
 
@@ -148,7 +128,7 @@ def to_camel_case(data: dict, skip_keys: list[str] = []) -> dict:
     """
     if isinstance(data, dict):
         return {
-            snake_to_camel(k): to_camel_case(v)
+            snake_to_camel(k): to_camel_case(v, skip_keys)
             if isinstance(v, dict) and k not in skip_keys
             else v
             for k, v in data.items()
@@ -1633,7 +1613,7 @@ class Exa:
             ],
             "contents",
         )
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -1814,7 +1794,7 @@ class Exa:
             if "schema" in summary_opts:
                 summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
-        options = to_camel_case(options)
+        options = to_camel_case(options, ["schema"])
         data = self.request("/contents", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []
@@ -2181,7 +2161,7 @@ class Exa:
             ],
             "contents",
         )
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["schema"])
         data = self.request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -2448,7 +2428,7 @@ class Exa:
         if "output_schema" in options and options["output_schema"] is not None:
             options["output_schema"] = _convert_schema_input(options["output_schema"])
 
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["output_schema"])
         options["stream"] = True
         raw_response = self.request("/answer", options)
         return StreamAnswerResponse(raw_response)
@@ -2617,7 +2597,7 @@ class AsyncExa(Exa):
             ],
             "contents",
         )
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -2830,7 +2810,7 @@ class AsyncExa(Exa):
             ],
             "contents",
         )
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["schema"])
         data = await self.async_request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -2900,7 +2880,7 @@ class AsyncExa(Exa):
         if "output_schema" in options and options["output_schema"] is not None:
             options["output_schema"] = _convert_schema_input(options["output_schema"])
 
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["output_schema"])
         response = await self.async_request("/answer", options)
 
         citations = []
@@ -2945,7 +2925,7 @@ class AsyncExa(Exa):
         if "output_schema" in options and options["output_schema"] is not None:
             options["output_schema"] = _convert_schema_input(options["output_schema"])
 
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["output_schema"])
         options["stream"] = True
         raw_response = await self.async_request("/answer", options)
         return AsyncStreamAnswerResponse(raw_response)
