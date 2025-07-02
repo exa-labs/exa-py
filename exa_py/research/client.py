@@ -11,11 +11,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Literal
 
+from exa_py.utils import JSONSchemaInput
+from ..api import _convert_schema_input
+
 if TYPE_CHECKING:  # pragma: no cover – only for static analysers
     # Import with full type info when static type-checking.  `_Result` still
     # lives in ``exa_py.api`` but the response model moved to
     # ``exa_py.research.models``.
-    from ..api import _Result  # noqa: F401
     from .models import (
         ResearchTask,
         ResearchTaskId,
@@ -41,7 +43,7 @@ class ResearchClient:
         instructions: str,
         model: Literal["exa-research", "exa-research-pro"] = "exa-research",
         output_infer_schema: bool = None,
-        output_schema: Dict[str, Any] = None,
+        output_schema: "Optional[JSONSchemaInput]" = None,
     ) -> "ResearchTaskId":
         """Submit a research request and return the *task identifier*."""
         payload = {"instructions": instructions}
@@ -50,7 +52,7 @@ class ResearchClient:
         if output_schema is not None or output_infer_schema is not None:
             payload["output"] = {}
             if output_schema is not None:
-                payload["output"]["schema"] = output_schema
+                payload["output"]["schema"] = _convert_schema_input(output_schema)
             if output_infer_schema is not None:
                 payload["output"]["inferSchema"] = output_infer_schema
 
@@ -179,14 +181,17 @@ class AsyncResearchClient:
         *,
         instructions: str,
         model: Literal["exa-research", "exa-research-pro"] = "exa-research",
-        output_schema: Dict[str, Any],
+        output_schema: "JSONSchemaInput",
     ) -> "ResearchTaskId":
         """Submit a research request and return the *task identifier* (async)."""
+
+        # Convert schema using the same conversion logic as main API
+        from ..api import _convert_schema_input  # noqa: WPS433 – runtime import
 
         payload = {
             "instructions": instructions,
             "model": model,
-            "output": {"schema": output_schema},
+            "output": {"schema": _convert_schema_input(output_schema)},
         }
 
         raw_response: Dict[str, Any] = await self._client.async_request(
@@ -327,18 +332,20 @@ def _build_research_task(raw: Dict[str, Any]):
         results = []
         for c in cites:
             snake_c = to_snake_case(c)
-            results.append(_Result(
-                url=snake_c.get("url"),
-                id=snake_c.get("id"),
-                title=snake_c.get("title"),
-                score=snake_c.get("score"),
-                published_date=snake_c.get("published_date"),
-                author=snake_c.get("author"),
-                image=snake_c.get("image"),
-                favicon=snake_c.get("favicon"),
-                subpages=snake_c.get("subpages"),
-                extras=snake_c.get("extras")
-            ))
+            results.append(
+                _Result(
+                    url=snake_c.get("url"),
+                    id=snake_c.get("id"),
+                    title=snake_c.get("title"),
+                    score=snake_c.get("score"),
+                    published_date=snake_c.get("published_date"),
+                    author=snake_c.get("author"),
+                    image=snake_c.get("image"),
+                    favicon=snake_c.get("favicon"),
+                    subpages=snake_c.get("subpages"),
+                    extras=snake_c.get("extras"),
+                )
+            )
         citations_parsed[key] = results
 
     return ResearchTask(
