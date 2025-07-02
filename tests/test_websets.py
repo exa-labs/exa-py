@@ -173,7 +173,7 @@ def test_response_case_conversion(websets_client, parent_mock):
     result = websets_client.get(id="ws_123")
     
     assert result.external_id == "test-id"
-    assert result.created_at == datetime.fromisoformat(mock_response["createdAt"])
+    assert result.created_at == datetime.fromisoformat(mock_response["createdAt"].replace('Z', '+00:00'))
 
 
 def test_metadata_case_preservation(websets_client, parent_mock):
