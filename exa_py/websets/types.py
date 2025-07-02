@@ -8,12 +8,12 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, Annotated
 
-from pydantic import AnyUrl, Field, PositiveInt, confloat, constr
+from pydantic import AnyUrl, Field, PositiveInt, StringConstraints
 from .core.base import ExaBaseModel
 
 class MonitorBehaviorSearchConfig(ExaBaseModel):
-    query: constr(min_length=2, max_length=10000)
-    criteria: List[SearchCriterion] = Field(..., max_items=5)
+    query: Annotated[str, StringConstraints(min_length=2, max_length=10000)]
+    criteria: Annotated[List[SearchCriterion], Field(max_length=5)]
     entity: Union[
         WebsetCompanyEntity,
         WebsetPersonEntity,
@@ -25,21 +25,21 @@ class MonitorBehaviorSearchConfig(ExaBaseModel):
     """
     The maximum number of results to find
     """
-    behavior: Optional[WebsetSearchBehavior] = 'append'
+    behavior: Optional['WebsetSearchBehavior'] = None  # Forward reference
     """
     The behaviour of the Search when it is added to a Webset.
     """
 
 
 class CreateCriterionParameters(ExaBaseModel):
-    description: constr(min_length=1)
+    description: Annotated[str, StringConstraints(min_length=1)]
     """
     The description of the criterion
     """
 
 
 class CreateEnrichmentParameters(ExaBaseModel):
-    description: constr(min_length=1)
+    description: Annotated[str, StringConstraints(min_length=1)]
     """
     Provide a description of the enrichment task you want to perform to each Webset Item.
     """
@@ -49,7 +49,7 @@ class CreateEnrichmentParameters(ExaBaseModel):
 
     We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
     """
-    options: Optional[List[Option]] = Field(None, max_items=20, min_items=1)
+    options: Annotated[Optional[List[Option]], Field(max_length=20, min_length=1)] = None
     """
     When the format is options, the different options for the enrichment agent to choose from.
     """
@@ -78,7 +78,7 @@ class CreateMonitorParameters(ExaBaseModel):
 
 
 class CreateWebhookParameters(ExaBaseModel):
-    events: List[EventType] = Field(..., max_items=12, min_items=1)
+    events: Annotated[List[EventType], Field(max_length=12, min_length=1)]
     """
     The events to trigger the webhook
     """
@@ -124,7 +124,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
     The actual number of Items found may be less than this number depending on the query complexity.
     """
-    query: constr(min_length=1) = Field(
+    query: Annotated[str, StringConstraints(min_length=1)] = Field(
         ...,
         examples=[
             'Marketing agencies based in the US, that focus on consumer products. Get brands worked with and city'
@@ -149,9 +149,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query.
     """
-    criteria: Optional[List[CreateCriterionParameters]] = Field(
-        None, max_items=5, min_items=1
-    )
+    criteria: Annotated[Optional[List[CreateCriterionParameters]], Field(max_length=5, min_length=1)] = None
     """
     Criteria every item is evaluated against.
 
@@ -161,7 +159,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
-    behavior: Optional[WebsetSearchBehavior] = 'override'
+    behavior: Optional['WebsetSearchBehavior'] = None  # Forward reference
     """
     The behavior of the Search when it is added to a Webset.
 
@@ -175,18 +173,18 @@ class CreateWebsetSearchParameters(ExaBaseModel):
 
 
 class WebsetSearchCriterion(ExaBaseModel):
-    description: constr(min_length=1)
+    description: Annotated[str, StringConstraints(min_length=1)]
     """
     The description of the criterion
     """
-    success_rate: confloat(ge=0.0, le=100.0) = Field(..., alias='successRate')
+    success_rate: Annotated[float, Field(ge=0.0, le=100.0, alias='successRate')]
     """
     Value between 0 and 100 representing the percentage of results that meet the criterion.
     """
 
 
 class SearchCriterion(ExaBaseModel):
-    description: constr(min_length=2)
+    description: Annotated[str, StringConstraints(min_length=2)]
 
 
 class EnrichmentResult(ExaBaseModel):
@@ -413,7 +411,7 @@ class ImportItem(ExaBaseModel):
     """
     The type of source (import or webset)
     """
-    id: constr(min_length=1)
+    id: Annotated[str, StringConstraints(min_length=1)]
     """
     The ID of the source to import from
     """
@@ -427,7 +425,7 @@ class ExcludeItem(ExaBaseModel):
     """
     The type of source (import or webset)
     """
-    id: constr(min_length=1)
+    id: Annotated[str, StringConstraints(min_length=1)]
     """
     The ID of the source to exclude
     """
@@ -447,7 +445,7 @@ class CreateImportParameters(ExaBaseModel):
     """
     Parameters for creating an import.
     """
-    size: Optional[confloat(le=50000000.0)] = None
+    size: Optional[Annotated[float, Field(le=50000000.0)]] = None
     """
     The size of the file in bytes. Maximum size is 50 MB.
     Auto-calculated when csv_data is provided and size is not specified.
@@ -669,7 +667,7 @@ class Progress(ExaBaseModel):
     """
     The number of results found so far
     """
-    completion: confloat(ge=0.0, le=100.0)
+    completion: Annotated[float, Field(ge=0.0, le=100.0)]
     """
     The completion percentage of the search
     """
@@ -705,7 +703,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     Create initial search for the Webset.
     """
 
-    query: constr(min_length=1) = Field(
+    query: Annotated[str, StringConstraints(min_length=1)] = Field(
         ...,
         examples=[
             'Marketing agencies based in the US, that focus on consumer products.'
@@ -738,9 +736,7 @@ class CreateWebsetParametersSearch(ExaBaseModel):
 
     It is not required to provide it, we automatically detect the entity from all the information provided in the query. Only use this when you need more fine control.
     """
-    criteria: Optional[List[CreateCriterionParameters]] = Field(
-        None, max_items=5, min_items=1
-    )
+    criteria: Annotated[Optional[List[CreateCriterionParameters]], Field(max_length=5, min_length=1)] = None
     """
     Criteria every item is evaluated against.
 
@@ -816,7 +812,7 @@ class Monitor(ExaBaseModel):
     """
     When the next run will occur
     """
-    metadata: Dict[str, constr(max_length=1000)]
+    metadata: Dict[str, Annotated[str, StringConstraints(max_length=1000)]]
     """
     Set of key-value pairs you want to associate with this object.
     """
@@ -926,7 +922,7 @@ class UpdateMonitor(ExaBaseModel):
 
 
 class UpdateWebhookParameters(ExaBaseModel):
-    events: Optional[List[EventType]] = Field(None, max_items=12, min_items=1)
+    events: Annotated[Optional[List[EventType]], Field(max_length=12, min_length=1)] = None
     """
     The events to trigger the webhook
     """
@@ -957,7 +953,7 @@ class Webhook(ExaBaseModel):
     """
     The status of the webhook
     """
-    events: List[EventType] = Field(..., min_items=1)
+    events: Annotated[List[EventType], Field(min_length=1)]
     """
     The events to trigger the webhook
     """
@@ -1104,7 +1100,7 @@ class WebsetCreatedEvent(ExaBaseModel):
 
 class WebsetCustomEntity(ExaBaseModel):
     type: Literal['custom']
-    description: constr(min_length=2)
+    description: Annotated[str, StringConstraints(min_length=2)]
     """
     The description of the custom entity
     """
@@ -1540,7 +1536,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The status of the search
     """
-    query: constr(min_length=1)
+    query: Annotated[str, StringConstraints(min_length=1)]
     """
     The query used to create the search.
     """
@@ -1564,7 +1560,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The number of results the search will attempt to find. The actual number of results may be less than this number depending on the search complexity.
     """
-    behavior: Optional[WebsetSearchBehavior] = 'override'
+    behavior: Optional['WebsetSearchBehavior'] = None
     """
     The behavior of the search when it is added to a Webset.
 

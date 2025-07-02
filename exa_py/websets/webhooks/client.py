@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Any, Union, Literal
+from typing import Any, Dict, Optional, Union
 
 from ..types import (
     CreateWebhookParameters,
@@ -15,7 +15,7 @@ from ..core.base import WebsetsBaseClient
 class WebhookAttemptsClient(WebsetsBaseClient):
     """Client for managing Webhook Attempts."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
     
     def list(self, webhook_id: str, *, cursor: Optional[str] = None, 
@@ -50,7 +50,7 @@ class WebhookAttemptsClient(WebsetsBaseClient):
 class WebsetWebhooksClient(WebsetsBaseClient):
     """Client for managing Webset Webhooks."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
         self.attempts = WebhookAttemptsClient(client)
 

@@ -12,6 +12,7 @@ from ..types import (
     CreateImportParameters,
     CreateImportResponse,
     Import,
+    ImportStatus,
     ListImportsResponse,
     UpdateImport,
 )
@@ -20,7 +21,7 @@ from ..core.base import WebsetsBaseClient
 class ImportsClient(WebsetsBaseClient):
     """Client for managing Imports."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
 
     def create(
@@ -170,7 +171,7 @@ class ImportsClient(WebsetsBaseClient):
         start_time = time.time()
         while True:
             import_obj = self.get(import_id)
-            if import_obj.status in ['completed', 'failed']:
+            if import_obj.status in [ImportStatus.completed.value, ImportStatus.failed.value]:
                 return import_obj
                 
             if time.time() - start_time > timeout:

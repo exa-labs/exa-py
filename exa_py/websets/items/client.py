@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import  Optional, Iterator
+from typing import Any, Iterator, Optional
 
 from ..types import (
     WebsetItem,
@@ -11,7 +11,7 @@ from ..core.base import WebsetsBaseClient
 class WebsetItemsClient(WebsetsBaseClient):
     """Client for managing Webset Items."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
 
     def list(self, webset_id: str, *, cursor: Optional[str] = None, 

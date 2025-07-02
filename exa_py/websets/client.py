@@ -23,7 +23,7 @@ from .events import EventsClient
 class WebsetsClient(WebsetsBaseClient):
     """Client for managing Websets."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
         self.items = WebsetItemsClient(client)
         self.searches = WebsetSearchesClient(client)
@@ -128,7 +128,7 @@ class WebsetsClient(WebsetsBaseClient):
         start_time = time.time()
         while True:
             webset = self.get(id)
-            if webset.status == WebsetStatus.idle.value:
+            if webset.status == WebsetStatus.idle:
                 return webset
                 
             if time.time() - start_time > timeout:

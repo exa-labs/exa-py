@@ -9,7 +9,7 @@ from ...core.base import WebsetsBaseClient
 class MonitorRunsClient(WebsetsBaseClient):
     """Client for managing Monitor Runs."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
 
     def list(self, monitor_id: str) -> ListMonitorRunsResponse:
