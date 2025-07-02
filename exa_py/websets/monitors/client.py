@@ -14,7 +14,7 @@ from .runs import MonitorRunsClient
 class MonitorsClient(WebsetsBaseClient):
     """Client for managing Monitors."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
         self.runs = MonitorRunsClient(client)
 

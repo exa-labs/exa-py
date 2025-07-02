@@ -330,8 +330,8 @@ class CostDollars:
     """Represents costDollars field in the API response."""
 
     total: float
-    search: CostDollarsSearch = None
-    contents: CostDollarsContents = None
+    search: Optional[CostDollarsSearch] = None
+    contents: Optional[CostDollarsContents] = None
 
 
 @dataclass

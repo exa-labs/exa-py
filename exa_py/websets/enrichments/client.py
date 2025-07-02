@@ -11,7 +11,7 @@ from ..core.base import WebsetsBaseClient
 class WebsetEnrichmentsClient(WebsetsBaseClient):
     """Client for managing Webset Enrichments."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
 
     def create(self, webset_id: str, params: Union[Dict[str, Any], CreateEnrichmentParameters]) -> WebsetEnrichment:

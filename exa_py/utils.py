@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from openai.types.chat import ChatCompletion
 
 from typing import TYPE_CHECKING
@@ -8,17 +8,17 @@ if TYPE_CHECKING:
 
 
 
-def maybe_get_query(completion) -> Optional[str]:
+def maybe_get_query(completion: ChatCompletion) -> Optional[str]:
     """Extract query from completion if it exists."""
     if completion.choices[0].message.tool_calls:
         for tool_call in completion.choices[0].message.tool_calls:
             if tool_call.function.name == "search":
-                query = json.loads(tool_call.function.arguments)["query"]
+                query: str = json.loads(tool_call.function.arguments)["query"]
                 return query
     return None
 
 
-def add_message_to_messages(completion, messages, exa_result) -> list[dict]:
+def add_message_to_messages(completion: ChatCompletion, messages: List[Dict[Any, Any]], exa_result: str) -> List[Dict[Any, Any]]:
     """Add assistant message and exa result to messages list. Also remove previous exa call and results."""
     assistant_message = completion.choices[0].message
     assert assistant_message.tool_calls, "Must use this with a tool call request"
@@ -42,14 +42,14 @@ def add_message_to_messages(completion, messages, exa_result) -> list[dict]:
     return messages
 
 
-def format_exa_result(exa_result, max_len: int=-1):
+def format_exa_result(exa_result: Any, max_len: int=-1) -> str:
     """Format exa result for pasting into chat."""
-    str = [
+    formatted_results = [
         f"Url: {result.url}\nTitle: {result.title}\n{result.text[:max_len]}\n"
         for result in exa_result.results
     ]
 
-    return "\n".join(str)
+    return "\n".join(formatted_results)
 
 
 class ExaOpenAICompletion(ChatCompletion):

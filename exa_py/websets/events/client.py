@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from ..types import (
     EventType,
@@ -35,11 +35,11 @@ Event = Union[
 class EventsClient(WebsetsBaseClient):
     """Client for managing Events."""
     
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         super().__init__(client)
 
     def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, 
-             types: Optional[List[EventType]] = None) -> ListEventsResponse:
+             types: Optional[List[Union[EventType, str]]] = None) -> ListEventsResponse:
         """List all Events.
         
         Args:
@@ -50,14 +50,14 @@ class EventsClient(WebsetsBaseClient):
         Returns:
             ListEventsResponse: List of events.
         """
-        params = {}
+        params: Dict[str, Any] = {}
         if cursor is not None:
             params["cursor"] = cursor
         if limit is not None:
             params["limit"] = limit
         if types is not None:
             # Convert EventType enums to their string values
-            params["types"] = [t.value if hasattr(t, 'value') else t for t in types]
+            params["types"] = [t.value if isinstance(t, EventType) else str(t) for t in types]
             
         response = self.request("/v0/events", params=params, method="GET")
         return ListEventsResponse.model_validate(response)
@@ -75,10 +75,10 @@ class EventsClient(WebsetsBaseClient):
         
         # The response should contain a 'type' field that helps us determine
         # which specific event class to use for validation
-        event_type = response.get('type')
+        event_type: Optional[str] = response.get('type')
         
         # Map event types to their corresponding classes
-        event_type_map = {
+        event_type_map: Dict[str, type[Event]] = {
             'webset.created': WebsetCreatedEvent,
             'webset.deleted': WebsetDeletedEvent,
             'webset.idle': WebsetIdleEvent,
@@ -91,8 +91,8 @@ class EventsClient(WebsetsBaseClient):
             'webset.search.completed': WebsetSearchCompletedEvent,
         }
         
-        event_class = event_type_map.get(event_type)
-        if event_class:
+        if event_type and event_type in event_type_map:
+            event_class = event_type_map[event_type]
             return event_class.model_validate(response)
         else:
             # Fallback - try each type until one validates

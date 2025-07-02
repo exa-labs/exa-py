@@ -13,7 +13,7 @@ ModelT = TypeVar('ModelT', bound='ExaBaseModel')
 
 # Custom JSON encoder for handling AnyUrl
 class ExaJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, AnyUrl):
             return str(obj)
         return super().default(obj)
@@ -38,7 +38,7 @@ class WebsetsBaseClient:
 
     """Base client for Exa API resources."""
 
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         """Initialize the client.
         
         Args:
