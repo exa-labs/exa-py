@@ -11,7 +11,7 @@ from typing import List, Optional
 from enum import Enum
 
 from pydantic import BaseModel, Field
-from exa_py import Exa, AsyncExa
+from exa_py import Exa
 
 # Set up API key
 EXA_API_KEY = os.environ.get("EXA_API_KEY")
@@ -20,7 +20,6 @@ if not EXA_API_KEY:
 EXA_BASE_URL = os.environ.get("EXA_BASE_URL", "https://api.exa.ai")
 
 exa = Exa(EXA_API_KEY, EXA_BASE_URL)
-async_exa = AsyncExa(EXA_API_KEY, EXA_BASE_URL)
 
 # ===============================================
 # Pydantic Models for Structured Answers
