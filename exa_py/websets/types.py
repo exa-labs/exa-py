@@ -171,6 +171,10 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
+    recall: Optional[bool] = None
+    """
+    Whether to provide an estimate of how many total relevant results exist for this search, including those not found in our search results.
+    """
     behavior: Optional[WebsetSearchBehavior] = WebsetSearchBehavior.override
     """
     The behavior of the Search when it is added to a Webset.
@@ -679,9 +683,72 @@ class Progress(ExaBaseModel):
     """
     The number of results found so far
     """
+    analyzed: float
+    """
+    The number of results analyzed so far
+    """
     completion: Annotated[float, Field(ge=0.0, le=100.0)]
     """
     The completion percentage of the search
+    """
+    time_left: Annotated[Optional[float], Field(alias='timeLeft')] = None
+    """
+    The estimated time remaining in seconds, null if unknown
+    """
+
+
+class RecallBounds(ExaBaseModel):
+    """
+    The bounds of the recall estimate
+    """
+    min: float
+    """
+    The minimum estimated total number of potential matches
+    """
+    max: float
+    """
+    The maximum estimated total number of potential matches
+    """
+
+
+class RecallConfidence(Enum):
+    """
+    The confidence level of the recall estimate
+    """
+    high = 'high'
+    medium = 'medium'
+    low = 'low'
+
+
+class RecallExpected(ExaBaseModel):
+    """
+    The expected recall metrics
+    """
+    total: float
+    """
+    The estimated total number of potential matches
+    """
+    confidence: RecallConfidence
+    """
+    The confidence in the estimate
+    """
+    bounds: RecallBounds
+    """
+    The bounds of the estimate
+    """
+
+
+class Recall(ExaBaseModel):
+    """
+    Recall metrics for the search
+    """
+    expected: RecallExpected
+    """
+    The expected recall metrics
+    """
+    reasoning: str
+    """
+    The reasoning for the estimate
     """
 
 
@@ -757,6 +824,10 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     exclude: Optional[List[ExcludeItem]] = None
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
+    """
+    recall: Optional[bool] = None
+    """
+    Whether to provide an estimate of how many total relevant results exist for this search, including those not found in our search results.
     """
 
 
@@ -1579,9 +1650,17 @@ class WebsetSearch(ExaBaseModel):
     - `override`: the search will replace the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will be discarded.
     - `append`: the search will add the new Items found to the existing Webset. Any Items that don't match the new criteria will be discarded.
     """
+    exclude: List[ExcludeItem]
+    """
+    Sources (existing imports or websets) used to omit certain results to be found during the search.
+    """
     progress: Progress
     """
     The progress of the search
+    """
+    recall: Optional[Recall] = None
+    """
+    Recall metrics for the search, null if not yet computed or requested.
     """
     metadata: Optional[Dict[str, Any]] = {}
     """
