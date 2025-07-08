@@ -1261,7 +1261,9 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             include_urls (List[str], optional): URL patterns to include. Supports wildcards at the beginning or end.
+                Cannot be used together with include_domains/exclude_domains.
             exclude_urls (List[str], optional): URL patterns to exclude. Supports wildcards at the beginning or end.
+                Cannot be used together with include_domains/exclude_domains.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
             type (str, optional): 'keyword', 'neural', or 'hybrid' (default 'neural').
             category (str, optional): e.g. 'company'
@@ -1846,7 +1848,9 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             include_urls (List[str], optional): URL patterns to include. Supports wildcards at the beginning or end.
+                Cannot be used together with include_domains/exclude_domains.
             exclude_urls (List[str], optional): URL patterns to exclude. Supports wildcards at the beginning or end.
+                Cannot be used together with include_domains/exclude_domains.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
             category (str, optional): A data category to focus on.
             flags (List[str], optional): Experimental flags.
@@ -2747,7 +2751,9 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             include_urls (List[str], optional): URL patterns to include. Supports wildcards at the beginning or end.
+                Cannot be used together with include_domains/exclude_domains.
             exclude_urls (List[str], optional): URL patterns to exclude. Supports wildcards at the beginning or end.
+                Cannot be used together with include_domains/exclude_domains.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
             category (str, optional): A data category to focus on.
             flags (List[str], optional): Experimental flags.

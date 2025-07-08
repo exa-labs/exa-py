@@ -39,6 +39,8 @@ exa = Exa(api_key="your-api-key")
   
   # exclude certain URL patterns
   results = exa.search("machine learning", exclude_urls=["*/blog/*", "*/news/*"])
+  
+  # Note: include_urls/exclude_urls cannot be used together with include_domains/exclude_domains
 
   # search and get text contents
   results = exa.search_and_contents("This is a Exa query:")

@@ -110,6 +110,17 @@ def research_company(company_name: str):
         print(f"• {result.title}")
         print(f"  {result.url}\n")
 
+    # 3. Find team information on LinkedIn
+    print("\n3. Finding team members on LinkedIn:")
+    team_results = exa.search(
+        f"{company_name} employees team",
+        num_results=5,
+        include_urls=["www.linkedin.com/in/*", "linkedin.com/in/*"]
+    )
+    print(f"Found {len(team_results.results)} LinkedIn profiles")
+    for result in team_results.results[:3]:
+        print(f"  - {result.title}: {result.url}")
+
 
 def find_competitors(company_name: str, industry: str):
     """Find competitor companies using URL filtering."""

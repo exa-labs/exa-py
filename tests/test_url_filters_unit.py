@@ -188,3 +188,34 @@ class TestUrlFilterIntegration:
         assert request_data["includeUrls"] == ["www.linkedin.com/in/*"]
         # exclude_urls not passed, so it shouldn't be in the request
         assert "excludeUrls" not in request_data or request_data["excludeUrls"] is None
+
+    def test_url_filters_with_domain_filters_raises_error(self):
+        """Test that using URL filters with domain filters raises an error."""
+        with patch('exa_py.api.requests.post') as mock_post:
+            # Mock the API to return an error when both are used together
+            mock_response = MagicMock()
+            mock_response.status_code = 400
+            mock_response.json.return_value = {
+                "error": "Only one of includeDomains or excludeDomains can be provided with includeUrls/excludeUrls.",
+                "requestId": "test-request-id"
+            }
+            mock_response.text = '{"error": "Only one of includeDomains or excludeDomains can be provided with includeUrls/excludeUrls."}'
+            mock_post.return_value = mock_response
+            
+            exa = Exa("test-api-key")
+            
+            # Test include_urls with include_domains
+            with pytest.raises(ValueError, match="includeDomains or excludeDomains"):
+                exa.search(
+                    "test query",
+                    include_urls=["*/contact/*"],
+                    include_domains=["example.com"]
+                )
+            
+            # Test exclude_urls with exclude_domains  
+            with pytest.raises(ValueError, match="includeDomains or excludeDomains"):
+                exa.search(
+                    "test query",
+                    exclude_urls=["*/blog/*"],
+                    exclude_domains=["spam.com"]
+                )
