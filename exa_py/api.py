@@ -139,6 +139,12 @@ SEARCH_OPTIONS_TYPES = {
     "exclude_text": [
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
+    "include_urls": [
+        list
+    ],  # URL patterns to include in search results. Supports wildcards at the beginning or end.
+    "exclude_urls": [
+        list
+    ],  # URL patterns to exclude from search results. Supports wildcards at the beginning or end.
     "use_autoprompt": [bool],  # Convert query to Exa. (Default: false)
     "type": [str],  # 'keyword', 'neural', 'hybrid', or 'auto' (Default: auto)
     "category": [
@@ -159,6 +165,8 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "end_published_date": [str],
     "include_text": [list],
     "exclude_text": [list],
+    "include_urls": [list],  # URL patterns to include in search results. Supports wildcards at the beginning or end.
+    "exclude_urls": [list],  # URL patterns to exclude from search results. Supports wildcards at the beginning or end.
     "exclude_source_domain": [bool],
     "category": [str],
     "flags": [list],  # Experimental flags array for Exa usage.
@@ -1231,6 +1239,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1250,6 +1260,8 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
+            include_urls (List[str], optional): URL patterns to include. Supports wildcards at the beginning or end.
+            exclude_urls (List[str], optional): URL patterns to exclude. Supports wildcards at the beginning or end.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
             type (str, optional): 'keyword', 'neural', or 'hybrid' (default 'neural').
             category (str, optional): e.g. 'company'
@@ -1335,6 +1347,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1363,6 +1377,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1392,6 +1408,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1420,6 +1438,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1449,6 +1469,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1478,6 +1500,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1508,6 +1532,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -1800,6 +1826,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
@@ -1817,6 +1845,8 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
+            include_urls (List[str], optional): URL patterns to include. Supports wildcards at the beginning or end.
+            exclude_urls (List[str], optional): URL patterns to exclude. Supports wildcards at the beginning or end.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
             category (str, optional): A data category to focus on.
             flags (List[str], optional): Experimental flags.
@@ -1898,6 +1928,8 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
@@ -1924,11 +1956,15 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
-        flags: Optional[List[str]] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1951,14 +1987,18 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlights]: ...
 
@@ -1977,14 +2017,18 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithSummary]: ...
 
@@ -2004,14 +2048,18 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
@@ -2031,11 +2079,15 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
-        flags: Optional[List[str]] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -2059,14 +2111,18 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
+        use_autoprompt: Optional[bool] = None,
+        type: Optional[str] = None,
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
-        filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
+        filter_empty_results: Optional[bool] = None,
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndHighlightsAndSummary]: ...
 
@@ -2177,6 +2233,8 @@ class Exa:
             end_published_date: Optional[str] = None,
             include_text: Optional[List[str]] = None,
             exclude_text: Optional[List[str]] = None,
+            include_urls: Optional[List[str]] = None,
+            exclude_urls: Optional[List[str]] = None,
             use_autoprompt: Optional[bool] = True,
             type: Optional[str] = None,
             category: Optional[str] = None,
@@ -2196,6 +2254,8 @@ class Exa:
                 "end_published_date": end_published_date,
                 "include_text": include_text,
                 "exclude_text": exclude_text,
+                "include_urls": include_urls,
+                "exclude_urls": exclude_urls,
                 "use_autoprompt": use_autoprompt,
                 "type": type,
                 "category": category,
@@ -2270,6 +2330,8 @@ class Exa:
             end_published_date=exa_kwargs.get("end_published_date"),
             include_text=exa_kwargs.get("include_text"),
             exclude_text=exa_kwargs.get("exclude_text"),
+            include_urls=exa_kwargs.get("include_urls"),
+            exclude_urls=exa_kwargs.get("exclude_urls"),
             use_autoprompt=exa_kwargs.get("use_autoprompt"),
             type=exa_kwargs.get("type"),
             category=exa_kwargs.get("category"),
@@ -2443,6 +2505,8 @@ class AsyncExa(Exa):
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         use_autoprompt: Optional[bool] = None,
         type: Optional[str] = None,
         category: Optional[str] = None,
@@ -2462,6 +2526,8 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
+            include_urls (List[str], optional): URL patterns to include. Supports wildcards at the beginning or end.
+            exclude_urls (List[str], optional): URL patterns to exclude. Supports wildcards at the beginning or end.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
             type (str, optional): 'keyword', 'neural', or 'hybrid' (default 'neural').
             category (str, optional): e.g. 'company'
@@ -2661,6 +2727,8 @@ class AsyncExa(Exa):
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
@@ -2678,6 +2746,8 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
+            include_urls (List[str], optional): URL patterns to include. Supports wildcards at the beginning or end.
+            exclude_urls (List[str], optional): URL patterns to exclude. Supports wildcards at the beginning or end.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
             category (str, optional): A data category to focus on.
             flags (List[str], optional): Experimental flags.
