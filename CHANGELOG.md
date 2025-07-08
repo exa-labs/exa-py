@@ -10,6 +10,16 @@
   - Use `include_urls` to filter results to only URLs matching specified patterns
   - Use `exclude_urls` to filter out results with URLs matching specified patterns
 
+### Testing
+- Added comprehensive test coverage for URL filtering functionality
+  - Unit tests for parameter validation in `tests/test_url_filters_unit.py`
+  - Integration tests requiring API key in `tests/test_search_api.py`
+  - Tests cover both synchronous and asynchronous implementations
+
+### Examples
+- Added `examples/url_filtering_example.py` - Comprehensive demonstration of URL filtering features
+- Added `examples/company_research_url_filtering.py` - Practical use case for company research
+
 ### Example Usage
 ```python
 # Include only contact pages
@@ -20,4 +30,12 @@ results = exa.search("machine learning", exclude_urls=["*/blog/*", "*/news/*"])
 
 # Filter LinkedIn profiles
 results = exa.find_similar("https://example.com", include_urls=["www.linkedin.com/in/*"])
+
+# Complex filtering with both include and exclude
+results = exa.search_and_contents(
+    "technology", 
+    include_urls=["*.com/*"],
+    exclude_urls=["*/ads/*", "*/sponsored/*"],
+    text=True
+)
 ```

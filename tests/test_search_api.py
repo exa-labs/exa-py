@@ -164,3 +164,123 @@ def test_get_contents_statuses_live():
     )
     # statuses attribute exists; ensure it's a list
     assert isinstance(resp.statuses, list)
+
+
+########################################
+# Tests for include_urls and exclude_urls
+########################################
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_with_include_urls():
+    """Test search with include_urls parameter."""
+    exa = Exa(API_KEY)
+    resp = exa.search(
+        "AI startup",
+        num_results=5,
+        include_urls=["*/about/*", "*/contact/*"]
+    )
+    assert resp.results
+    # Check that results contain URLs matching the patterns
+    for result in resp.results:
+        url_lower = result.url.lower()
+        assert "/about/" in url_lower or "/contact/" in url_lower
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_with_exclude_urls():
+    """Test search with exclude_urls parameter."""
+    exa = Exa(API_KEY)
+    resp = exa.search(
+        "machine learning",
+        num_results=5,
+        exclude_urls=["*/blog/*", "*/news/*"]
+    )
+    assert resp.results
+    # Check that results don't contain excluded URL patterns
+    for result in resp.results:
+        url_lower = result.url.lower()
+        assert "/blog/" not in url_lower and "/news/" not in url_lower
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_find_similar_with_include_urls():
+    """Test find_similar with include_urls parameter."""
+    exa = Exa(API_KEY)
+    resp = exa.find_similar(
+        "https://www.linkedin.com/in/example",
+        num_results=5,
+        include_urls=["www.linkedin.com/in/*"]
+    )
+    assert resp.results
+    # Check that all results are LinkedIn profiles
+    for result in resp.results:
+        assert "linkedin.com/in/" in result.url.lower()
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_and_contents_with_url_filters():
+    """Test search_and_contents with both include_urls and exclude_urls."""
+    exa = Exa(API_KEY)
+    resp = exa.search_and_contents(
+        "technology",
+        num_results=3,
+        include_urls=["*.com/*"],
+        exclude_urls=["*/ads/*", "*/sponsored/*"],
+        text=True
+    )
+    assert resp.results
+    for result in resp.results:
+        url_lower = result.url.lower()
+        assert ".com/" in url_lower
+        assert "/ads/" not in url_lower and "/sponsored/" not in url_lower
+        assert result.text  # Ensure we got text content
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_find_similar_and_contents_with_exclude_urls():
+    """Test find_similar_and_contents with exclude_urls parameter."""
+    exa = Exa(API_KEY)
+    resp = exa.find_similar_and_contents(
+        "https://techcrunch.com",
+        num_results=3,
+        exclude_urls=["*/video/*", "*/podcast/*"],
+        text=True
+    )
+    assert resp.results
+    for result in resp.results:
+        url_lower = result.url.lower()
+        assert "/video/" not in url_lower and "/podcast/" not in url_lower
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+async def test_async_search_with_url_filters():
+    """Test async search with include_urls and exclude_urls parameters."""
+    ax = AsyncExa(API_KEY)
+    resp = await ax.search(
+        "artificial intelligence",
+        num_results=5,
+        include_urls=["*/research/*", "*/papers/*"],
+        exclude_urls=["*/archive/*"]
+    )
+    assert resp.results
+    for result in resp.results:
+        url_lower = result.url.lower()
+        assert ("/research/" in url_lower or "/papers/" in url_lower)
+        assert "/archive/" not in url_lower
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+async def test_async_find_similar_with_include_urls():
+    """Test async find_similar with include_urls parameter."""
+    ax = AsyncExa(API_KEY)
+    resp = await ax.find_similar(
+        "https://github.com/example/repo",
+        num_results=5,
+        include_urls=["github.com/*"]
+    )
+    assert resp.results
+    for result in resp.results:
+        assert "github.com/" in result.url.lower()
