@@ -7,6 +7,7 @@ to refine search results based on URL patterns.
 
 IMPORTANT: When using include_urls or exclude_urls, you cannot use 
 include_domains or exclude_domains in the same request.
+Also, include_urls and exclude_urls cannot be used together in the same request.
 """
 
 import os
@@ -77,23 +78,18 @@ for i, result in enumerate(results.results[:3], 1):
     print(f"   URL: {result.url}")
 print()
 
-# Example 5: Complex filtering with both include and exclude
-print("5. Finding product pages, excluding reviews and comparisons:")
+# Example 5: Finding product pages (using include_urls only)
+print("5. Finding product pages:")
 print("-" * 50)
-try:
-    results = exa.search(
-        "best laptop 2024",
-        num_results=5,
-        include_urls=["*/products/*", "*/shop/*", "*/store/*"],
-        exclude_urls=["*/review/*", "*/compare/*", "*/vs/*"]
-    )
-    print(f"Found {len(results.results)} product pages:")
-    for i, result in enumerate(results.results[:3], 1):
-        print(f"{i}. {result.title}")
-        print(f"   URL: {result.url}")
-except ValueError as e:
-    print(f"Note: This example may fail if the API doesn't support both include and exclude URLs together.")
-    print(f"Error: {str(e)}")
+results = exa.search(
+    "best laptop 2024",
+    num_results=5,
+    include_urls=["*/products/*", "*/shop/*", "*/store/*", "*/item/*"]
+)
+print(f"Found {len(results.results)} product pages:")
+for i, result in enumerate(results.results[:3], 1):
+    print(f"{i}. {result.title}")
+    print(f"   URL: {result.url}")
 print()
 
 # Example 6: Using with search_and_contents
@@ -114,14 +110,13 @@ for i, result in enumerate(results.results, 1):
         print(f"   Preview: {preview}")
     print()
 
-# Example 7: Finding similar pages with URL constraints
+# Example 7: Finding similar pages with URL constraints (using include_urls only)
 print("7. Finding similar documentation pages:")
 print("-" * 50)
 results = exa.find_similar_and_contents(
     "https://docs.python.org/3/tutorial/",
     num_results=3,
-    include_urls=["*/docs/*", "*/documentation/*", "*/guide/*"],
-    exclude_urls=["*/api/*", "*/reference/*"],
+    include_urls=["*/docs/*", "*/documentation/*", "*/guide/*", "*/tutorial/*"],
     text=True
 )
 print(f"Found {len(results.results)} similar documentation pages:")
@@ -133,11 +128,11 @@ for i, result in enumerate(results.results, 1):
 print("\n=== Advanced Usage Tips ===")
 print("1. Wildcards (*) can be used at the beginning or end of patterns")
 print("2. Multiple patterns can be specified in a list")
-print("3. include_urls and exclude_urls can be used together")
+print("3. include_urls and exclude_urls CANNOT be used together in the same request")
 print("4. Patterns are case-sensitive")
 print("5. IMPORTANT: Cannot use include_urls/exclude_urls with include_domains/exclude_domains")
 print("6. Use these filters to:")
 print("   - Find specific page types (contact, about, product pages)")
 print("   - Filter by domain or subdomain patterns")
-print("   - Exclude unwanted content types (ads, reviews, archives)")
+print("   - Exclude unwanted content types (use exclude_urls separately)")
 print("   - Focus on specific platforms (LinkedIn, GitHub, etc.)")

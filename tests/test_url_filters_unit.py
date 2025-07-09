@@ -219,3 +219,26 @@ class TestUrlFilterIntegration:
                     exclude_urls=["*/blog/*"],
                     exclude_domains=["spam.com"]
                 )
+
+    def test_url_filters_cannot_be_used_together(self):
+        """Test that include_urls and exclude_urls cannot be used together."""
+        with patch('exa_py.api.requests.post') as mock_post:
+            # Mock the API to return an error when both are used together
+            mock_response = MagicMock()
+            mock_response.status_code = 400
+            mock_response.json.return_value = {
+                "error": "Cannot use both includeUrls and excludeUrls in the same request.",
+                "requestId": "test-request-id"
+            }
+            mock_response.text = '{"error": "Cannot use both includeUrls and excludeUrls in the same request."}'
+            mock_post.return_value = mock_response
+            
+            exa = Exa("test-api-key")
+            
+            # Test using both include_urls and exclude_urls together
+            with pytest.raises(ValueError, match="includeUrls and excludeUrls"):
+                exa.search(
+                    "test query",
+                    include_urls=["*/contact/*"],
+                    exclude_urls=["*/blog/*"]
+                )

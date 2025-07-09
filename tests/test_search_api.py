@@ -284,3 +284,32 @@ async def test_async_find_similar_with_include_urls():
     assert resp.results
     for result in resp.results:
         assert "github.com/" in result.url.lower()
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_url_filters_validation():
+    """Test URL filters validation and constraints."""
+    exa = Exa(API_KEY)
+    
+    # Test that include_urls and exclude_urls cannot be used together
+    with pytest.raises(ValueError):
+        exa.search(
+            "test query",
+            include_urls=["*/contact/*"],
+            exclude_urls=["*/blog/*"]
+        )
+    
+    # Test that URL filters cannot be used with domain filters
+    with pytest.raises(ValueError):
+        exa.search(
+            "test query", 
+            include_urls=["*/about/*"],
+            include_domains=["example.com"]
+        )
+    
+    with pytest.raises(ValueError):
+        exa.search(
+            "test query",
+            exclude_urls=["*/blog/*"],
+            exclude_domains=["spam.com"]
+        )
