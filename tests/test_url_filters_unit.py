@@ -97,11 +97,15 @@ class TestUrlFilterIntegration:
         # Check that the request was made with correct parameters
         mock_post.assert_called_once()
         call_args = mock_post.call_args
-        request_data = call_args[1]["json"]
+        # The data is passed as the second positional argument
+        request_data = call_args[0][1] if len(call_args[0]) > 1 else call_args.kwargs.get('data', {})
+        if isinstance(request_data, str):
+            import json
+            request_data = json.loads(request_data)
         
         assert "includeUrls" in request_data
-        assert "excludeUrls" in request_data
         assert request_data["includeUrls"] == ["*/contact/*"]
+        assert "excludeUrls" in request_data
         assert request_data["excludeUrls"] == ["*/blog/*"]
     
     @patch('exa_py.api.requests.post')
@@ -125,11 +129,15 @@ class TestUrlFilterIntegration:
         # Check that the request was made with correct parameters
         mock_post.assert_called_once()
         call_args = mock_post.call_args
-        request_data = call_args[1]["json"]
+        # The data is passed as the second positional argument
+        request_data = call_args[0][1] if len(call_args[0]) > 1 else call_args.kwargs.get('data', {})
+        if isinstance(request_data, str):
+            import json
+            request_data = json.loads(request_data)
         
         assert "includeUrls" in request_data
-        assert "excludeUrls" in request_data
         assert request_data["includeUrls"] == ["*.edu/*"]
+        assert "excludeUrls" in request_data
         assert request_data["excludeUrls"] == ["*/archive/*"]
     
     @patch('exa_py.api.requests.post')
@@ -154,12 +162,17 @@ class TestUrlFilterIntegration:
         # Check that the request was made with correct parameters
         mock_post.assert_called_once()
         call_args = mock_post.call_args
-        request_data = call_args[1]["json"]
+        # The data is passed as the second positional argument
+        request_data = call_args[0][1] if len(call_args[0]) > 1 else call_args.kwargs.get('data', {})
+        if isinstance(request_data, str):
+            import json
+            request_data = json.loads(request_data)
         
         assert "includeUrls" in request_data
-        assert "excludeUrls" in request_data
         assert request_data["includeUrls"] == ["*/about/*", "*/team/*"]
+        assert "excludeUrls" in request_data
         assert request_data["excludeUrls"] == ["*/careers/*"]
+        assert "contents" in request_data  # Should have contents field
     
     @patch('exa_py.api.requests.post')
     def test_find_similar_and_contents_passes_url_filters(self, mock_post):
@@ -182,7 +195,11 @@ class TestUrlFilterIntegration:
         # Check that the request was made with correct parameters
         mock_post.assert_called_once()
         call_args = mock_post.call_args
-        request_data = call_args[1]["json"]
+        # The data is passed as the second positional argument
+        request_data = call_args[0][1] if len(call_args[0]) > 1 else call_args.kwargs.get('data', {})
+        if isinstance(request_data, str):
+            import json
+            request_data = json.loads(request_data)
         
         assert "includeUrls" in request_data
         assert request_data["includeUrls"] == ["www.linkedin.com/in/*"]

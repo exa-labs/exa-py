@@ -26,90 +26,32 @@ def research_company(company_name: str):
     print("1. Finding official company information:")
     print("-" * 50)
     official_results = exa.search(
-        f"{company_name} official",
+        f"{company_name} official website",
         num_results=5,
-        include_urls=["*/about/*", "*/about-us/*", "*/company/*"],
-        exclude_urls=["*/blog/*", "*/news/*", "*/press/*"]
+        include_urls=["*/about/*", "*/about-us/*", "*/company/*", "*/who-we-are/*"]
     )
-    
+    print(f"Found {len(official_results.results)} official pages")
     for result in official_results.results[:3]:
-        print(f"• {result.title}")
-        print(f"  {result.url}\n")
+        print(f"  - {result.title}")
+        print(f"    {result.url}\n")
     
-    # 2. Find team/leadership pages
-    print("2. Finding team and leadership information:")
+    # 2. Find press releases and news
+    print("\n2. Finding recent press releases:")
     print("-" * 50)
-    team_results = exa.search(
-        f"{company_name} team leadership executives",
-        num_results=5,
-        include_urls=["*/team/*", "*/leadership/*", "*/people/*", "*/about/team/*"]
-    )
-    
-    for result in team_results.results[:3]:
-        print(f"• {result.title}")
-        print(f"  {result.url}\n")
-    
-    # 3. Find contact information
-    print("3. Finding contact information:")
-    print("-" * 50)
-    contact_results = exa.search_and_contents(
-        f"{company_name} contact",
+    press_results = exa.search_and_contents(
+        f"{company_name} announcement",
         num_results=3,
-        include_urls=["*/contact/*", "*/contact-us/*", "*/get-in-touch/*"],
+        include_urls=["*/press/*", "*/news/*", "*/blog/*", "*/newsroom/*"],
         text={"max_characters": 300}
     )
-    
-    for result in contact_results.results:
-        print(f"• {result.title}")
-        print(f"  {result.url}")
+    print(f"Found {len(press_results.results)} press releases")
+    for result in press_results.results:
+        print(f"  • {result.title}")
+        print(f"    {result.url}")
         if result.text:
-            # Extract potential contact info preview
             preview = result.text[:150] + "..." if len(result.text) > 150 else result.text
-            print(f"  Preview: {preview}\n")
+            print(f"    Preview: {preview}\n")
     
-    # 4. Find job postings/careers pages
-    print("4. Finding career opportunities:")
-    print("-" * 50)
-    careers_results = exa.search(
-        f"{company_name} careers hiring",
-        num_results=5,
-        include_urls=["*/careers/*", "*/jobs/*", "*/join/*", "*/hiring/*"]
-    )
-    
-    for result in careers_results.results[:3]:
-        print(f"• {result.title}")
-        print(f"  {result.url}\n")
-    
-    # 5. Find investor relations (for public companies)
-    print("5. Finding investor relations information:")
-    print("-" * 50)
-    investor_results = exa.search(
-        f"{company_name} investor relations",
-        num_results=3,
-        include_urls=["*/investors/*", "*/investor-relations/*", "*/ir/*"]
-    )
-    
-    if investor_results.results:
-        for result in investor_results.results:
-            print(f"• {result.title}")
-            print(f"  {result.url}\n")
-    else:
-        print("No investor relations pages found (might be a private company)\n")
-    
-    # 6. Find product/service pages
-    print("6. Finding product and service information:")
-    print("-" * 50)
-    product_results = exa.search(
-        f"{company_name} products services",
-        num_results=5,
-        include_urls=["*/products/*", "*/services/*", "*/solutions/*", "*/platform/*"],
-        exclude_urls=["*/blog/*", "*/support/*", "*/help/*"]
-    )
-    
-    for result in product_results.results[:3]:
-        print(f"• {result.title}")
-        print(f"  {result.url}\n")
-
     # 3. Find team information on LinkedIn
     print("\n3. Finding team members on LinkedIn:")
     team_results = exa.search(
