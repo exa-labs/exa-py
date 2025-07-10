@@ -19,7 +19,8 @@ class WebhookAttemptsClient(WebsetsBaseClient):
         super().__init__(client)
     
     def list(self, webhook_id: str, *, cursor: Optional[str] = None, 
-             limit: Optional[int] = None, event_type: Optional[Union[EventType, str]] = None) -> ListWebhookAttemptsResponse:
+             limit: Optional[int] = None, event_type: Optional[Union[EventType, str]] = None,
+             successful: Optional[bool] = None) -> ListWebhookAttemptsResponse:
         """List all attempts made by a Webhook ordered in descending order.
         
         Args:
@@ -27,6 +28,7 @@ class WebhookAttemptsClient(WebsetsBaseClient):
             cursor (str, optional): The cursor to paginate through the results.
             limit (int, optional): The number of results to return (max 200).
             event_type (Union[EventType, str], optional): The type of event to filter by.
+            successful (bool, optional): Filter attempts by success status.
         
         Returns:
             ListWebhookAttemptsResponse: List of webhook attempts.
@@ -41,7 +43,8 @@ class WebhookAttemptsClient(WebsetsBaseClient):
         params = {k: v for k, v in {
             "cursor": cursor, 
             "limit": limit,
-            "eventType": event_type_value
+            "eventType": event_type_value,
+            "successful": successful
         }.items() if v is not None}
         
         response = self.request(f"/v0/webhooks/{webhook_id}/attempts", params=params, method="GET")
