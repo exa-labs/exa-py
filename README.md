@@ -34,6 +34,15 @@ exa = Exa(api_key="your-api-key")
   # search with domain filters
   results = exa.search("This is a Exa query:", include_domains=["www.cnn.com", "www.nytimes.com"])
 
+  # search with URL pattern filters
+  results = exa.search("AI law startup", include_urls=["*/contact-us/*", "*/about/*"])
+  
+  # exclude certain URL patterns
+  results = exa.search("machine learning", exclude_urls=["*/blog/*", "*/news/*"])
+  
+  # Note: include_urls/exclude_urls cannot be used together with include_domains/exclude_domains
+  # Also, include_urls and exclude_urls cannot be used together in the same request
+
   # search and get text contents
   results = exa.search_and_contents("This is a Exa query:")
 

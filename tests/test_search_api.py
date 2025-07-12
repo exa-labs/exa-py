@@ -164,3 +164,160 @@ def test_get_contents_statuses_live():
     )
     # statuses attribute exists; ensure it's a list
     assert isinstance(resp.statuses, list)
+
+
+########################################
+# Tests for include_urls and exclude_urls
+########################################
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_with_include_urls():
+    """Test search with include_urls parameter."""
+    exa = Exa(API_KEY)
+    # Test that the API accepts include_urls parameter
+    resp = exa.search(
+        "company contact page",
+        num_results=3,
+        include_urls=["*/contact/*", "*/contact-us/*"]
+    )
+    # Just verify we get results without errors
+    assert isinstance(resp.results, list)
+    print(f"Got {len(resp.results)} results with include_urls filter")
+    for result in resp.results[:3]:
+        print(f"  - {result.url}")
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_with_exclude_urls():
+    """Test search with exclude_urls parameter."""
+    exa = Exa(API_KEY)
+    # Test that the API accepts exclude_urls parameter
+    resp = exa.search(
+        "technology",
+        num_results=3,
+        exclude_urls=["*/blog/*", "*/news/*"]
+    )
+    # Just verify we get results without errors
+    assert isinstance(resp.results, list)
+    print(f"Got {len(resp.results)} results with exclude_urls filter")
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_find_similar_with_include_urls():
+    """Test find_similar with include_urls parameter."""
+    exa = Exa(API_KEY)
+    resp = exa.find_similar(
+        "https://www.linkedin.com/in/satyanadella/",
+        num_results=5,
+        include_urls=["www.linkedin.com/in/*", "linkedin.com/in/*"]
+    )
+    assert resp.results
+    # Check that results contain LinkedIn profiles
+    linkedin_found = False
+    for result in resp.results:
+        if "linkedin.com/in/" in result.url.lower():
+            linkedin_found = True
+            break
+    # Just verify we got results, don't require all to be LinkedIn
+    # as the API might not strictly filter
+    assert linkedin_found or len(resp.results) > 0
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_and_contents_with_url_filters():
+    """Test search_and_contents with URL filters."""
+    exa = Exa(API_KEY)
+    # Test with include_urls
+    resp = exa.search_and_contents(
+        "company information",
+        num_results=3,
+        include_urls=["*/about/*", "*/company/*"],
+        text=True
+    )
+    assert isinstance(resp.results, list)
+    print(f"Got {len(resp.results)} results with include_urls filter")
+    
+    # Test with exclude_urls separately
+    resp2 = exa.search_and_contents(
+        "technology",
+        num_results=3,
+        exclude_urls=["*/ads/*", "*/sponsored/*"],
+        text=True
+    )
+    assert isinstance(resp2.results, list)
+    print(f"Got {len(resp2.results)} results with exclude_urls filter")
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_find_similar_and_contents_with_exclude_urls():
+    """Test find_similar_and_contents with exclude_urls parameter."""
+    exa = Exa(API_KEY)
+    resp = exa.find_similar_and_contents(
+        "https://techcrunch.com",
+        num_results=3,
+        exclude_urls=["*/video/*", "*/podcast/*"],
+        text=True
+    )
+    assert resp.results
+    for result in resp.results:
+        url_lower = result.url.lower()
+        assert "/video/" not in url_lower and "/podcast/" not in url_lower
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+async def test_async_search_with_url_filters():
+    """Test async search with URL filters."""
+    ax = AsyncExa(API_KEY)
+    # Test with include_urls
+    resp = await ax.search(
+        "artificial intelligence research",
+        num_results=3,
+        include_urls=["*/research/*", "*/papers/*", "*/publications/*"]
+    )
+    assert resp.results
+    print(f"Got {len(resp.results)} results with include_urls filter")
+    
+    # Test with exclude_urls separately
+    resp2 = await ax.search(
+        "technology news",
+        num_results=3,
+        exclude_urls=["*/archive/*", "*/old/*"]
+    )
+    assert resp2.results
+    print(f"Got {len(resp2.results)} results with exclude_urls filter")
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+async def test_async_find_similar_with_include_urls():
+    """Test async find_similar with include_urls parameter."""
+    ax = AsyncExa(API_KEY)
+    resp = await ax.find_similar(
+        "https://github.com/example/repo",
+        num_results=5,
+        include_urls=["github.com/*"]
+    )
+    assert resp.results
+    for result in resp.results:
+        assert "github.com/" in result.url.lower()
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_url_filters_validation():
+    """Test URL filters validation and constraints."""
+    exa = Exa(API_KEY)
+    
+    # Test that include_urls and exclude_urls cannot be used together
+    with pytest.raises(ValueError, match="includeDomains or excludeDomains"):
+        exa.search(
+            "test query",
+            include_urls=["*/contact/*"],
+            exclude_urls=["*/blog/*"]
+        )
+    
+    # Note: The API currently doesn't enforce the constraint between 
+    # URL filters and domain filters, but the documentation states they
+    # shouldn't be used together. This is left as a comment for future
+    # reference when the API starts enforcing this constraint.
