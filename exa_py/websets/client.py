@@ -10,6 +10,8 @@ from .types import (
     UpdateWebsetRequest,
     WebsetStatus,
     CreateWebsetParameters,
+    PreviewWebsetParameters,
+    PreviewWebsetResponse,
 )
 from .core.base import WebsetsBaseClient
 from .items import WebsetItemsClient
@@ -44,6 +46,23 @@ class WebsetsClient(WebsetsBaseClient):
         """
         response = self.request("/v0/websets", data=params)
         return Webset.model_validate(response)
+
+    def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters]) -> PreviewWebsetResponse:
+        """Preview a webset query.
+        
+        Preview how a search query will be decomposed before creating a webset. 
+        This endpoint performs the same query analysis that happens during webset creation, 
+        allowing you to see the detected entity type, generated search criteria, and 
+        available enrichment columns in advance.
+        
+        Args:
+            params (PreviewWebsetParameters): The parameters for previewing a webset.
+        
+        Returns:
+            PreviewWebsetResponse: The preview response showing how the query will be decomposed.
+        """
+        response = self.request("/v0/websets/preview", data=params)
+        return PreviewWebsetResponse.model_validate(response)
 
     def get(self, id: str, *, expand: Optional[List[Literal["items"]]] = None) -> GetWebsetResponse:
         """Get a Webset by ID.

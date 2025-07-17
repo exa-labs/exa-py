@@ -171,6 +171,10 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
+    scope: Optional[List[ScopeItem]] = None
+    """
+    Limit the search to specific sources (existing imports). Any results found within these sources matching the search criteria will be included in the Webset.
+    """
     behavior: Optional[WebsetSearchBehavior] = WebsetSearchBehavior.override
     """
     The behavior of the Search when it is added to a Webset.
@@ -294,6 +298,25 @@ class ImportSource(Enum):
     """
     import_ = 'import'
     webset = 'webset'
+
+
+class ScopeSourceType(Enum):
+    """
+    The source type for scope filtering.
+    """
+    import_ = 'import'
+
+
+class PreviewWebsetResponseEnrichmentsFormat(Enum):
+    """
+    Format of the enrichment in preview response.
+    """
+    text = 'text'
+    date = 'date'
+    number = 'number'
+    options = 'options'
+    email = 'email'
+    phone = 'phone'
 
 
 class ListEventsResponse(ExaBaseModel):
@@ -440,6 +463,103 @@ class ExcludeItem(ExaBaseModel):
     id: str
     """
     The ID of the source to exclude
+    """
+
+
+class ScopeItem(ExaBaseModel):
+    """
+    Represents a source to limit search scope to.
+    """
+    source: ScopeSourceType
+    """
+    The type of source (import)
+    """
+    id: str
+    """
+    The ID of the source to search within
+    """
+
+
+class PreviewWebsetParameters(ExaBaseModel):
+    """
+    Parameters for previewing a webset query.
+    """
+    query: str
+    """
+    Natural language search query describing what you are looking for.
+    """
+    entity: Optional[Union[
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
+    ]] = None
+    """
+    Entity used to inform the decomposition. Not required - we automatically detect 
+    the entity from the query. Only use when you need more fine control.
+    """
+
+
+class PreviewWebsetResponseEnrichment(ExaBaseModel):
+    """
+    Detected enrichment in preview response.
+    """
+    description: str
+    """
+    Description of the enrichment.
+    """
+    format: PreviewWebsetResponseEnrichmentsFormat
+    """
+    Format of the enrichment.
+    """
+    options: Optional[List[Option]] = None
+    """
+    When format is options, the options detected from the query.
+    """
+
+
+class PreviewWebsetResponseSearchCriterion(ExaBaseModel):
+    """
+    Detected search criterion in preview response.
+    """
+    description: str
+    """
+    Description of the criterion.
+    """
+
+
+class PreviewWebsetResponseSearch(ExaBaseModel):
+    """
+    Search information in preview response.
+    """
+    entity: Union[
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
+    ]
+    """
+    Detected entity from the query.
+    """
+    criteria: List[PreviewWebsetResponseSearchCriterion]
+    """
+    Detected criteria from the query.
+    """
+
+
+class PreviewWebsetResponse(ExaBaseModel):
+    """
+    Response from previewing a webset query.
+    """
+    search: PreviewWebsetResponseSearch
+    """
+    Search analysis from the query.
+    """
+    enrichments: List[PreviewWebsetResponseEnrichment]
+    """
+    Detected enrichments from the query.
     """
 
 
@@ -757,6 +877,10 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     exclude: Optional[List[ExcludeItem]] = None
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
+    """
+    scope: Optional[List[ScopeItem]] = None
+    """
+    Limit the search to specific sources (existing imports or websets). Any results found within these sources matching the search criteria will be included in the Webset.
     """
 
 

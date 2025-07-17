@@ -415,4 +415,47 @@ def test_webhook_attempts_list(websets_client, parent_mock):
         params={"cursor": "cursor_value", "limit": 10, "eventType": "webset.created"},
         method="GET",
         data=None
-    ) 
+    )
+
+
+def test_preview_webset(websets_client, parent_mock):
+    """Test webset preview method."""
+    mock_response = {
+        "search": {
+            "entity": {"type": "company"},
+            "criteria": [{"description": "AI companies"}]
+        },
+        "enrichments": [{"description": "Valuation", "format": "number"}]
+    }
+    
+    parent_mock.request.return_value = mock_response
+    
+    params = {"query": "AI companies founded after 2020"}
+    result = websets_client.preview(params)
+    
+    parent_mock.request.assert_called_once_with("/websets/v0/websets/preview", data=params, method="POST", params=None)
+
+
+def test_create_webset_with_scope(websets_client, parent_mock):
+    """Test creating webset with scope parameter."""
+    mock_response = {
+        "id": "ws_123", 
+        "object": "webset", 
+        "status": "running",
+        "searches": [],
+        "enrichments": [],
+        "monitors": [],
+        "createdAt": "2023-01-01T00:00:00Z",
+        "updatedAt": "2023-01-01T00:00:00Z"
+    }
+    parent_mock.request.return_value = mock_response
+    
+    params = {
+        "search": {
+            "query": "Tech companies",
+            "scope": [{"id": "import_123", "source": "import"}]
+        }
+    }
+    
+    result = websets_client.create(params)
+    parent_mock.request.assert_called_once_with("/websets/v0/websets", data=params, method="POST", params=None) 
