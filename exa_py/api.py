@@ -125,6 +125,10 @@ SEARCH_OPTIONS_TYPES = {
         list
     ],  # Domains to search from; exclusive with 'exclude_domains'.
     "exclude_domains": [list],  # Domains to omit; exclusive with 'include_domains'.
+    "include_urls": [
+        list
+    ],  # URLs to search from; exclusive with 'exclude_urls'.
+    "exclude_urls": [list],  # URLs to omit; exclusive with 'include_urls'.
     "start_crawl_date": [str],  # Results after this crawl date. ISO 8601 format.
     "end_crawl_date": [str],  # Results before this crawl date. ISO 8601 format.
     "start_published_date": [
@@ -153,6 +157,8 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "num_results": [int],
     "include_domains": [list],
     "exclude_domains": [list],
+    "include_urls": [list],
+    "exclude_urls": [list],
     "start_crawl_date": [str],
     "end_crawl_date": [str],
     "start_published_date": [str],
@@ -1225,6 +1231,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1244,6 +1252,8 @@ class Exa:
             num_results (int, optional): Number of search results to return (default 10).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
+            include_urls (List[str], optional): URLs to include in the search.
+            exclude_urls (List[str], optional): URLs to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
             end_crawl_date (str, optional): Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
@@ -1301,6 +1311,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1329,6 +1341,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1357,6 +1371,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1386,6 +1402,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1414,6 +1432,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1443,6 +1463,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1472,6 +1494,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1502,6 +1526,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1794,6 +1820,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1811,6 +1839,8 @@ class Exa:
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
+            include_urls (List[str], optional): URLs to include in the search.
+            exclude_urls (List[str], optional): URLs to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
             end_crawl_date (str, optional): Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
@@ -1866,6 +1896,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1892,6 +1924,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1918,6 +1952,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1945,6 +1981,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1971,6 +2009,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -1998,6 +2038,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -2025,6 +2067,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -2053,6 +2097,8 @@ class Exa:
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -2171,6 +2217,8 @@ class Exa:
             num_results: Optional[int] = 3,
             include_domains: Optional[List[str]] = None,
             exclude_domains: Optional[List[str]] = None,
+            include_urls: Optional[List[str]] = None,
+            exclude_urls: Optional[List[str]] = None,
             start_crawl_date: Optional[str] = None,
             end_crawl_date: Optional[str] = None,
             start_published_date: Optional[str] = None,
@@ -2189,6 +2237,8 @@ class Exa:
                 "num_results": num_results,
                 "include_domains": include_domains,
                 "exclude_domains": exclude_domains,
+                "include_urls": include_urls,
+                "exclude_urls": exclude_urls,
                 "highlights": highlights,
                 "start_crawl_date": start_crawl_date,
                 "end_crawl_date": end_crawl_date,
@@ -2263,6 +2313,8 @@ class Exa:
             num_results=exa_kwargs.get("num_results"),
             include_domains=exa_kwargs.get("include_domains"),
             exclude_domains=exa_kwargs.get("exclude_domains"),
+            include_urls=exa_kwargs.get("include_urls"),
+            exclude_urls=exa_kwargs.get("exclude_urls"),
             highlights=exa_kwargs.get("highlights"),
             start_crawl_date=exa_kwargs.get("start_crawl_date"),
             end_crawl_date=exa_kwargs.get("end_crawl_date"),
@@ -2437,6 +2489,8 @@ class AsyncExa(Exa):
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
@@ -2655,6 +2709,8 @@ class AsyncExa(Exa):
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
+        include_urls: Optional[List[str]] = None,
+        exclude_urls: Optional[List[str]] = None,
         start_crawl_date: Optional[str] = None,
         end_crawl_date: Optional[str] = None,
         start_published_date: Optional[str] = None,
