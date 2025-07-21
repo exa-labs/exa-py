@@ -220,6 +220,7 @@ def test_get_event_different_types(events_client, parent_mock, sample_webset_dat
     sample_search_data = {
         "id": "search_123",
         "object": "webset_search",
+        "websetId": "webset_123",
         "status": "completed",
         "query": "test query",
         "entity": {"type": "company"},

@@ -173,7 +173,7 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     scope: Optional[List[ScopeItem]] = None
     """
-    Limit the search to specific sources (existing imports). Any results found within these sources matching the search criteria will be included in the Webset.
+    Limit the search to specific sources (existing imports or websets). Any results found within these sources matching the search criteria will be included in the Webset.
     """
     behavior: Optional[WebsetSearchBehavior] = WebsetSearchBehavior.override
     """
@@ -305,6 +305,7 @@ class ScopeSourceType(Enum):
     The source type for scope filtering.
     """
     import_ = 'import'
+    webset = 'webset'
 
 
 class PreviewWebsetResponseEnrichmentsFormat(Enum):
@@ -466,6 +467,20 @@ class ExcludeItem(ExaBaseModel):
     """
 
 
+class ScopeRelationship(ExaBaseModel):
+    """
+    Represents the relationship between entities for scoped searches.
+    """
+    definition: str
+    """
+    What the relationship of the entities you hope to find is relative to the entities contained in the provided source
+    """
+    limit: Optional[PositiveInt] = None
+    """
+    Optional limit on the number of related entities to find
+    """
+
+
 class ScopeItem(ExaBaseModel):
     """
     Represents a source to limit search scope to.
@@ -477,6 +492,10 @@ class ScopeItem(ExaBaseModel):
     id: str
     """
     The ID of the source to search within
+    """
+    relationship: Optional[ScopeRelationship] = None
+    """
+    Optional relationship definition for hop searches
     """
 
 
@@ -1662,12 +1681,53 @@ class WebsetResearchPaperEntity(ExaBaseModel):
     type: Literal['research_paper']
 
 
+class WebsetSearchRecallConfidence(Enum):
+    """
+    Confidence level for search recall estimates.
+    """
+    high = 'high'
+    medium = 'medium'
+    low = 'low'
+
+
+class WebsetSearchRecallExpected(ExaBaseModel):
+    """
+    Expected search recall information.
+    """
+    total: int
+    """
+    Total expected matches
+    """
+    confidence: WebsetSearchRecallConfidence
+    """
+    Confidence level of the estimate
+    """
+
+
+class WebsetSearchRecall(ExaBaseModel):
+    """
+    Search recall estimate information.
+    """
+    expected: WebsetSearchRecallExpected
+    """
+    Expected recall information
+    """
+    reasoning: str
+    """
+    Reasoning for the recall estimate
+    """
+
+
 class WebsetSearch(ExaBaseModel):
     id: str
     """
     The unique identifier for the search
     """
     object: Literal['webset_search']
+    webset_id: Annotated[str, Field(alias='websetId')]
+    """
+    The unique identifier for the Webset this search belongs to
+    """
     status: WebsetSearchStatus = Field(..., title='WebsetSearchStatus')
     """
     The status of the search
@@ -1703,9 +1763,21 @@ class WebsetSearch(ExaBaseModel):
     - `override`: the search will replace the existing Items found in the Webset and evaluate them against the new criteria. Any Items that don't match the new criteria will be discarded.
     - `append`: the search will add the new Items found to the existing Webset. Any Items that don't match the new criteria will be discarded.
     """
+    exclude: Optional[List[ExcludeItem]] = None
+    """
+    Sources (existing imports or websets) used to omit certain results to be found during the search.
+    """
+    scope: Optional[List[ScopeItem]] = None
+    """
+    The scope of the search. By default, there is no scope - thus searching the web. If provided during creation, the search will only be performed on the sources provided.
+    """
     progress: Progress
     """
     The progress of the search
+    """
+    recall: Optional[WebsetSearchRecall] = None
+    """
+    Estimate of total potential matches (if requested)
     """
     metadata: Optional[Dict[str, Any]] = {}
     """
