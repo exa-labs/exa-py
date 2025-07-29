@@ -140,7 +140,7 @@ SEARCH_OPTIONS_TYPES = {
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
     "use_autoprompt": [bool],  # Convert query to Exa. (Default: false)
-    "type": [str],  # 'keyword', 'neural', 'hybrid', or 'auto' (Default: auto)
+    "type": [str],  # 'keyword', 'neural', 'hybrid', 'fast', or 'auto' (Default: auto)
     "category": [
         str
     ],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
@@ -1251,7 +1251,7 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
-            type (str, optional): 'keyword', 'neural', or 'hybrid' (default 'neural').
+            type (str, optional): 'keyword', 'neural', 'hybrid', or 'fast' (default 'neural').
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
@@ -2463,7 +2463,7 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
-            type (str, optional): 'keyword', 'neural', or 'hybrid' (default 'neural').
+            type (str, optional): 'keyword', 'neural', 'hybrid', or 'fast' (default 'neural').
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
