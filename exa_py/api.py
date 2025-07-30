@@ -133,6 +133,7 @@ SEARCH_OPTIONS_TYPES = {
     "end_published_date": [
         str
     ],  # Results before this publish date; excludes links with no date. ISO 8601 format.
+    "user_location": [str],  # Two-letter ISO country code of the user (e.g. US).
     "include_text": [
         list
     ],  # Must be present in webpage text. (One string, up to 5 words)
@@ -1236,6 +1237,7 @@ class Exa:
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
     ) -> SearchResponse[_Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -1255,6 +1257,7 @@ class Exa:
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
+            user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -1312,6 +1315,7 @@ class Exa:
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1370,6 +1374,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1399,6 +1404,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1427,6 +1433,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1456,6 +1463,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1485,6 +1493,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         filter_empty_results: Optional[bool] = None,
@@ -1513,6 +1522,7 @@ class Exa:
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         subpages: Optional[int] = None,
@@ -2448,6 +2458,7 @@ class AsyncExa(Exa):
         category: Optional[str] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
     ) -> SearchResponse[_Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2467,6 +2478,7 @@ class AsyncExa(Exa):
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
+            user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
 
         Returns:
             SearchResponse: The response containing search results, etc.

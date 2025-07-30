@@ -30,6 +30,21 @@ def test_answerresponse_accepts_dict():
     assert isinstance(resp.answer, dict) and resp.answer["foo"] == "bar"
 
 
+def test_search_accepts_user_location_offline():
+    """Test that search method accepts user_location parameter without error."""
+    exa = Exa(API_KEY)
+    # Create a mock response
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Test"}],
+        "costDollars": {"total": 0.001}
+    }
+    
+    with patch.object(exa, "request", return_value=mock_response):
+        # This should not raise any errors about unknown parameters
+        resp = exa.search("test query", user_location="US", num_results=1)
+        assert isinstance(resp, exa_api.SearchResponse)
+
+
 @pytest.mark.asyncio
 async def test_async_request_accepts_201():
     ax = AsyncExa(API_KEY)
@@ -82,6 +97,13 @@ def test_search_and_contents_live():
     exa = Exa(API_KEY)
     resp = exa.search_and_contents("openai", num_results=1, text=True)
     assert resp.results and resp.results[0].text
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_with_user_location_live():
+    exa = Exa(API_KEY)
+    resp = exa.search("news", num_results=1, user_location="US")
+    assert resp.results
 
 
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
