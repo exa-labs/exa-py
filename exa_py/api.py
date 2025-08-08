@@ -1253,7 +1253,7 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
-            type (str, optional): 'keyword', 'neural', 'hybrid', or 'fast' (default 'neural').
+            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', or 'auto' (default 'auto').
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
@@ -2474,7 +2474,7 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
-            type (str, optional): 'keyword', 'neural', 'hybrid', or 'fast' (default 'neural').
+            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', or 'auto' (default 'auto').
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
