@@ -46,7 +46,7 @@ from .research.client import ResearchClient, AsyncResearchClient
 
 is_beta = os.getenv("IS_BETA") == "True"
 
-
+# TO DO: move to utils
 def snake_to_camel(snake_str: str) -> str:
     """Convert snake_case string to camelCase.
 
