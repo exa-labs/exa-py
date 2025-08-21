@@ -1,9 +1,6 @@
 import json
-import os
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 from openai.types.chat import ChatCompletion
-
-from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema
