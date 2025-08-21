@@ -1188,16 +1188,17 @@ class Exa:
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
 
         # Check if we need streaming (either from data for POST or params for GET)
-        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or \
-                         (params and params.get("stream") == "true")
-        
+        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or (
+            params and params.get("stream") == "true"
+        )
+
         if method.upper() == "GET":
             if needs_streaming:
                 res = requests.get(
-                    self.base_url + endpoint, 
-                    headers=self.headers, 
+                    self.base_url + endpoint,
+                    headers=self.headers,
                     params=params,
-                    stream=True
+                    stream=True,
                 )
                 return res
             else:
@@ -1207,10 +1208,10 @@ class Exa:
         elif method.upper() == "POST":
             if needs_streaming:
                 res = requests.post(
-                    self.base_url + endpoint, 
-                    data=json_data, 
+                    self.base_url + endpoint,
+                    data=json_data,
                     headers=self.headers,
-                    stream=True
+                    stream=True,
                 )
                 return res
             else:
@@ -2419,11 +2420,13 @@ class AsyncExa(Exa):
         # this may only be a
         if self._client is None:
             self._client = httpx.AsyncClient(
-                base_url=self.base_url, headers=self.headers, timeout=60
+                base_url=self.base_url, headers=self.headers, timeout=600
             )
         return self._client
 
-    async def async_request(self, endpoint: str, data=None, method: str = "POST", params=None):
+    async def async_request(
+        self, endpoint: str, data=None, method: str = "POST", params=None
+    ):
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
@@ -2440,9 +2443,10 @@ class AsyncExa(Exa):
             ValueError: If the request fails (non-200 status code).
         """
         # Check if we need streaming (either from data for POST or params for GET)
-        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or \
-                         (params and params.get("stream") == "true")
-        
+        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or (
+            params and params.get("stream") == "true"
+        )
+
         if method.upper() == "GET":
             if needs_streaming:
                 request = httpx.Request(
