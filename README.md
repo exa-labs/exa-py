@@ -1,9 +1,6 @@
 # Exa
 
-Exa (formerly Metaphor) API in Python
-
-Note: This API is basically the same as `metaphor-python` but reflects new
-features associated with Metaphor's rename to Exa. New site is https://exa.ai
+Exa API in Python
 
 ## Installation
 
