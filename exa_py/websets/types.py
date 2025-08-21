@@ -814,6 +814,30 @@ class UpdateImport(ExaBaseModel):
     """
 
 
+class UpdateEnrichmentParameters(ExaBaseModel):
+    """
+    Parameters for updating an enrichment.
+    """
+    description: Optional[str] = None
+    """
+    Provide a description of the enrichment task you want to perform to each Webset Item.
+    """
+    format: Optional[Format] = None
+    """
+    Format of the enrichment response.
+
+    We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
+    """
+    options: Optional[List[Option]] = None
+    """
+    When the format is options, the different options for the enrichment agent to choose from.
+    """
+    metadata: Optional[Dict[str, Any]] = None
+    """
+    Set of key-value pairs you want to associate with this object.
+    """
+
+
 class Option(ExaBaseModel):
     label: str
     """

@@ -15,6 +15,13 @@ from ..types import (
     WebsetSearchUpdatedEvent,
     WebsetSearchCanceledEvent,
     WebsetSearchCompletedEvent,
+    ImportCreatedEvent,
+    ImportCompletedEvent,
+    MonitorCreatedEvent,
+    MonitorUpdatedEvent,
+    MonitorDeletedEvent,
+    MonitorRunCreatedEvent,
+    MonitorRunCompletedEvent,
 )
 from ..core.base import WebsetsBaseClient
 
@@ -30,6 +37,13 @@ Event = Union[
     WebsetSearchUpdatedEvent,
     WebsetSearchCanceledEvent,
     WebsetSearchCompletedEvent,
+    ImportCreatedEvent,
+    ImportCompletedEvent,
+    MonitorCreatedEvent,
+    MonitorUpdatedEvent,
+    MonitorDeletedEvent,
+    MonitorRunCreatedEvent,
+    MonitorRunCompletedEvent,
 ]
 
 class EventsClient(WebsetsBaseClient):
@@ -89,6 +103,13 @@ class EventsClient(WebsetsBaseClient):
             'webset.search.updated': WebsetSearchUpdatedEvent,
             'webset.search.canceled': WebsetSearchCanceledEvent,
             'webset.search.completed': WebsetSearchCompletedEvent,
+            'import.created': ImportCreatedEvent,
+            'import.completed': ImportCompletedEvent,
+            'monitor.created': MonitorCreatedEvent,
+            'monitor.updated': MonitorUpdatedEvent,
+            'monitor.deleted': MonitorDeletedEvent,
+            'monitor.run.created': MonitorRunCreatedEvent,
+            'monitor.run.completed': MonitorRunCompletedEvent,
         }
         
         event_class = event_type_map.get(event_type)
