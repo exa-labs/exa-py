@@ -37,6 +37,8 @@ async def main():
         - Primary use case
         
         Also provide a brief summary of current web framework trends.
+
+        Please keep you research brief, a few quick searches plus a summary should be plenty. Thanks!
         """,
         model="exa-research",
         output_schema=FrameworksReport,
