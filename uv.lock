@@ -208,7 +208,7 @@ wheels = [
 
 [[package]]
 name = "exa-py"
-version = "1.14.13"
+version = "1.15.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

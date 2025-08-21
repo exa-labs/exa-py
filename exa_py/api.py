@@ -41,7 +41,7 @@ from exa_py.utils import (
 )
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
-from .research.client import ResearchClient, AsyncResearchClient
+from .research import ResearchClient, AsyncResearchClient
 
 
 is_beta = os.getenv("IS_BETA") == "True"
@@ -1187,23 +1187,36 @@ class Exa:
             # Otherwise, serialize the dictionary to JSON if it exists
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
 
-        if data and data.get("stream"):
-            res = requests.post(
-                self.base_url + endpoint,
-                data=json_data,
-                headers=self.headers,
-                stream=True,
-            )
-            return res
-
+        # Check if we need streaming (either from data for POST or params for GET)
+        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or \
+                         (params and params.get("stream") == "true")
+        
         if method.upper() == "GET":
-            res = requests.get(
-                self.base_url + endpoint, headers=self.headers, params=params
-            )
+            if needs_streaming:
+                res = requests.get(
+                    self.base_url + endpoint, 
+                    headers=self.headers, 
+                    params=params,
+                    stream=True
+                )
+                return res
+            else:
+                res = requests.get(
+                    self.base_url + endpoint, headers=self.headers, params=params
+                )
         elif method.upper() == "POST":
-            res = requests.post(
-                self.base_url + endpoint, data=json_data, headers=self.headers
-            )
+            if needs_streaming:
+                res = requests.post(
+                    self.base_url + endpoint, 
+                    data=json_data, 
+                    headers=self.headers,
+                    stream=True
+                )
+                return res
+            else:
+                res = requests.post(
+                    self.base_url + endpoint, data=json_data, headers=self.headers
+                )
         elif method.upper() == "PATCH":
             res = requests.patch(
                 self.base_url + endpoint, data=json_data, headers=self.headers
@@ -2410,30 +2423,48 @@ class AsyncExa(Exa):
             )
         return self._client
 
-    async def async_request(self, endpoint: str, data):
-        """Send a POST request to the Exa API, optionally streaming if data['stream'] is True.
+    async def async_request(self, endpoint: str, data=None, method: str = "POST", params=None):
+        """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
         Args:
             endpoint (str): The API endpoint (path).
-            data (dict): The JSON payload to send.
+            data (dict, optional): The JSON payload to send.
+            method (str, optional): The HTTP method to use. Defaults to "POST".
+            params (dict, optional): Query parameters.
 
         Returns:
-            Union[dict, requests.Response]: If streaming, returns the Response object.
+            Union[dict, httpx.Response]: If streaming, returns the Response object.
             Otherwise, returns the JSON-decoded response as a dict.
 
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
-        if data.get("stream"):
-            request = httpx.Request(
-                "POST", self.base_url + endpoint, json=data, headers=self.headers
-            )
-            res = await self.client.send(request, stream=True)
-            return res
-
-        res = await self.client.post(
-            self.base_url + endpoint, json=data, headers=self.headers
-        )
+        # Check if we need streaming (either from data for POST or params for GET)
+        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or \
+                         (params and params.get("stream") == "true")
+        
+        if method.upper() == "GET":
+            if needs_streaming:
+                request = httpx.Request(
+                    "GET", self.base_url + endpoint, params=params, headers=self.headers
+                )
+                res = await self.client.send(request, stream=True)
+                return res
+            else:
+                res = await self.client.get(
+                    self.base_url + endpoint, params=params, headers=self.headers
+                )
+        elif method.upper() == "POST":
+            if needs_streaming:
+                request = httpx.Request(
+                    "POST", self.base_url + endpoint, json=data, headers=self.headers
+                )
+                res = await self.client.send(request, stream=True)
+                return res
+            else:
+                res = await self.client.post(
+                    self.base_url + endpoint, json=data, headers=self.headers
+                )
         if res.status_code != 200 and res.status_code != 201:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
