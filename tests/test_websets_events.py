@@ -1,4 +1,3 @@
-from datetime import datetime
 import json
 from typing import Dict, Any
 from unittest.mock import MagicMock
@@ -147,7 +146,7 @@ def test_list_events_with_params(events_client, parent_mock, sample_list_events_
     """Test listing events with cursor, limit, and types."""
     parent_mock.request.return_value = sample_list_events_response
 
-    result = events_client.list(
+    events_client.list(
         cursor="cursor_xyz",
         limit=5,
         types=[EventType.webset_created, EventType.webset_idle]
@@ -169,7 +168,7 @@ def test_list_events_with_single_type(events_client, parent_mock, sample_list_ev
     """Test listing events with a single type filter."""
     parent_mock.request.return_value = sample_list_events_response
 
-    result = events_client.list(types=[EventType.webset_item_created])
+    events_client.list(types=[EventType.webset_item_created])
 
     # Verify request parameters
     parent_mock.request.assert_called_once_with(
