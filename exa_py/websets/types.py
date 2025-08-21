@@ -243,11 +243,15 @@ class EventType(Enum):
     webset_search_updated = 'webset.search.updated'
     import_created = 'import.created'
     import_completed = 'import.completed'
-    import_processing = 'import.processing'
-    webset_export_created = 'webset.export.created'
-    webset_export_completed = 'webset.export.completed'
     webset_item_created = 'webset.item.created'
     webset_item_enriched = 'webset.item.enriched'
+    monitor_created = 'monitor.created'
+    monitor_updated = 'monitor.updated'
+    monitor_deleted = 'monitor.deleted'
+    monitor_run_created = 'monitor.run.created'
+    monitor_run_completed = 'monitor.run.completed'
+    webset_export_created = 'webset.export.created'
+    webset_export_completed = 'webset.export.completed'
 
 
 class Format(Enum):
@@ -263,6 +267,7 @@ class Format(Enum):
     options = 'options'
     email = 'email'
     phone = 'phone'
+    url = 'url'
 
 
 class ImportFormat(Enum):
@@ -333,6 +338,13 @@ class ListEventsResponse(ExaBaseModel):
           WebsetSearchUpdatedEvent,
           WebsetSearchCanceledEvent,
           WebsetSearchCompletedEvent,
+          ImportCreatedEvent,
+          ImportCompletedEvent,
+          MonitorCreatedEvent,
+          MonitorUpdatedEvent,
+          MonitorDeletedEvent,
+          MonitorRunCreatedEvent,
+          MonitorRunCompletedEvent,
       ],
       Field(discriminator='type')
   ]]
@@ -799,6 +811,30 @@ class UpdateImport(ExaBaseModel):
     title: Optional[str] = None
     """
     The title of the import
+    """
+
+
+class UpdateEnrichmentParameters(ExaBaseModel):
+    """
+    Parameters for updating an enrichment.
+    """
+    description: Optional[str] = None
+    """
+    Provide a description of the enrichment task you want to perform to each Webset Item.
+    """
+    format: Optional[Format] = None
+    """
+    Format of the enrichment response.
+
+    We automatically select the best format based on the description. If you want to explicitly specify the format, you can do so here.
+    """
+    options: Optional[List[Option]] = None
+    """
+    When the format is options, the different options for the enrichment agent to choose from.
+    """
+    metadata: Optional[Dict[str, Any]] = None
+    """
+    Set of key-value pairs you want to associate with this object.
     """
 
 
@@ -1336,6 +1372,7 @@ class WebsetEnrichmentFormat(Enum):
     options = 'options'
     email = 'email'
     phone = 'phone'
+    url = 'url'
 
 
 class WebsetEnrichmentOption(Option):
@@ -1868,6 +1905,104 @@ class WebsetSearchUpdatedEvent(ExaBaseModel):
     type: Literal['webset.search.updated']
     data: WebsetSearch
     created_at: Annotated[datetime, Field(alias='createdAt')]
+    """
+    The date and time the event was created
+    """
+
+
+class ImportCreatedEvent(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the event
+    """
+    object: Literal['event']
+    type: Literal['import.created']
+    data: Import
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    The date and time the event was created
+    """
+
+
+class ImportCompletedEvent(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the event
+    """
+    object: Literal['event']
+    type: Literal['import.completed']
+    data: Import
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    The date and time the event was created
+    """
+
+
+class MonitorCreatedEvent(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the event
+    """
+    object: Literal['event']
+    type: Literal['monitor.created']
+    data: Monitor
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    The date and time the event was created
+    """
+
+
+class MonitorUpdatedEvent(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the event
+    """
+    object: Literal['event']
+    type: Literal['monitor.updated']
+    data: Monitor
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    The date and time the event was created
+    """
+
+
+class MonitorDeletedEvent(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the event
+    """
+    object: Literal['event']
+    type: Literal['monitor.deleted']
+    data: Monitor
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    The date and time the event was created
+    """
+
+
+class MonitorRunCreatedEvent(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the event
+    """
+    object: Literal['event']
+    type: Literal['monitor.run.created']
+    data: MonitorRun
+    created_at: datetime = Field(..., alias='createdAt')
+    """
+    The date and time the event was created
+    """
+
+
+class MonitorRunCompletedEvent(ExaBaseModel):
+    id: str
+    """
+    The unique identifier for the event
+    """
+    object: Literal['event']
+    type: Literal['monitor.run.completed']
+    data: MonitorRun
+    created_at: datetime = Field(..., alias='createdAt')
     """
     The date and time the event was created
     """

@@ -4,6 +4,7 @@ from typing import Dict, Any, Union
 
 from ..types import (
     CreateEnrichmentParameters,
+    UpdateEnrichmentParameters,
     WebsetEnrichment,
 )
 from ..core.base import WebsetsBaseClient
@@ -38,6 +39,20 @@ class WebsetEnrichmentsClient(WebsetsBaseClient):
             WebsetEnrichment: The retrieved enrichment.
         """
         response = self.request(f"/v0/websets/{webset_id}/enrichments/{id}", method="GET")
+        return WebsetEnrichment.model_validate(response)
+
+    def update(self, webset_id: str, id: str, params: Union[Dict[str, Any], UpdateEnrichmentParameters]) -> WebsetEnrichment:
+        """Update an Enrichment.
+        
+        Args:
+            webset_id (str): The id of the Webset.
+            id (str): The id of the Enrichment.
+            params (UpdateEnrichmentParameters): The parameters for updating an enrichment.
+        
+        Returns:
+            WebsetEnrichment: The updated enrichment.
+        """
+        response = self.request(f"/v0/websets/{webset_id}/enrichments/{id}", data=params, method="PATCH")
         return WebsetEnrichment.model_validate(response)
 
     def delete(self, webset_id: str, id: str) -> WebsetEnrichment:
