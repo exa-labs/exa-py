@@ -1,20 +1,22 @@
+import asyncio
 from datetime import datetime
 import json
 from typing import Dict, Any
+from unittest.mock import MagicMock, AsyncMock
 
 from pydantic import AnyUrl
 import pytest
-from unittest.mock import MagicMock
 
-from exa_py.websets.client import WebsetsClient
+from exa_py.websets.client import WebsetsClient, AsyncWebsetsClient
 from exa_py.websets.core.base import WebsetsBaseClient
+from exa_py.websets.core.async_base import WebsetsAsyncBaseClient
 from exa_py.api import snake_to_camel, camel_to_snake, to_camel_case, to_snake_case
 from exa_py.websets.types import (
     UpdateWebsetRequest,
     CreateWebsetParameters,
     CreateWebsetParametersSearch,
     CreateEnrichmentParameters,
-    Format
+    Format,
 )
 
 # ============================================================================
@@ -52,6 +54,77 @@ def websets_client(parent_mock):
 def items_client(websets_client):
     """Create an items client instance."""
     return websets_client.items
+
+# ============================================================================
+# Async Fixtures
+# ============================================================================
+
+@pytest.fixture
+def async_parent_mock():
+    """Create a mock async parent client."""
+    mock = MagicMock()
+    mock.async_request = AsyncMock()
+    return mock
+
+@pytest.fixture
+def async_base_client(async_parent_mock):
+    """Create an async base client instance with mock parent."""
+    return WebsetsAsyncBaseClient(async_parent_mock)
+
+@pytest.fixture
+def async_websets_client(async_parent_mock):
+    """Create an AsyncWebsetsClient instance with mock parent."""
+    return AsyncWebsetsClient(async_parent_mock)
+
+@pytest.fixture
+def async_items_client(async_websets_client):
+    """Create an async items client instance."""
+    return async_websets_client.items
+
+@pytest.fixture
+def sample_webset_data():
+    """Sample webset data for testing."""
+    return {
+        "id": "ws_123",
+        "object": "webset",
+        "status": "idle",
+        "externalId": "test-id",
+        "createdAt": "2023-01-01T00:00:00Z",
+        "updatedAt": "2023-01-01T00:00:00Z",
+        "searches": [],
+        "enrichments": [],
+        "monitors": []
+    }
+
+@pytest.fixture
+def sample_webset_items_data():
+    """Sample webset items data for testing."""
+    return {
+        "data": [
+            {
+                "id": "item_123",
+                "object": "webset_item",
+                "source": "search",
+                "sourceId": "search_123",
+                "websetId": "ws_123",
+                "properties": {
+                    "type": "company",
+                    "url": "https://example.com",
+                    "description": "This is a test description",
+                    "company": {
+                        "name": "Example Company",
+                        "logoUrl": "https://example.com/logo.png",
+                    }
+                },
+                "evaluations": [],
+                "enrichments": [],
+                "createdAt": "2023-01-01T00:00:00Z",
+                "updatedAt": "2023-01-01T00:00:00Z"
+            }
+        ],
+        "hasMore": False,
+        "nextCursor": None
+    }
 
 # ============================================================================
 # Case Conversion Tests
@@ -458,4 +531,159 @@ def test_create_webset_with_scope(websets_client, parent_mock):
     }
     
     result = websets_client.create(params)
-    parent_mock.request.assert_called_once_with("/websets/v0/websets", data=params, method="POST", params=None) 
+    parent_mock.request.assert_called_once_with("/websets/v0/websets", data=params, method="POST", params=None)
+
+
+# ============================================================================
+# Async Tests
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_async_base_client_request_forwards_to_parent(async_base_client, async_parent_mock):
+    """Test that AsyncWebsetsBaseClient.request forwards to the parent client's async_request method."""
+    async_parent_mock.async_request.return_value = {"key": "value"}
+    
+    result = await async_base_client.request(
+        "/test",
+        data={"param": "value"},
+        method="POST",
+        params={"query": "test"}
+    )
+    
+    async_parent_mock.async_request.assert_called_once_with(
+        "/websets/test",
+        data={"param": "value"},
+        method="POST",
+        params={"query": "test"}
+    )
+    
+    assert result == {"key": "value"}
+
+@pytest.mark.asyncio
+async def test_async_websets_client_create(async_websets_client, async_parent_mock, sample_webset_data):
+    """Test async webset creation."""
+    async_parent_mock.async_request.return_value = sample_webset_data
+    
+    params = CreateWebsetParameters(
+        external_id="test-id",
+        search=CreateWebsetParametersSearch(query="test query", count=10)
+    )
+    
+    result = await async_websets_client.create(params=params)
+    
+    async_parent_mock.async_request.assert_called_once_with(
+        "/websets/v0/websets", 
+        data=params, 
+        method="POST", 
+        params=None
+    )
+    assert result.id == "ws_123"
+    assert result.external_id == "test-id"
+
+@pytest.mark.asyncio
+async def test_async_websets_client_get(async_websets_client, async_parent_mock, sample_webset_data):
+    """Test async webset retrieval."""
+    async_parent_mock.async_request.return_value = sample_webset_data
+    
+    result = await async_websets_client.get(id="ws_123")
+    
+    async_parent_mock.async_request.assert_called_once_with(
+        "/websets/v0/websets/ws_123",
+        params={},
+        method="GET",
+        data=None
+    )
+    assert result.id == "ws_123"
+    assert result.status == "idle"
+
+@pytest.mark.asyncio
+async def test_async_websets_client_list(async_websets_client, async_parent_mock, sample_webset_data):
+    """Test async websets listing."""
+    list_response = {
+        "data": [sample_webset_data],
+        "hasMore": False,
+        "nextCursor": None
+    }
+    async_parent_mock.async_request.return_value = list_response
+    
+    result = await async_websets_client.list(cursor="test_cursor", limit=10)
+    
+    async_parent_mock.async_request.assert_called_once_with(
+        "/websets/v0/websets",
+        params={"cursor": "test_cursor", "limit": 10},
+        method="GET",
+        data=None
+    )
+    assert len(result.data) == 1
+    assert result.data[0].id == "ws_123"
+
+@pytest.mark.asyncio
+async def test_async_items_client_list_all_multiple_pages(async_items_client, async_parent_mock):
+    """Test async items list_all generator with multiple pages."""
+    # First page response
+    first_page = {
+        "data": [
+            {"id": "item_1", "object": "webset_item", "source": "search", "sourceId": "search_123", 
+             "websetId": "ws_123", "properties": {"type": "company"}, "evaluations": [], "enrichments": [],
+             "createdAt": "2023-01-01T00:00:00Z", "updatedAt": "2023-01-01T00:00:00Z"}
+        ],
+        "hasMore": True,
+        "nextCursor": "cursor_2"
+    }
+    
+    # Second page response
+    second_page = {
+        "data": [
+            {"id": "item_2", "object": "webset_item", "source": "search", "sourceId": "search_123", 
+             "websetId": "ws_123", "properties": {"type": "company"}, "evaluations": [], "enrichments": [],
+             "createdAt": "2023-01-01T00:00:00Z", "updatedAt": "2023-01-01T00:00:00Z"}
+        ],
+        "hasMore": False,
+        "nextCursor": None
+    }
+    
+    # Configure mock to return different responses for each call
+    async_parent_mock.async_request.side_effect = [first_page, second_page]
+    
+    items = []
+    async for item in async_items_client.list_all(webset_id="ws_123", limit=1):
+        items.append(item)
+    
+    assert len(items) == 2
+    assert items[0].id == "item_1"
+    assert items[1].id == "item_2"
+    assert async_parent_mock.async_request.call_count == 2
+
+@pytest.mark.asyncio
+async def test_async_wait_until_idle_success(async_websets_client, async_parent_mock, sample_webset_data):
+    """Test async wait_until_idle method succeeds when webset becomes idle."""
+    # First call returns running status, second call returns idle
+    running_data = {**sample_webset_data, "status": "running"}
+    idle_data = {**sample_webset_data, "status": "idle"}
+    
+    async_parent_mock.async_request.side_effect = [running_data, idle_data]
+    
+    result = await async_websets_client.wait_until_idle("ws_123", timeout=10, poll_interval=1)
+    
+    assert result.status == "idle"
+    assert async_parent_mock.async_request.call_count == 2
+
+@pytest.mark.asyncio
+async def test_async_concurrent_requests(async_websets_client, async_parent_mock, sample_webset_data):
+    """Test that async client can handle concurrent requests properly."""
+    # Configure mock to return data for concurrent calls
+    async_parent_mock.async_request.return_value = sample_webset_data
+    
+    # Execute multiple concurrent requests
+    tasks = [
+        async_websets_client.get("ws_123"),
+        async_websets_client.get("ws_124"), 
+        async_websets_client.get("ws_125")
+    ]
+    
+    results = await asyncio.gather(*tasks)
+    
+    # Verify all requests completed successfully
+    assert len(results) == 3
+    assert all(result.id == "ws_123" for result in results)
+    assert async_parent_mock.async_request.call_count == 3 
