@@ -2,12 +2,17 @@
 Async Websets example demonstrating basic usage of the async websets client.
 """
 import asyncio
+import os
 from exa_py import AsyncExa
 
 
 async def main():
     # Initialize the async Exa client
-    async_exa = AsyncExa()
+    exa_api_key = os.environ.get("EXA_API_KEY")
+    if not exa_api_key:
+        raise ValueError("EXA_API_KEY environment variable not set!")
+    
+    async_exa = AsyncExa(exa_api_key)
     
     try:
         # Create a new webset
