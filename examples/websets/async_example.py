@@ -4,6 +4,7 @@ Async Websets example demonstrating basic usage of the async websets client.
 import asyncio
 import os
 from exa_py import AsyncExa
+from exa_py.websets.types import CreateWebsetParameters, CreateEnrichmentParameters
 
 
 async def main():
@@ -17,10 +18,20 @@ async def main():
     try:
         # Create a new webset
         print("Creating a new webset...")
-        webset = await async_exa.websets.create({
-            "name": "Async Test Webset",
-            "description": "A webset created using the async client"
-        })
+        webset = await async_exa.websets.create(
+            params=CreateWebsetParameters(
+                search={
+                    "query": "Tech companies in the United States with more than 20 and less than 100 employees",
+                    "count": 10,
+                },
+                enrichments=[
+                    CreateEnrichmentParameters(
+                        description="LinkedIn profile URL of VP of Engineering or related role",
+                        format="text",
+                    ),
+                ],
+            )
+        )
         print(f"Created webset: {webset.id}")
         
         # List websets
