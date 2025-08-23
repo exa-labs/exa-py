@@ -81,9 +81,6 @@ async def main():
         
     except Exception as e:
         print(f"Error: {e}")
-    finally:
-        # Close the async client
-        await async_exa.close()
 
 
 if __name__ == "__main__":
