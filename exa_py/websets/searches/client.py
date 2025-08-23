@@ -7,6 +7,7 @@ from ..types import (
     WebsetSearch,
 )
 from ..core.base import WebsetsBaseClient
+from ..core.async_base import WebsetsAsyncBaseClient
 
 class WebsetSearchesClient(WebsetsBaseClient):
     """Client for managing Webset Searches."""
@@ -51,4 +52,50 @@ class WebsetSearchesClient(WebsetsBaseClient):
             WebsetSearch: The canceled search.
         """
         response = self.request(f"/v0/websets/{webset_id}/searches/{id}/cancel", method="POST")
+        return WebsetSearch.model_validate(response)
+
+
+class AsyncWebsetSearchesClient(WebsetsAsyncBaseClient):
+    """Async client for managing Webset Searches."""
+    
+    def __init__(self, client):
+        super().__init__(client)
+
+    async def create(self, webset_id: str, params: Union[Dict[str, Any], CreateWebsetSearchParameters]) -> WebsetSearch:
+        """Create a new Search for the Webset.
+        
+        Args:
+            webset_id (str): The id of the Webset.
+            params (CreateWebsetSearchParameters): The parameters for creating a search.
+        
+        Returns:
+            WebsetSearch: The created search.
+        """
+        response = await self.request(f"/v0/websets/{webset_id}/searches", data=params)
+        return WebsetSearch.model_validate(response)
+
+    async def get(self, webset_id: str, id: str) -> WebsetSearch:
+        """Get a Search by ID.
+        
+        Args:
+            webset_id (str): The id of the Webset.
+            id (str): The id of the Search.
+        
+        Returns:
+            WebsetSearch: The retrieved search.
+        """
+        response = await self.request(f"/v0/websets/{webset_id}/searches/{id}", method="GET")
+        return WebsetSearch.model_validate(response)
+
+    async def cancel(self, webset_id: str, id: str) -> WebsetSearch:
+        """Cancel a running Search.
+        
+        Args:
+            webset_id (str): The id of the Webset.
+            id (str): The id of the Search.
+        
+        Returns:
+            WebsetSearch: The canceled search.
+        """
+        response = await self.request(f"/v0/websets/{webset_id}/searches/{id}/cancel", method="POST")
         return WebsetSearch.model_validate(response) 

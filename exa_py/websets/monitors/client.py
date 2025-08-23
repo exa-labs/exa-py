@@ -9,6 +9,7 @@ from ..types import (
     ListMonitorsResponse,
 )
 from ..core.base import WebsetsBaseClient
+from ..core.async_base import WebsetsAsyncBaseClient
 from .runs import MonitorRunsClient
 
 class MonitorsClient(WebsetsBaseClient):
@@ -93,4 +94,39 @@ class MonitorsClient(WebsetsBaseClient):
             Monitor: The deleted monitor.
         """
         response = self.request(f"/v0/monitors/{monitor_id}", method="DELETE")
+        return Monitor.model_validate(response)
+
+
+class AsyncMonitorsClient(WebsetsAsyncBaseClient):
+    """Async client for managing Monitors."""
+    
+    def __init__(self, client):
+        super().__init__(client)
+        from .runs import AsyncMonitorRunsClient
+        self.runs = AsyncMonitorRunsClient(client)
+
+    async def create(self, params: Union[Dict[str, Any], CreateMonitorParameters]) -> Monitor:
+        """Create a new Monitor to continuously keep your Websets updated with fresh data."""
+        response = await self.request("/v0/monitors", data=params)
+        return Monitor.model_validate(response)
+
+    async def get(self, monitor_id: str) -> Monitor:
+        """Get a specific monitor."""
+        response = await self.request(f"/v0/monitors/{monitor_id}", method="GET")
+        return Monitor.model_validate(response)
+
+    async def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, webset_id: Optional[str] = None) -> ListMonitorsResponse:
+        """List all monitors."""
+        params = {k: v for k, v in {"cursor": cursor, "limit": limit, "websetId": webset_id}.items() if v is not None}
+        response = await self.request("/v0/monitors", params=params, method="GET")
+        return ListMonitorsResponse.model_validate(response)
+
+    async def update(self, monitor_id: str, params: Union[Dict[str, Any], UpdateMonitor]) -> Monitor:
+        """Update a monitor configuration."""
+        response = await self.request(f"/v0/monitors/{monitor_id}", data=params, method="PATCH")
+        return Monitor.model_validate(response)
+
+    async def delete(self, monitor_id: str) -> Monitor:
+        """Delete a monitor."""
+        response = await self.request(f"/v0/monitors/{monitor_id}", method="DELETE")
         return Monitor.model_validate(response) 

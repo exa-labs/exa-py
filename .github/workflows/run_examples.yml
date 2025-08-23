@@ -7,27 +7,44 @@ on:
     branches: [master]
 
 jobs:
-  test:
+  run-examples:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        batch: [1, 2, 3]
 
     env:
       EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
+    name: Examples (Batch ${{ matrix.batch }})
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
       - name: Install dependencies
         run: |
           poetry install
-      - name: Run examples
+      - name: Run examples batch ${{ matrix.batch }}
         run: |
-          for file in $(find examples -name "*.py" -type f); do
-            echo "Running example: $file"
-            echo "----------------------------------------"
-            poetry run python "$file"
-            echo "----------------------------------------"
-            echo ""
+          examples=($(find examples -name "*.py" -type f | sort))
+          total=${#examples[@]}
+          per_batch=$(( (total + 2) / 3 ))
+          start=$(( (matrix_batch - 1) * per_batch ))
+          end=$(( start + per_batch ))
+
+          echo "Batch ${{ matrix.batch }}: running ${examples[@]:$start:$per_batch}"
+
+          for example in "${examples[@]:$start:$per_batch}"; do
+            echo "Running: $example"
+            poetry run python "$example"
           done
+        env:
+          matrix_batch: ${{ matrix.batch }}

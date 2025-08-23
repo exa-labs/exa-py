@@ -1,3 +1,3 @@
-from .client import MonitorRunsClient
+from .client import MonitorRunsClient, AsyncMonitorRunsClient
 
-__all__ = ["MonitorRunsClient"] 
+__all__ = ["MonitorRunsClient", "AsyncMonitorRunsClient"] 

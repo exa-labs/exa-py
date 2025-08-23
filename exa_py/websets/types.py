@@ -24,15 +24,24 @@ class WebsetSearchBehavior(Enum):
 
 
 class MonitorBehaviorSearchConfig(ExaBaseModel):
-    query: str
-    criteria: List[SearchCriterion]
-    entity: Union[
+    query: Optional[str] = None
+    """
+    The query to search for. By default, the query from the last search is used.
+    """
+    criteria: Optional[List[SearchCriterion]] = None
+    """
+    The criteria to search for. By default, the criteria from the last search is used.
+    """
+    entity: Optional[Union[
         WebsetCompanyEntity,
         WebsetPersonEntity,
         WebsetArticleEntity,
         WebsetResearchPaperEntity,
         WebsetCustomEntity,
-    ] = Field(..., title='WebsetEntity')
+    ]] = Field(None, title='WebsetEntity')
+    """
+    The entity to search for. By default, the entity from the last search/import is used.
+    """
     count: int
     """
     The maximum number of results to find
