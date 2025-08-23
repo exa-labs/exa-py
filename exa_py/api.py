@@ -23,6 +23,7 @@ from typing import (
     overload,
 )
 
+from .websets import AsyncWebsetsClient
 import httpx
 import requests
 from openai import OpenAI
@@ -2413,6 +2414,8 @@ class AsyncExa(Exa):
         super().__init__(api_key, api_base)
         # Override the synchronous ResearchClient with its async counterpart.
         self.research = AsyncResearchClient(self)
+        # Override the synchronous WebsetsClient with its async counterpart.
+        self.websets = AsyncWebsetsClient(self)
         self._client = None
 
     @property

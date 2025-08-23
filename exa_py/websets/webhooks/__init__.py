@@ -1,3 +1,3 @@
-from .client import WebsetWebhooksClient
+from .client import WebsetWebhooksClient, AsyncWebsetWebhooksClient, AsyncWebhookAttemptsClient
 
-__all__ = ["WebsetWebhooksClient"] 
+__all__ = ["WebsetWebhooksClient", "AsyncWebsetWebhooksClient", "AsyncWebhookAttemptsClient"] 

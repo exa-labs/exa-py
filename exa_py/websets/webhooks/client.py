@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Any, Union, Literal
+from typing import Optional, Dict, Any, Union
 
 from ..types import (
     CreateWebhookParameters,
@@ -11,6 +11,7 @@ from ..types import (
     EventType,
 )
 from ..core.base import WebsetsBaseClient
+from ..core.async_base import WebsetsAsyncBaseClient
 
 class WebhookAttemptsClient(WebsetsBaseClient):
     """Client for managing Webhook Attempts."""
@@ -118,4 +119,65 @@ class WebsetWebhooksClient(WebsetsBaseClient):
             Webhook: The deleted webhook.
         """
         response = self.request(f"/v0/webhooks/{id}", method="DELETE")
+        return Webhook.model_validate(response)
+
+
+class AsyncWebhookAttemptsClient(WebsetsAsyncBaseClient):
+    """Async client for managing Webhook Attempts."""
+    
+    def __init__(self, client):
+        super().__init__(client)
+    
+    async def list(self, webhook_id: str, *, cursor: Optional[str] = None, 
+             limit: Optional[int] = None, event_type: Optional[Union[EventType, str]] = None,
+             successful: Optional[bool] = None) -> ListWebhookAttemptsResponse:
+        """List all attempts made by a Webhook ordered in descending order."""
+        event_type_value = None
+        if event_type is not None:
+            if isinstance(event_type, EventType):
+                event_type_value = event_type.value
+            else:
+                event_type_value = event_type
+                
+        params = {k: v for k, v in {
+            "cursor": cursor, 
+            "limit": limit,
+            "eventType": event_type_value,
+            "successful": successful
+        }.items() if v is not None}
+        
+        response = await self.request(f"/v0/webhooks/{webhook_id}/attempts", params=params, method="GET")
+        return ListWebhookAttemptsResponse.model_validate(response)
+
+class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
+    """Async client for managing Webset Webhooks."""
+    
+    def __init__(self, client):
+        super().__init__(client)
+        self.attempts = AsyncWebhookAttemptsClient(client)
+
+    async def create(self, params: Union[Dict[str, Any], CreateWebhookParameters]) -> Webhook:
+        """Create a Webhook."""
+        response = await self.request("/v0/webhooks", data=params)
+        return Webhook.model_validate(response)
+
+    async def get(self, id: str) -> Webhook:
+        """Get a Webhook by ID."""
+        response = await self.request(f"/v0/webhooks/{id}", method="GET")
+        return Webhook.model_validate(response)
+
+    async def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None) -> ListWebhooksResponse:
+        """List all Webhooks."""
+        params = {k: v for k, v in {"cursor": cursor, "limit": limit}.items() if v is not None}
+        response = await self.request("/v0/webhooks", params=params, method="GET")
+        return ListWebhooksResponse.model_validate(response)
+
+    async def update(self, id: str, params: Union[Dict[str, Any], UpdateWebhookParameters]) -> Webhook:
+        """Update a Webhook."""
+        response = await self.request(f"/v0/webhooks/{id}", data=params, method="PATCH")
+        return Webhook.model_validate(response)
+
+    async def delete(self, id: str) -> Webhook:
+        """Delete a Webhook."""
+        response = await self.request(f"/v0/webhooks/{id}", method="DELETE")
         return Webhook.model_validate(response)

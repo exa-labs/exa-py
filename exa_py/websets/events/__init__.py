@@ -1,3 +1,3 @@
-from .client import EventsClient
+from .client import EventsClient, AsyncEventsClient
 
-__all__ = ["EventsClient"]
+__all__ = ["EventsClient", "AsyncEventsClient"]

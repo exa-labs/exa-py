@@ -1,3 +1,3 @@
-from .client import WebsetEnrichmentsClient
+from .client import WebsetEnrichmentsClient, AsyncWebsetEnrichmentsClient
 
-__all__ = ["WebsetEnrichmentsClient"] 
+__all__ = ["WebsetEnrichmentsClient", "AsyncWebsetEnrichmentsClient"] 
