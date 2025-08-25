@@ -11,7 +11,7 @@ client = Exa(api_key=api_key, base_url=base_url)
 # Create a simple research request
 print("Creating research request...")
 research = client.research.create(
-    instructions="What is the capital of France and what is it famous for?",
+    instructions="What is the capital of France?",
     model="exa-research",
 )
 
@@ -38,3 +38,5 @@ if completed_research.status == "completed":
     print(f"  Reasoning tokens: {completed_research.cost_dollars.reasoning_tokens}")
 elif completed_research.status == "failed":
     print(f"Research failed with error: {completed_research.error}")
+
+print(completed_research.finished_at)

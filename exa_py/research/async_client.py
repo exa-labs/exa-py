@@ -45,6 +45,7 @@ class AsyncResearchTyped(Generic[T]):
         self.created_at = research.created_at
         self.model = research.model
         self.instructions = research.instructions
+        self.output_schema = research.output_schema
         if hasattr(research, "events"):
             self.events = research.events
         if hasattr(research, "output"):
