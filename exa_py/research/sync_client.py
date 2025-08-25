@@ -112,7 +112,6 @@ class ResearchClient(ResearchBaseClient):
             else:
                 payload["outputSchema"] = output_schema
 
-        print("mork - what the", payload, output_schema)
         response = self.request("", method="POST", data=payload)
         adapter = TypeAdapter(ResearchDto)
         return adapter.validate_python(response)
