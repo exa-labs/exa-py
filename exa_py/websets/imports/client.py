@@ -4,7 +4,7 @@ import time
 import os
 import csv
 import io
-import asyncio
+import anyio
 import requests
 import httpx
 from typing import Dict, Any, Union, Optional
@@ -335,13 +335,12 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
         Raises:
             TimeoutError: If the import does not complete within the timeout period.
         """
-        start_time = asyncio.get_event_loop().time()
-        while True:
-            import_obj = await self.get(import_id)
-            if import_obj.status in ['completed', 'failed']:
-                return import_obj
-                
-            if asyncio.get_event_loop().time() - start_time > timeout:
-                raise TimeoutError(f"Import {import_id} did not complete within {timeout} seconds")
-                
-            await asyncio.sleep(poll_interval) 
+        try:
+            with anyio.fail_after(timeout):
+                while True:
+                    import_obj = await self.get(import_id)
+                    if import_obj.status in ["completed", "failed"]:
+                        return import_obj
+                    await anyio.sleep(poll_interval)
+        except TimeoutError:
+            raise TimeoutError(f"Import {import_id} did not complete within {timeout} seconds")

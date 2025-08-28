@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import time
-import asyncio
 from typing import List, Optional, Literal, Dict, Any, Union
+
+import anyio
 
 from .types import (
     Webset,
@@ -277,13 +278,12 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         Raises:
             TimeoutError: If the webset does not become idle within the timeout period.
         """
-        start_time = asyncio.get_event_loop().time()
-        while True:
-            webset = await self.get(id)
-            if webset.status == WebsetStatus.idle.value:
-                return webset
-                
-            if asyncio.get_event_loop().time() - start_time > timeout:
-                raise TimeoutError(f"Webset {id} did not become idle within {timeout} seconds")
-                
-            await asyncio.sleep(poll_interval)
+        try:
+            with anyio.fail_after(timeout):
+                while True:
+                    webset = await self.get(id)
+                    if webset.status == WebsetStatus.idle.value:
+                        return webset
+                    await anyio.sleep(poll_interval)
+        except TimeoutError:
+            raise TimeoutError(f"Webset {id} did not become idle within {timeout} seconds")

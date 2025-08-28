@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-import asyncio
 from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 from .base import ExaBaseModel
