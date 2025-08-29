@@ -64,3 +64,6 @@ response = exa.answer(
     output_schema=SpaceXValuation,
 )
 print_example("Answer with output schema pydantic", response)
+
+response = exa.answer("National museum", user_location="FR")
+print_example("Answer with user location", response)

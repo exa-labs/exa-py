@@ -2319,6 +2319,7 @@ class Exa:
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
         output_schema: Optional[JSONSchemaInput] = None,
+        user_location: Optional[str] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]: ...
 
     def answer(
@@ -2330,6 +2331,7 @@ class Exa:
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
         output_schema: Optional[JSONSchemaInput] = None,
+        user_location: Optional[str] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
@@ -2384,6 +2386,7 @@ class Exa:
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
         output_schema: Optional[JSONSchemaInput] = None,
+        user_location: Optional[str] = None,
     ) -> StreamAnswerResponse:
         """Generate a streaming answer response.
 
@@ -2852,6 +2855,7 @@ class AsyncExa(Exa):
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
         output_schema: Optional[JSONSchemaInput] = None,
+        user_location: Optional[str] = None,
     ) -> Union[AnswerResponse, StreamAnswerResponse]:
         """Generate an answer to a query using Exa's search and LLM capabilities.
 
