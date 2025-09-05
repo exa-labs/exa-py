@@ -1473,7 +1473,7 @@ class WebsetItemArticleProperties(ExaBaseModel):
     The text content for the article
     """
     article: WebsetItemArticlePropertiesFields = Field(
-        ..., title='WebsetItemArticlePropertiesFields'
+        ..., title='WebsetItemArticlePropertiesFields', alias='article'
     )
     """
     The article fields
@@ -1506,7 +1506,7 @@ class WebsetItemCompanyProperties(ExaBaseModel):
     The text content of the company website
     """
     company: WebsetItemCompanyPropertiesFields = Field(
-        ..., title='WebsetItemCompanyPropertiesFields'
+        ..., title='WebsetItemCompanyPropertiesFields', alias='company'
     )
     """
     The company fields
@@ -1569,7 +1569,7 @@ class WebsetItemCustomProperties(ExaBaseModel):
     The text content of the Item
     """
     custom: WebsetItemCustomPropertiesFields = Field(
-        ..., title='WebsetItemCustomPropertiesFields'
+        ..., title='WebsetItemCustomPropertiesFields', alias='custom'
     )
     """
     The custom fields
@@ -1631,7 +1631,7 @@ class WebsetItemPersonProperties(ExaBaseModel):
     Short description of the relevance of the person
     """
     person: WebsetItemPersonPropertiesFields = Field(
-        ..., title='WebsetItemPersonPropertiesFields'
+        ..., title='WebsetItemPersonPropertiesFields', alias='person'
     )
     """
     The person fields
@@ -1687,7 +1687,7 @@ class WebsetItemResearchPaperProperties(ExaBaseModel):
     The text content of the research paper
     """
     research_paper: WebsetItemResearchPaperPropertiesFields = Field(
-        ..., title='WebsetItemResearchPaperPropertiesFields'
+        ..., title='WebsetItemResearchPaperPropertiesFields', alias='researchPaper'
     )
     """
     The research paper fields
