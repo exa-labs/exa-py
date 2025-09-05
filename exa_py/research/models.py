@@ -197,6 +197,9 @@ class ResearchBaseDto(BaseModel):
     instructions: Annotated[
         str, Field(description="The instructions given to this research request")
     ]
+    output_schema: Annotated[Optional[Dict[str, Any]], Field(alias="outputSchema")] = (
+        None
+    )
 
 
 class ResearchPendingDto(ResearchBaseDto):
@@ -210,6 +213,9 @@ class ResearchRunningDto(ResearchBaseDto):
 
 class ResearchCompletedDto(ResearchBaseDto):
     status: Literal["completed"]
+    finished_at: Annotated[
+        float, Field(alias="createdAt", description="Milliseconds since epoch time")
+    ]
     events: Optional[List[ResearchEvent]] = None
     output: ResearchOutput
     cost_dollars: Annotated[CostDollars, Field(alias="costDollars")]
@@ -217,11 +223,17 @@ class ResearchCompletedDto(ResearchBaseDto):
 
 class ResearchCanceledDto(ResearchBaseDto):
     status: Literal["canceled"]
+    finished_at: Annotated[
+        float, Field(alias="createdAt", description="Milliseconds since epoch time")
+    ]
     events: Optional[List[ResearchEvent]] = None
 
 
 class ResearchFailedDto(ResearchBaseDto):
     status: Literal["failed"]
+    finished_at: Annotated[
+        float, Field(alias="createdAt", description="Milliseconds since epoch time")
+    ]
     events: Optional[List[ResearchEvent]] = None
     error: Annotated[
         str, Field(description="A message indicating why the request failed")

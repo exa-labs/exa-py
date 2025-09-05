@@ -46,6 +46,9 @@ async def main():
     )
     print(response)
 
+    response = await exa.answer("National museum", user_location="FR")
+    print("Answer with user location", response)
+
 
 if __name__ == "__main__":
     import asyncio
