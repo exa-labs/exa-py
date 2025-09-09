@@ -73,7 +73,8 @@ class WebsetsBaseClient:
             raise TypeError(f"Expected dict, ExaBaseModel, or str, got {type(data)}")
         
     def request(self, endpoint: str, data: Optional[Union[Dict[str, Any], ExaBaseModel, str]] = None, 
-                method: str = "POST", params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                method: str = "POST", params: Optional[Dict[str, Any]] = None, 
+                headers: Optional[Dict[str, str]] = None, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Make a request to the Exa API.
         
         Args:
@@ -81,6 +82,8 @@ class WebsetsBaseClient:
             data (Union[Dict[str, Any], ExaBaseModel, str], optional): The request data. Can be a dictionary, model instance, or string. Defaults to None.
             method (str, optional): The HTTP method. Defaults to "POST".
             params (Dict[str, Any], optional): The query parameters. Defaults to None.
+            headers (Dict[str, str], optional): Custom headers to include in the request. Defaults to None.
+            options (Dict[str, Any], optional): Request options that may include 'priority' and/or 'headers'. Defaults to None.
             
         Returns:
             Dict[str, Any]: The API response.
@@ -92,9 +95,33 @@ class WebsetsBaseClient:
             # If data is a model instance, convert it to a dict
             data = data.model_dump(mode='json', by_alias=True, exclude_none=True)
             
+        # Process options to build headers
+        final_headers = {}
+        
+        # If options are provided, process them
+        if options:
+            # Handle RequestOptions model
+            if hasattr(options, 'priority') or hasattr(options, 'headers'):
+                # It's a RequestOptions instance
+                if hasattr(options, 'priority') and options.priority:
+                    final_headers['x-exa-websets-priority'] = options.priority
+                if hasattr(options, 'headers') and options.headers:
+                    final_headers.update(options.headers)
+            # Handle dict options
+            elif isinstance(options, dict):
+                if 'priority' in options:
+                    final_headers['x-exa-websets-priority'] = options['priority']
+                if 'headers' in options:
+                    final_headers.update(options.get('headers', {}))
+        
+        # Merge with any directly passed headers
+        if headers:
+            final_headers.update(headers)
+            
         # Ensure proper URL construction by removing leading slash from endpoint if present
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
             
-        return self._client.request("/websets/" + endpoint, data=data, method=method, params=params) 
+        return self._client.request("/websets/" + endpoint, data=data, method=method, params=params, 
+                                   headers=final_headers if final_headers else None) 
 

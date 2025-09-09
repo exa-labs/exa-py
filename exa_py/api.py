@@ -1164,6 +1164,7 @@ class Exa:
         data: Optional[Union[Dict[str, Any], str]] = None,
         method: str = "POST",
         params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
     ) -> Union[Dict[str, Any], requests.Response]:
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
@@ -1172,6 +1173,7 @@ class Exa:
             data (dict, optional): The JSON payload to send. Defaults to None.
             method (str, optional): The HTTP method to use. Defaults to "POST".
             params (Dict[str, Any], optional): Query parameters to include. Defaults to None.
+            headers (Dict[str, str], optional): Additional headers to include in the request. Defaults to None.
 
         Returns:
             Union[dict, requests.Response]: If streaming, returns the Response object.
@@ -1193,38 +1195,43 @@ class Exa:
             params and params.get("stream") == "true"
         )
 
+        # Merge additional headers with existing headers
+        request_headers = {**self.headers}
+        if headers:
+            request_headers.update(headers)
+
         if method.upper() == "GET":
             if needs_streaming:
                 res = requests.get(
                     self.base_url + endpoint,
-                    headers=self.headers,
+                    headers=request_headers,
                     params=params,
                     stream=True,
                 )
                 return res
             else:
                 res = requests.get(
-                    self.base_url + endpoint, headers=self.headers, params=params
+                    self.base_url + endpoint, headers=request_headers, params=params
                 )
         elif method.upper() == "POST":
             if needs_streaming:
                 res = requests.post(
                     self.base_url + endpoint,
                     data=json_data,
-                    headers=self.headers,
+                    headers=request_headers,
                     stream=True,
                 )
                 return res
             else:
                 res = requests.post(
-                    self.base_url + endpoint, data=json_data, headers=self.headers
+                    self.base_url + endpoint, data=json_data, headers=request_headers
                 )
         elif method.upper() == "PATCH":
             res = requests.patch(
-                self.base_url + endpoint, data=json_data, headers=self.headers
+                self.base_url + endpoint, data=json_data, headers=request_headers
             )
         elif method.upper() == "DELETE":
-            res = requests.delete(self.base_url + endpoint, headers=self.headers)
+            res = requests.delete(self.base_url + endpoint, headers=request_headers)
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
@@ -2431,7 +2438,8 @@ class AsyncExa(Exa):
         return self._client
 
     async def async_request(
-        self, endpoint: str, data=None, method: str = "POST", params=None
+        self, endpoint: str, data=None, method: str = "POST", params=None,
+        headers: Optional[Dict[str, str]] = None
     ):
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
@@ -2440,6 +2448,7 @@ class AsyncExa(Exa):
             data (dict, optional): The JSON payload to send.
             method (str, optional): The HTTP method to use. Defaults to "POST".
             params (dict, optional): Query parameters.
+            headers (Dict[str, str], optional): Additional headers to include in the request. Defaults to None.
 
         Returns:
             Union[dict, httpx.Response]: If streaming, returns the Response object.
@@ -2453,27 +2462,32 @@ class AsyncExa(Exa):
             params and params.get("stream") == "true"
         )
 
+        # Merge additional headers with existing headers
+        request_headers = {**self.headers}
+        if headers:
+            request_headers.update(headers)
+
         if method.upper() == "GET":
             if needs_streaming:
                 request = httpx.Request(
-                    "GET", self.base_url + endpoint, params=params, headers=self.headers
+                    "GET", self.base_url + endpoint, params=params, headers=request_headers
                 )
                 res = await self.client.send(request, stream=True)
                 return res
             else:
                 res = await self.client.get(
-                    self.base_url + endpoint, params=params, headers=self.headers
+                    self.base_url + endpoint, params=params, headers=request_headers
                 )
         elif method.upper() == "POST":
             if needs_streaming:
                 request = httpx.Request(
-                    "POST", self.base_url + endpoint, json=data, headers=self.headers
+                    "POST", self.base_url + endpoint, json=data, headers=request_headers
                 )
                 res = await self.client.send(request, stream=True)
                 return res
             else:
                 res = await self.client.post(
-                    self.base_url + endpoint, json=data, headers=self.headers
+                    self.base_url + endpoint, json=data, headers=request_headers
                 )
         if res.status_code != 200 and res.status_code != 201:
             raise ValueError(
