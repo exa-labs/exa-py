@@ -35,6 +35,7 @@ dependencies = [
     "openai>=1.48",
     "pydantic>=2.10.6",
     "httpx>=0.28.1",
+    "anyio",
 ]
 
 [dependency-groups]

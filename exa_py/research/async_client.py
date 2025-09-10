@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import (
     Any,
     AsyncGenerator,
@@ -16,6 +15,7 @@ from typing import (
     overload,
 )
 
+import anyio
 from pydantic import BaseModel, TypeAdapter
 
 from .base import AsyncResearchBaseClient
@@ -274,38 +274,36 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             RuntimeError: If polling fails too many times.
         """
         poll_interval_sec = poll_interval / 1000
-        timeout_sec = timeout_ms / 1000
         max_consecutive_failures = 5
-        start_time = asyncio.get_event_loop().time()
         consecutive_failures = 0
 
-        while True:
-            try:
-                if output_schema:
-                    result = await self.get(
-                        research_id, events=events, output_schema=output_schema
-                    )
-                else:
-                    result = await self.get(research_id, events=events)
+        try:
+            with anyio.fail_after(timeout_ms / 1000):
+                while True:
+                    try:
+                        if output_schema:
+                            result = await self.get(
+                                research_id=research_id, events=events, output_schema=output_schema
+                            )
+                        else:
+                            result = await self.get(research_id, events=events)
 
-                consecutive_failures = 0
+                        consecutive_failures = 0
 
-                # Check if research is finished
-                status = result.status if hasattr(result, "status") else None
-                if status in ["completed", "failed", "canceled"]:
-                    return result
+                        status = getattr(result, "status", None)
+                        if status in ["completed", "failed", "canceled"]:
+                            return result
 
-            except Exception as e:
-                consecutive_failures += 1
-                if consecutive_failures >= max_consecutive_failures:
-                    raise RuntimeError(
-                        f"Polling failed {max_consecutive_failures} times in a row "
-                        f"for research {research_id}: {e}"
-                    )
+                    except Exception as e:
+                        consecutive_failures += 1
+                        if consecutive_failures >= max_consecutive_failures:
+                            raise RuntimeError(
+                                f"Polling failed {max_consecutive_failures} times in a row "
+                                f"for research {research_id}: {e}"
+                            )
 
-            if asyncio.get_event_loop().time() - start_time > timeout_sec:
-                raise TimeoutError(
-                    f"Research {research_id} did not complete within {timeout_ms}ms"
-                )
-
-            await asyncio.sleep(poll_interval_sec)
+                    await anyio.sleep(poll_interval_sec)
+        except TimeoutError:
+            raise TimeoutError(
+                f"Research {research_id} did not complete within {timeout_ms}ms"
+            )
