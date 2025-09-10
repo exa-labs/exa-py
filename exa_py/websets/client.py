@@ -13,6 +13,7 @@ from .types import (
     CreateWebsetParameters,
     PreviewWebsetParameters,
     PreviewWebsetResponse,
+    RequestOptions,
 )
 from .core.base import WebsetsBaseClient
 from .core.async_base import WebsetsAsyncBaseClient
@@ -37,16 +38,19 @@ class WebsetsClient(WebsetsBaseClient):
         self.imports = ImportsClient(client)
         self.events = EventsClient(client)
 
-    def create(self, params: Union[Dict[str, Any], CreateWebsetParameters]) -> Webset:
+    def create(self, params: Union[Dict[str, Any], CreateWebsetParameters], 
+               options: Optional[Union[Dict[str, Any], RequestOptions]] = None) -> Webset:
         """Create a new Webset.
         
         Args:
             params (CreateWebsetParameters): The parameters for creating a webset.
+            options (RequestOptions, optional): Request options including priority and/or custom headers.
+                Can specify priority as 'low', 'medium', or 'high'.
         
         Returns:
             Webset: The created webset.
         """
-        response = self.request("/v0/websets", data=params)
+        response = self.request("/v0/websets", data=params, options=options)
         return Webset.model_validate(response)
 
     def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters]) -> PreviewWebsetResponse:
@@ -171,16 +175,19 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         self.imports = AsyncImportsClient(client)
         self.events = AsyncEventsClient(client)
 
-    async def create(self, params: Union[Dict[str, Any], CreateWebsetParameters]) -> Webset:
+    async def create(self, params: Union[Dict[str, Any], CreateWebsetParameters],
+                     options: Optional[Union[Dict[str, Any], RequestOptions]] = None) -> Webset:
         """Create a new Webset.
         
         Args:
             params (CreateWebsetParameters): The parameters for creating a webset.
+            options (RequestOptions, optional): Request options including priority and/or custom headers.
+                Can specify priority as 'low', 'medium', or 'high'.
         
         Returns:
             Webset: The created webset.
         """
-        response = await self.request("/v0/websets", data=params)
+        response = await self.request("/v0/websets", data=params, options=options)
         return Webset.model_validate(response)
 
     async def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters]) -> PreviewWebsetResponse:

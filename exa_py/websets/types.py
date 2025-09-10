@@ -12,6 +12,21 @@ from pydantic import AnyUrl, Field, PositiveInt
 from .core.base import ExaBaseModel
 
 
+class WebsetPriority(Enum):
+    """Priority levels for webset operations."""
+    low = 'low'
+    medium = 'medium'
+    high = 'high'
+
+
+class RequestOptions(ExaBaseModel):
+    """Options for API requests."""
+    priority: Optional[Literal['low', 'medium', 'high']] = None
+    """Priority level for the request (low, medium, or high)."""
+    headers: Optional[Dict[str, str]] = None
+    """Custom headers to include in the request."""
+
+
 class WebsetSearchBehavior(Enum):
     """
     The behavior of the Search when it is added to a Webset.
