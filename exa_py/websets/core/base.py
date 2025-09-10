@@ -122,6 +122,9 @@ class WebsetsBaseClient:
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
             
-        return self._client.request("/websets/" + endpoint, data=data, method=method, params=params, 
-                                   headers=final_headers if final_headers else None) 
+        # Only pass headers if there are any
+        if final_headers:
+            return self._client.request("/websets/" + endpoint, data=data, method=method, params=params, headers=final_headers)
+        else:
+            return self._client.request("/websets/" + endpoint, data=data, method=method, params=params) 
 

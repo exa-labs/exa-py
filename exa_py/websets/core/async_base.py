@@ -100,5 +100,8 @@ class WebsetsAsyncBaseClient:
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
             
-        return await self._client.async_request("/websets/" + endpoint, data=data, method=method, params=params, 
-                                               headers=final_headers if final_headers else None) 
+        # Only pass headers if there are any
+        if final_headers:
+            return await self._client.async_request("/websets/" + endpoint, data=data, method=method, params=params, headers=final_headers)
+        else:
+            return await self._client.async_request("/websets/" + endpoint, data=data, method=method, params=params) 
