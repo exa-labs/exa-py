@@ -1,9 +1,3 @@
-[tool.poetry]
-name = "exa-py"
-version = "1.15.6"
-description = "Python SDK for Exa API."
-authors = ["Exa AI <hello@exa.ai>"]
-
 [tool.poetry.dependencies]
 python = "^3.9"
 requests = "^2.32.3"
@@ -19,10 +13,10 @@ setuptools = "^78.1.1"
 docutils = "^0.21.2"
 twine = "^5.1.1"
 datamodel-code-generator = "^0.28.4"
-pytest = "^8.3.5"
-pytest-cov = "^6.0.0"
-pytest-mock = "^3.14.0"
-pytest-asyncio = "^0.24.0"
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+pytest-mock = "^3.14.1"
+pytest-asyncio = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core"]
