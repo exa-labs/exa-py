@@ -6,9 +6,9 @@ openai = "^1.48"
 pydantic = "^2.10.6"
 httpx = "^0.28.1"
 httpcore = "^1.0.9"
+python-dotenv = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
-python-dotenv = "^1.0.1"
 setuptools = "^78.1.1"
 docutils = "^0.21.2"
 twine = "^5.1.1"
@@ -37,6 +37,7 @@ dependencies = [
     "pydantic>=2.10.6",
     "httpx>=0.28.1",
     "httpcore>=1.0.9",
+    "python-dotenv>=1.0.1",
 ]
 
 [dependency-groups]
