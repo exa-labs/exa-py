@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+# Standard library imports
+import asyncio
 import dataclasses
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -23,14 +26,17 @@ from typing import (
     overload,
 )
 
-from .websets import AsyncWebsetsClient
+# Third-party imports
 import httpx
 import requests
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
+from requests.adapters import HTTPAdapter
 from typing_extensions import TypedDict
+from urllib3.util.retry import Retry
 
+# Local imports
 from exa_py.utils import (
     ExaOpenAICompletion,
     _convert_schema_input,
@@ -40,12 +46,44 @@ from exa_py.utils import (
     maybe_get_query,
     JSONSchemaInput,
 )
-from .websets import WebsetsClient
-from .websets.core.base import ExaJSONEncoder
 from .research import ResearchClient, AsyncResearchClient
+from .websets import AsyncWebsetsClient, WebsetsClient
+from .websets.core.base import ExaJSONEncoder
+
+# Configure logger for retry observability
+logger = logging.getLogger(__name__)
 
 
 is_beta = os.getenv("IS_BETA") == "True"
+
+
+def _create_session_with_retries(
+    total_retries: int = 3,
+    backoff_factor: float = 1.0,
+    status_forcelist: tuple = (429,)
+) -> requests.Session:
+    """Create a requests Session with automatic retry logic for rate limiting.
+
+    Args:
+        total_retries (int): Maximum number of retry attempts. Default: 3.
+        backoff_factor (float): Multiplier for exponential backoff. Default: 1.0.
+        status_forcelist (tuple): HTTP status codes to retry on. Default: (429,).
+
+    Returns:
+        requests.Session: Configured session with retry adapter.
+    """
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=total_retries,
+        status_forcelist=status_forcelist,
+        allowed_methods=["GET", "POST", "PATCH", "DELETE"],
+        backoff_factor=backoff_factor,
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
 
 
 def snake_to_camel(snake_str: str) -> str:
@@ -1127,6 +1165,9 @@ class Exa:
         api_key: Optional[str],
         base_url: str = "https://api.exa.ai",
         user_agent: Optional[str] = None,
+        max_retries: int = 3,
+        retry_backoff_factor: float = 1.0,
+        retry_on_status: tuple = (429, 502, 503),
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
@@ -1134,6 +1175,11 @@ class Exa:
             api_key (str): The API key for authenticating with the Exa API.
             base_url (str, optional): The base URL for the Exa API. Defaults to "https://api.exa.ai".
             user_agent (str, optional): Custom user agent. Defaults to "exa-py {version}".
+            max_retries (int, optional): Maximum number of retry attempts for failed requests. Defaults to 3.
+                Set to 0 to disable retries.
+            retry_backoff_factor (float, optional): Multiplier for exponential backoff between retries.
+                Defaults to 1.0 (retry delays: 1s, 2s, 4s).
+            retry_on_status (tuple, optional): HTTP status codes to retry on. Defaults to (429, 502, 503).
         """
         if api_key is None:
             import os
@@ -1154,9 +1200,40 @@ class Exa:
             "User-Agent": user_agent,
             "Content-Type": "application/json",
         }
+
+        # Store retry configuration
+        self.max_retries = max_retries
+        self.retry_backoff_factor = retry_backoff_factor
+        self.retry_on_status = retry_on_status
+
+        # Configure session with retry strategy for rate limiting (429 errors)
+        self._session = _create_session_with_retries(
+            total_retries=max_retries,
+            backoff_factor=retry_backoff_factor,
+            status_forcelist=retry_on_status
+        )
+
         self.websets = WebsetsClient(self)
         # Research tasks client (new, mirrors Websets design)
         self.research = ResearchClient(self)
+
+    def close(self):
+        """Close the underlying HTTP session and release connection pool resources.
+
+        This should be called when you're done using the client to prevent resource leaks.
+        Alternatively, use the client as a context manager.
+        """
+        if hasattr(self, '_session') and self._session:
+            self._session.close()
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - closes the session."""
+        self.close()
+        return False
 
     def request(
         self,
@@ -1202,7 +1279,7 @@ class Exa:
 
         if method.upper() == "GET":
             if needs_streaming:
-                res = requests.get(
+                res = self._session.get(
                     self.base_url + endpoint,
                     headers=request_headers,
                     params=params,
@@ -1210,12 +1287,12 @@ class Exa:
                 )
                 return res
             else:
-                res = requests.get(
+                res = self._session.get(
                     self.base_url + endpoint, headers=request_headers, params=params
                 )
         elif method.upper() == "POST":
             if needs_streaming:
-                res = requests.post(
+                res = self._session.post(
                     self.base_url + endpoint,
                     data=json_data,
                     headers=request_headers,
@@ -1223,15 +1300,15 @@ class Exa:
                 )
                 return res
             else:
-                res = requests.post(
+                res = self._session.post(
                     self.base_url + endpoint, data=json_data, headers=request_headers
                 )
         elif method.upper() == "PATCH":
-            res = requests.patch(
+            res = self._session.patch(
                 self.base_url + endpoint, data=json_data, headers=request_headers
             )
         elif method.upper() == "DELETE":
-            res = requests.delete(self.base_url + endpoint, headers=request_headers)
+            res = self._session.delete(self.base_url + endpoint, headers=request_headers)
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
@@ -2420,13 +2497,47 @@ class Exa:
 
 
 class AsyncExa(Exa):
-    def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
-        super().__init__(api_key, api_base)
+    def __init__(
+        self,
+        api_key: str,
+        api_base: str = "https://api.exa.ai",
+        user_agent: Optional[str] = None,
+        max_retries: int = 3,
+        retry_backoff_factor: float = 1.0,
+        retry_on_status: tuple = (429, 502, 503),
+    ):
+        super().__init__(
+            api_key,
+            api_base,
+            user_agent=user_agent,
+            max_retries=max_retries,
+            retry_backoff_factor=retry_backoff_factor,
+            retry_on_status=retry_on_status,
+        )
         # Override the synchronous ResearchClient with its async counterpart.
         self.research = AsyncResearchClient(self)
         # Override the synchronous WebsetsClient with its async counterpart.
         self.websets = AsyncWebsetsClient(self)
         self._client = None
+
+    async def aclose(self):
+        """Close the underlying async HTTP client and release connection pool resources.
+
+        This should be called when you're done using the async client to prevent resource leaks.
+        Alternatively, use the client as an async context manager.
+        """
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - closes the client."""
+        await self.aclose()
+        return False
 
     @property
     def client(self) -> httpx.AsyncClient:
@@ -2436,6 +2547,132 @@ class AsyncExa(Exa):
                 base_url=self.base_url, headers=self.headers, timeout=600
             )
         return self._client
+
+    async def _request_with_retries(
+        self,
+        method: str,
+        endpoint: str,
+        request_headers: Dict[str, str],
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        needs_streaming: bool = False,
+        max_retries: int = 3,
+        backoff_factor: float = 1.0,
+    ) -> Union[Dict[str, Any], httpx.Response]:
+        """Execute HTTP request with exponential backoff retry logic for rate limiting.
+
+        Args:
+            method (str): HTTP method (GET, POST, PATCH, DELETE).
+            endpoint (str): API endpoint path.
+            request_headers (Dict[str, str]): Headers to include in request.
+            params (dict, optional): Query parameters. Defaults to None.
+            data (dict, optional): JSON payload for POST/PATCH requests. Defaults to None.
+            needs_streaming (bool, optional): Whether to stream the response. Defaults to False.
+            max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
+            backoff_factor (float, optional): Multiplier for exponential backoff. Defaults to 1.0.
+
+        Returns:
+            Union[dict, httpx.Response]: JSON response dict or httpx.Response for streaming requests.
+
+        Raises:
+            ValueError: If request fails with non-2xx status after all retries.
+        """
+        url = self.base_url + endpoint
+        method_upper = method.upper()
+        last_error = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                # Execute request based on method and streaming requirements
+                response = None
+
+                if needs_streaming:
+                    # Build streaming request
+                    if method_upper == "GET":
+                        request = httpx.Request("GET", url, params=params, headers=request_headers)
+                    elif method_upper == "POST":
+                        request = httpx.Request("POST", url, json=data, headers=request_headers)
+                    elif method_upper == "PATCH":
+                        request = httpx.Request("PATCH", url, json=data, headers=request_headers)
+                    elif method_upper == "DELETE":
+                        request = httpx.Request("DELETE", url, headers=request_headers)
+                    else:
+                        raise ValueError(f"Unsupported HTTP method: {method}")
+
+                    response = await self.client.send(request, stream=True)
+                else:
+                    # Non-streaming requests
+                    if method_upper == "GET":
+                        response = await self.client.get(url, params=params, headers=request_headers)
+                    elif method_upper == "POST":
+                        response = await self.client.post(url, json=data, headers=request_headers)
+                    elif method_upper == "PATCH":
+                        response = await self.client.patch(url, json=data, headers=request_headers)
+                    elif method_upper == "DELETE":
+                        response = await self.client.delete(url, headers=request_headers)
+                    else:
+                        raise ValueError(f"Unsupported HTTP method: {method}")
+
+                # Check for rate limiting (429) - handle for both streaming and non-streaming
+                if response.status_code == 429 and attempt < max_retries:
+                    # Respect Retry-After header if present
+                    retry_after = response.headers.get('Retry-After')
+                    if retry_after and retry_after.isdigit():
+                        delay = int(retry_after)
+                    else:
+                        delay = backoff_factor * (2 ** attempt)
+
+                    logger.warning(
+                        f"Rate limited (429) on {method_upper} {endpoint}, "
+                        f"retry {attempt + 1}/{max_retries} after {delay}s"
+                    )
+
+                    # Close streaming response before retrying
+                    if needs_streaming:
+                        await response.aclose()
+
+                    await asyncio.sleep(delay)
+                    continue
+
+                # Validate response status for non-2xx
+                if response.status_code not in (200, 201):
+                    error_msg = (
+                        f"Request failed: {method_upper} {endpoint} "
+                        f"-> {response.status_code}"
+                    )
+                    try:
+                        error_msg += f": {response.text}"
+                    except Exception:
+                        error_msg += " (response body unavailable)"
+
+                    raise ValueError(error_msg)
+
+                # Success - return appropriate response type
+                if needs_streaming:
+                    return response
+                else:
+                    return response.json()
+
+            except httpx.RequestError as e:
+                last_error = e
+                if attempt < max_retries:
+                    delay = backoff_factor * (2 ** attempt)
+                    logger.warning(
+                        f"Request error on {method_upper} {endpoint}: {e}, "
+                        f"retry {attempt + 1}/{max_retries} after {delay}s"
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                # If last attempt, raise below
+            except ValueError:
+                # Re-raise ValueError (status code errors) immediately
+                raise
+
+        # If we exhausted all retries due to network errors
+        raise ValueError(
+            f"Request failed after {max_retries + 1} attempts: {method_upper} {endpoint}. "
+            f"Last error: {last_error}"
+        )
 
     async def async_request(
         self, endpoint: str, data=None, method: str = "POST", params=None,
@@ -2457,43 +2694,22 @@ class AsyncExa(Exa):
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
-        # Check if we need streaming (either from data for POST or params for GET)
         needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or (
             params and params.get("stream") == "true"
         )
 
-        # Merge additional headers with existing headers
-        request_headers = {**self.headers}
-        if headers:
-            request_headers.update(headers)
+        request_headers = {**self.headers, **(headers or {})}
 
-        if method.upper() == "GET":
-            if needs_streaming:
-                request = httpx.Request(
-                    "GET", self.base_url + endpoint, params=params, headers=request_headers
-                )
-                res = await self.client.send(request, stream=True)
-                return res
-            else:
-                res = await self.client.get(
-                    self.base_url + endpoint, params=params, headers=request_headers
-                )
-        elif method.upper() == "POST":
-            if needs_streaming:
-                request = httpx.Request(
-                    "POST", self.base_url + endpoint, json=data, headers=request_headers
-                )
-                res = await self.client.send(request, stream=True)
-                return res
-            else:
-                res = await self.client.post(
-                    self.base_url + endpoint, json=data, headers=request_headers
-                )
-        if res.status_code != 200 and res.status_code != 201:
-            raise ValueError(
-                f"Request failed with status code {res.status_code}: {res.text}"
-            )
-        return res.json()
+        return await self._request_with_retries(
+            method=method,
+            endpoint=endpoint,
+            request_headers=request_headers,
+            params=params,
+            data=data,
+            needs_streaming=needs_streaming,
+            max_retries=self.max_retries,
+            backoff_factor=self.retry_backoff_factor,
+        )
 
     async def search(
         self,
