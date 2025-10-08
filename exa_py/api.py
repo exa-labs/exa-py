@@ -142,7 +142,9 @@ SEARCH_OPTIONS_TYPES = {
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
     "use_autoprompt": [bool],  # Convert query to Exa. (Default: false)
-    "type": [str],  # 'keyword', 'neural', 'hybrid', 'fast', or 'auto' (Default: auto)
+    "type": [
+        str
+    ],  # 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (Default: auto)
     "category": [
         str
     ],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
@@ -260,6 +262,10 @@ class HighlightsContentsOptions(TypedDict, total=False):
         query (str): The query string for the highlights.
         num_sentences (int): Size of highlights to return, in sentences. Default: 5
         highlights_per_url (int): Number of highlights to return per URL. Default: 1
+
+    NOTE: When using the "deep" search type, only the default highlights=True is supported.
+          These options will NOT be respected. Highlights will always be based on the user's query,
+          and the number and length may vary.
     """
 
     query: str
@@ -1275,7 +1281,7 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
-            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', or 'auto' (default 'auto').
+            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (default 'auto').
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
@@ -2438,8 +2444,12 @@ class AsyncExa(Exa):
         return self._client
 
     async def async_request(
-        self, endpoint: str, data=None, method: str = "POST", params=None,
-        headers: Optional[Dict[str, str]] = None
+        self,
+        endpoint: str,
+        data=None,
+        method: str = "POST",
+        params=None,
+        headers: Optional[Dict[str, str]] = None,
     ):
         """Send a request to the Exa API, optionally streaming if data['stream'] is True.
 
@@ -2470,7 +2480,10 @@ class AsyncExa(Exa):
         if method.upper() == "GET":
             if needs_streaming:
                 request = httpx.Request(
-                    "GET", self.base_url + endpoint, params=params, headers=request_headers
+                    "GET",
+                    self.base_url + endpoint,
+                    params=params,
+                    headers=request_headers,
                 )
                 res = await self.client.send(request, stream=True)
                 return res
@@ -2529,7 +2542,7 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             use_autoprompt (bool, optional): Convert query to Exa (default False).
-            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', or 'auto' (default 'auto').
+            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (default 'auto').
             category (str, optional): e.g. 'company'
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
