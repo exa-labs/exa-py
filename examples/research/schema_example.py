@@ -7,7 +7,7 @@ from exa_py import Exa
 
 # Initialize the client
 api_key = os.environ.get("EXA_API_KEY")
-base_url = os.environ.get("EXA_BASE_URL", "https://api.exa.sh")
+base_url = os.environ.get("EXA_BASE_URL", "https://api.exa.ai")
 client = Exa(api_key=api_key, base_url=base_url)
 
 
