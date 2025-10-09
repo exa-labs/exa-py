@@ -23,6 +23,7 @@ from .models import (
     ResearchDto,
     ResearchEvent,
     ListResearchResponseDto,
+    ResearchModel,
 )
 from .utils import (
     async_stream_sse_events,
@@ -64,7 +65,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         self,
         *,
         instructions: str,
-        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
+        model: ResearchModel = "exa-research-fast",
     ) -> ResearchDto: ...
 
     @overload

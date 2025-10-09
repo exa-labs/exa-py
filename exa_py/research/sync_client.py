@@ -23,6 +23,7 @@ from .models import (
     ResearchDto,
     ResearchEvent,
     ListResearchResponseDto,
+    ResearchModel,
 )
 from .utils import (
     is_pydantic_model,
@@ -63,7 +64,7 @@ class ResearchClient(ResearchBaseClient):
         self,
         *,
         instructions: str,
-        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
+        model: ResearchModel = "exa-research-fast",
     ) -> ResearchDto: ...
 
     @overload
@@ -71,7 +72,7 @@ class ResearchClient(ResearchBaseClient):
         self,
         *,
         instructions: str,
-        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
+        model: ResearchModel = "exa-research-fast",
         output_schema: Dict[str, Any],
     ) -> ResearchDto: ...
 
@@ -80,7 +81,7 @@ class ResearchClient(ResearchBaseClient):
         self,
         *,
         instructions: str,
-        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
+        model: ResearchModel = "exa-research-fast",
         output_schema: Type[T],
     ) -> ResearchDto: ...
 
@@ -88,7 +89,7 @@ class ResearchClient(ResearchBaseClient):
         self,
         *,
         instructions: str,
-        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
+        model: ResearchModel = "exa-research-fast",
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
     ) -> ResearchDto:
         """Create a new research request.
