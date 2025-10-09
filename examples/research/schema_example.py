@@ -26,7 +26,7 @@ class CompaniesReport(BaseModel):
 print("Creating research request with structured output schema...")
 research = client.research.create(
     instructions="List 2 major tech companies with their main product. Provide a brief summary.",
-    model="exa-research",
+    model="exa-research-fast",
     output_schema=CompaniesReport,
 )
 
@@ -71,14 +71,14 @@ dict_schema = {
     "type": "object",
     "properties": {
         "answer": {"type": "string"},
-        "confidence": {"type": "string", "enum": ["high", "medium", "low"]}
+        "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
     },
     "required": ["answer", "confidence"],
 }
 
 research2 = client.research.create(
     instructions="What is the capital of Japan? Provide your answer and confidence level.",
-    model="exa-research",
+    model="exa-research-fast",
     output_schema=dict_schema,
 )
 

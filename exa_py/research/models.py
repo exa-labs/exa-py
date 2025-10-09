@@ -5,6 +5,9 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, Field, RootModel
 
 
+ResearchModel = Literal["exa-research-fast", "exa-research", "exa-research-pro"]
+
+
 class CostDollars(BaseModel):
     total: float
     num_pages: Annotated[float, Field(alias="numPages")]
@@ -191,7 +194,7 @@ class ResearchBaseDto(BaseModel):
         float, Field(alias="createdAt", description="Milliseconds since epoch time")
     ]
     model: Annotated[
-        Literal["exa-research", "exa-research-pro"],
+        ResearchModel,
         Field(description="The model used for the research request"),
     ] = "exa-research"
     instructions: Annotated[
@@ -273,7 +276,7 @@ class ListResearchResponseDto(BaseModel):
 
 
 class ResearchCreateRequestDto(BaseModel):
-    model: Literal["exa-research", "exa-research-pro"] = "exa-research"
+    model: ResearchModel = "exa-research"
     instructions: Annotated[
         str,
         Field(
@@ -313,6 +316,7 @@ __all__ = [
     "ResearchTaskOutput",
     "ResearchTaskOutputEvent",
     "ResearchMetaEvent",
+    "ResearchModel",
     "ResearchPlanEvent",
     "ResearchTaskEvent",
     "ResearchEvent",
