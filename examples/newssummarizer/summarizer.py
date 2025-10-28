@@ -5,6 +5,7 @@ import textwrap
 from datetime import datetime, timedelta
 
 import os
+
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 exa = Exa(os.environ.get("EXA_API_KEY"))
 
@@ -24,11 +25,11 @@ search_query = completion.choices[0].message.content
 print("Search query:")
 print(search_query)
 
-one_week_ago = (datetime.now() - timedelta(days=7))
+one_week_ago = datetime.now() - timedelta(days=7)
 date_cutoff = one_week_ago.strftime("%Y-%m-%d")
 
 search_response = exa.search_and_contents(
-    search_query, use_autoprompt=True, start_published_date=date_cutoff
+    search_query, start_published_date=date_cutoff
 )
 
 urls = [result.url for result in search_response.results]

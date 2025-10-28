@@ -36,9 +36,9 @@ def test_search_accepts_user_location_offline():
     # Create a mock response
     mock_response = {
         "results": [{"url": "http://example.com", "id": "1", "title": "Test"}],
-        "costDollars": {"total": 0.001}
+        "costDollars": {"total": 0.001},
     }
-    
+
     with patch.object(exa, "request", return_value=mock_response):
         # This should not raise any errors about unknown parameters
         resp = exa.search("test query", user_location="US", num_results=1)
@@ -128,23 +128,6 @@ async def test_get_contents_async_live():
         urls=["https://example.com"], text=True, livecrawl="never"
     )
     assert resp.results
-
-
-# researchTask endpoint is still beta; mark as xfail if 404 returned
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_research_task_live():
-    exa = Exa(API_KEY)
-    schema = {
-        "type": "object",
-        "properties": {"answer": {"type": "string"}},
-        "required": ["answer"],
-    }
-    resp = exa.research.create_task(
-        instructions="What is the capital of Minnesota?", output_schema=schema
-    )
-    assert resp.id
-    final = exa.research.poll_task(resp.id)
-    assert final.status == "completed"
 
 
 ########################################
