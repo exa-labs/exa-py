@@ -30,6 +30,8 @@ jobs:
           poetry install
       
       - name: Run tests with pytest
+        env:
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
         run: |
           poetry run pytest tests/ -v --cov=exa_py --cov-report=xml --cov-report=term
       

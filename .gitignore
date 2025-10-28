@@ -37,3 +37,4 @@ test/
 .aider*
 
 personal/
+htmlcov/
