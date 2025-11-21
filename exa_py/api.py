@@ -1022,6 +1022,7 @@ class Exa:
             query (str): The query string.
             contents (dict | bool, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                Note: For deep search (type='deep'), context is always returned by the API.
             num_results (int, optional): Number of search results to return (default 10). 
                 For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
             include_domains (List[str], optional): Domains to include in the search.
@@ -1084,6 +1085,7 @@ class Exa:
             results,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
+            context=data.get("context"),
             cost_dollars=cost_dollars,
         )
 
@@ -1935,6 +1937,7 @@ class AsyncExa(Exa):
             query (str): The query string.
             contents (dict | bool, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                Note: For deep search (type='deep'), context is always returned by the API.
             num_results (int, optional): Number of search results to return (default 10). 
                 For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
             include_domains (List[str], optional): Domains to include in the search.
@@ -1997,6 +2000,7 @@ class AsyncExa(Exa):
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
+            context=data.get("context"),
             cost_dollars=cost_dollars,
         )
 

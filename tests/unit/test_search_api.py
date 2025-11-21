@@ -46,13 +46,17 @@ def test_search_accepts_user_location_offline():
 
 
 def test_search_accepts_additional_queries_offline():
-    """Test that search method accepts additional_queries parameter for deep search."""
+    """Test that search method accepts additional_queries parameter for deep search.
+    
+    Deep search always returns context in the response.
+    """
     exa = Exa(API_KEY)
-    # Create a mock response
+    # Create a mock response with context (always returned for deep search)
     mock_response = {
         "results": [
             {"url": "http://example.com", "id": "1", "title": "Deep Search Result"}
         ],
+        "context": "Deep search context string",
         "costDollars": {"total": 0.002},
     }
 
@@ -65,6 +69,7 @@ def test_search_accepts_additional_queries_offline():
             num_results=5,
         )
         assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.context is not None  # Context always present for deep search
         
         # Verify the request was called with correct camelCase parameters
         call_args = mock_request.call_args
