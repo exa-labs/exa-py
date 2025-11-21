@@ -153,7 +153,7 @@ SEARCH_OPTIONS_TYPES = {
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
-    "additional_queries": [list],  # Alternative query formulations for deep search (max 10). Only used when type='deep'.
+    "additional_queries": [list],  # Alternative query formulations for deep search (max 5). Only used when type='deep'.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1022,7 +1022,8 @@ class Exa:
             query (str): The query string.
             contents (dict | bool, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-            num_results (int, optional): Number of search results to return (default 10).
+            num_results (int, optional): Number of search results to return (default 10). 
+                For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
@@ -1037,7 +1038,7 @@ class Exa:
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
-                automatic LLM-based query expansion. Max 10 queries. Only applicable when type='deep'.
+                automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
 
         Returns:
@@ -1934,7 +1935,8 @@ class AsyncExa(Exa):
             query (str): The query string.
             contents (dict | bool, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-            num_results (int, optional): Number of search results to return (default 10).
+            num_results (int, optional): Number of search results to return (default 10). 
+                For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
@@ -1949,7 +1951,7 @@ class AsyncExa(Exa):
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
-                automatic LLM-based query expansion. Max 10 queries. Only applicable when type='deep'.
+                automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
 
         Returns:
