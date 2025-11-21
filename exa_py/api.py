@@ -153,6 +153,7 @@ SEARCH_OPTIONS_TYPES = {
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
+    "additional_queries": [list],  # Alternative query formulations for deep search (max 10). Only used when type='deep'.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1011,6 +1012,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
+        additional_queries: Optional[List[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1034,6 +1036,9 @@ class Exa:
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            additional_queries (List[str], optional): Alternative query formulations for deep search to skip
+                automatic LLM-based query expansion. Max 10 queries. Only applicable when type='deep'.
+                Example: ["machine learning", "ML algorithms", "neural networks"]
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -1919,6 +1924,7 @@ class AsyncExa(Exa):
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
+        additional_queries: Optional[List[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -1942,6 +1948,9 @@ class AsyncExa(Exa):
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            additional_queries (List[str], optional): Alternative query formulations for deep search to skip
+                automatic LLM-based query expansion. Max 10 queries. Only applicable when type='deep'.
+                Example: ["machine learning", "ML algorithms", "neural networks"]
 
         Returns:
             SearchResponse: The response containing search results, etc.

@@ -45,6 +45,36 @@ def test_search_accepts_user_location_offline():
         assert isinstance(resp, exa_api.SearchResponse)
 
 
+def test_search_accepts_additional_queries_offline():
+    """Test that search method accepts additional_queries parameter for deep search."""
+    exa = Exa(API_KEY)
+    # Create a mock response
+    mock_response = {
+        "results": [
+            {"url": "http://example.com", "id": "1", "title": "Deep Search Result"}
+        ],
+        "costDollars": {"total": 0.002},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        # Test with additional_queries for deep search
+        resp = exa.search(
+            "machine learning",
+            type="deep",
+            additional_queries=["ML algorithms", "neural networks", "AI models"],
+            num_results=5,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        
+        # Verify the request was called with correct camelCase parameters
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert "additionalQueries" in options
+        assert options["additionalQueries"] == ["ML algorithms", "neural networks", "AI models"]
+        assert options["type"] == "deep"
+
+
 @pytest.mark.asyncio
 async def test_async_request_accepts_201():
     ax = AsyncExa(API_KEY)
