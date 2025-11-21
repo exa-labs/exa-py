@@ -25,9 +25,6 @@ exa = Exa(api_key="your-api-key")
   # basic search
   results = exa.search("This is a Exa query:")
 
-  # keyword search (non-neural)
-  results = exa.search("Google-style query", type="keyword")
-
   # search with date filters
   results = exa.search("This is a Exa query:", start_published_date="2019-01-01", end_published_date="2019-01-31")
 
