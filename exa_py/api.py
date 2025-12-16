@@ -122,6 +122,19 @@ def to_snake_case(data: dict) -> dict:
     return data
 
 
+# the category options
+CATEGORY_OPTIONS = Literal[
+    "company",
+    "research paper",
+    "news",
+    "pdf",
+    "github",
+    "tweet",
+    "personal site",
+    "financial report",
+    "people",
+]
+
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
@@ -147,9 +160,7 @@ SEARCH_OPTIONS_TYPES = {
     "type": [
         str
     ],  # 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (Default: auto)
-    "category": [
-        str
-    ],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'financial report', 'people'
+    "category": [CATEGORY_OPTIONS],  # A data category to focus on
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
@@ -168,7 +179,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "include_text": [list],
     "exclude_text": [list],
     "exclude_source_domain": [bool],
-    "category": [str],
+    "category": [CATEGORY_OPTIONS],
     "flags": [list],  # Experimental flags array for Exa usage.
     "contents": [dict, bool],  # Options for retrieving page contents
 }
