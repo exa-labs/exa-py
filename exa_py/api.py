@@ -149,7 +149,7 @@ SEARCH_OPTIONS_TYPES = {
     ],  # 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (Default: auto)
     "category": [
         str
-    ],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'linkedin profile', 'financial report'
+    ],  # A data category to focus on: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'financial report', 'people'
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
