@@ -92,6 +92,140 @@ async def test_async_request_accepts_201():
     assert data == {"ok": True}
 
 
+def test_result_with_highlights_parsing_offline():
+    """Test that Result properly parses highlights and highlight_scores."""
+    result = exa_api.Result(
+        url="http://example.com",
+        id="test-id",
+        title="Test Title",
+        highlights=["highlight 1", "highlight 2"],
+        highlight_scores=[0.9, 0.8],
+    )
+    assert result.highlights == ["highlight 1", "highlight 2"]
+    assert result.highlight_scores == [0.9, 0.8]
+
+
+def test_result_with_highlights_optional_scores_offline():
+    """Test that Result works with highlights but without highlight_scores."""
+    result = exa_api.Result(
+        url="http://example.com",
+        id="test-id",
+        title="Test Title",
+        highlights=["highlight 1"],
+        highlight_scores=None,
+    )
+    assert result.highlights == ["highlight 1"]
+    assert result.highlight_scores is None
+
+
+def test_search_accepts_highlights_option_offline():
+    """Test that search method accepts highlights in contents option."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "highlights": ["key point 1", "key point 2"],
+                "highlightScores": [0.95, 0.85],
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "test query",
+            contents={"highlights": True},
+            num_results=1,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].highlights == ["key point 1", "key point 2"]
+        assert resp.results[0].highlight_scores == [0.95, 0.85]
+
+        # Verify the request was called with correct parameters
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert "contents" in options
+        assert options["contents"]["highlights"] is True
+
+
+def test_search_accepts_highlights_with_options_offline():
+    """Test that search method accepts detailed highlights options."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "highlights": ["highlight 1"],
+                "highlightScores": [0.9],
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "test query",
+            contents={
+                "highlights": {
+                    "query": "key points",
+                    "num_sentences": 2,
+                    "highlights_per_url": 3,
+                }
+            },
+            num_results=1,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].highlights == ["highlight 1"]
+
+        # Verify the request was called with correct camelCase parameters
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        highlights_opts = options["contents"]["highlights"]
+        assert highlights_opts["query"] == "key points"
+        assert highlights_opts["numSentences"] == 2
+        assert highlights_opts["highlightsPerUrl"] == 3
+
+
+def test_search_and_contents_with_highlights_offline():
+    """Test deprecated search_and_contents method with highlights."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "text": "Sample text",
+                "highlights": ["key point"],
+                "highlightScores": [0.9],
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search_and_contents(
+            "test query",
+            text=True,
+            highlights=True,
+            num_results=1,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].text == "Sample text"
+        assert resp.results[0].highlights == ["key point"]
+
+        # Verify highlights is nested under contents
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert options["contents"]["highlights"] is True
+        assert options["contents"]["text"] is True
+
+
 ########################################
 # Live integration tests (skipped without key)
 ########################################
@@ -204,3 +338,58 @@ def test_get_contents_statuses_live():
     )
     # statuses attribute exists; ensure it's a list
     assert isinstance(resp.statuses, list)
+
+
+########################################
+# Live tests for highlights feature
+########################################
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_with_highlights_live():
+    """search with highlights option should return highlights in results."""
+    exa = Exa(API_KEY)
+    resp = exa.search(
+        "openai research",
+        contents={"highlights": True},
+        num_results=2,
+    )
+    assert isinstance(resp, exa_api.SearchResponse)
+    assert len(resp.results) > 0
+    # At least one result should have highlights
+    has_highlights = any(r.highlights is not None for r in resp.results)
+    assert has_highlights, "Expected at least one result with highlights"
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_with_highlights_options_live():
+    """search with detailed highlights options should work."""
+    exa = Exa(API_KEY)
+    resp = exa.search(
+        "machine learning",
+        contents={
+            "highlights": {
+                "num_sentences": 2,
+                "highlights_per_url": 3,
+            }
+        },
+        num_results=2,
+    )
+    assert isinstance(resp, exa_api.SearchResponse)
+    assert len(resp.results) > 0
+
+
+@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
+def test_search_and_contents_with_highlights_live():
+    """search_and_contents with highlights option should return highlights."""
+    exa = Exa(API_KEY)
+    resp = exa.search_and_contents(
+        "artificial intelligence",
+        highlights=True,
+        num_results=2,
+    )
+    assert isinstance(resp, exa_api.SearchResponse)
+    assert len(resp.results) > 0
+    # At least one result should have highlights
+    has_highlights = any(r.highlights is not None for r in resp.results)
+    assert has_highlights, "Expected at least one result with highlights"
