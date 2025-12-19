@@ -323,7 +323,7 @@ def test_find_similar_and_contents_context_live():
     """find_similar_and_contents with context flag should include context string."""
     exa = Exa(API_KEY)
     resp = exa.find_similar_and_contents(
-        "https://www.openai.com", num_results=3, context=True, text=False
+        "https://example.com", num_results=3, context=True, text=False
     )
     # context may be empty depending on backend, but attribute should exist (None or str)
     assert hasattr(resp, "context")
