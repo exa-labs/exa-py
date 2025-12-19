@@ -278,7 +278,7 @@ def test_search_with_user_location_live():
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_find_similar_live():
     exa = Exa(API_KEY)
-    resp = exa.find_similar("https://www.openai.com", num_results=1)
+    resp = exa.find_similar("https://example.com", num_results=1)
     assert resp.results
 
 
