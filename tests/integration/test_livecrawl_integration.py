@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.timeout(30)
 def test_get_contents_livecrawl_returns_statuses(exa):
     """Verify get_contents with livecrawl='always' returns status information."""
-    url = "https://openai.com"
+    url = "https://example.com"
 
     response = exa.get_contents(urls=url, text=True, livecrawl="always")
 
@@ -20,7 +20,7 @@ def test_get_contents_livecrawl_returns_statuses(exa):
 @pytest.mark.timeout(30)
 async def test_async_get_contents_livecrawl_returns_statuses(async_exa):
     """Verify async get_contents with livecrawl='always' returns status information."""
-    url = "https://openai.com"
+    url = "https://example.com"
 
     response = await async_exa.get_contents(urls=url, text=True, livecrawl="always")
 

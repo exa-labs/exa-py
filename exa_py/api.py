@@ -178,6 +178,7 @@ CONTENTS_OPTIONS_TYPES = {
     "urls": [list],
     "text": [dict, bool],
     "summary": [dict, bool],
+    "highlights": [dict, bool],
     "context": [dict, bool],
     "metadata": [dict, bool],
     "livecrawl_timeout": [int],
@@ -297,6 +298,20 @@ class SummaryContentsOptions(TypedDict, total=False):
     schema: JSONSchemaInput
 
 
+class HighlightsContentsOptions(TypedDict, total=False):
+    """A class representing the options that you can specify when requesting highlights.
+
+    Attributes:
+        query (str): The query string for highlight generation. Highlights will be biased towards this query.
+        num_sentences (int): The number of sentences per highlight.
+        highlights_per_url (int): The number of highlights to return per URL.
+    """
+
+    query: str
+    num_sentences: int
+    highlights_per_url: int
+
+
 class ContextContentsOptions(TypedDict, total=False):
     """Options for retrieving aggregated context from a set of search results.
 
@@ -407,15 +422,19 @@ class _Result:
 @dataclass
 class Result(_Result):
     """
-    A class representing a search result with optional text and summary.
+    A class representing a search result with optional text, summary, and highlights.
 
     Attributes:
-        text (str, optional)
-        summary (str, optional)
+        text (str, optional): The text content of the page.
+        summary (str, optional): A summary of the page content.
+        highlights (List[str], optional): Relevant sentences from the page.
+        highlight_scores (List[float], optional): Scores for each highlight.
     """
 
     text: Optional[str] = None
     summary: Optional[str] = None
+    highlights: Optional[List[str]] = None
+    highlight_scores: Optional[List[float]] = None
 
     def __init__(
         self,
@@ -431,8 +450,8 @@ class Result(_Result):
         extras=None,
         text=None,
         summary=None,
-        highlights=None,  # Deprecated, for backward compatibility
-        highlight_scores=None,  # Deprecated, for backward compatibility
+        highlights=None,
+        highlight_scores=None,
     ):
         super().__init__(
             url,
@@ -448,10 +467,17 @@ class Result(_Result):
         )
         self.text = text
         self.summary = summary
+        self.highlights = highlights
+        self.highlight_scores = highlight_scores
 
     def __str__(self):
         base_str = super().__str__()
-        return base_str + (f"Text: {self.text}\nSummary: {self.summary}\n")
+        result = base_str + f"Text: {self.text}\nSummary: {self.summary}\n"
+        if self.highlights:
+            result += f"Highlights: {self.highlights}\n"
+        if self.highlight_scores:
+            result += f"Highlight Scores: {self.highlight_scores}\n"
+        return result
 
 
 @dataclass
@@ -1077,6 +1103,8 @@ class Exa:
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -1127,6 +1155,7 @@ class Exa:
             [
                 "text",
                 "summary",
+                "highlights",
                 "context",
                 "subpages",
                 "subpage_target",
@@ -1156,6 +1185,8 @@ class Exa:
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -1285,6 +1316,8 @@ class Exa:
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -1372,6 +1405,8 @@ class Exa:
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -1547,6 +1582,7 @@ class Exa:
             [
                 "text",
                 "summary",
+                "highlights",
                 "context",
                 "subpages",
                 "subpage_target",
@@ -1576,6 +1612,8 @@ class Exa:
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -1992,6 +2030,8 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -2042,6 +2082,7 @@ class AsyncExa(Exa):
             [
                 "text",
                 "summary",
+                "highlights",
                 "context",
                 "subpages",
                 "subpage_target",
@@ -2071,6 +2112,8 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -2141,6 +2184,8 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -2228,6 +2273,8 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
@@ -2272,6 +2319,7 @@ class AsyncExa(Exa):
             [
                 "text",
                 "summary",
+                "highlights",
                 "context",
                 "subpages",
                 "subpage_target",
@@ -2301,6 +2349,8 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
+                    highlights=snake_result.get("highlights"),
+                    highlight_scores=snake_result.get("highlight_scores"),
                 )
             )
         return SearchResponse(
