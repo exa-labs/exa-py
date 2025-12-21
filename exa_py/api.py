@@ -40,9 +40,28 @@ from exa_py.utils import (
     maybe_get_query,
     JSONSchemaInput,
 )
+from .exceptions import (
+    ExaError,
+    ExaAPIError,
+    ExaAuthenticationError,
+    ExaRateLimitError,
+    ExaNetworkError,
+    ExaTimeoutError,
+    ExaValidationError,
+    exception_from_status_code,
+)
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
 from .research import ResearchClient, AsyncResearchClient
+
+# Default timeout for requests (in seconds)
+DEFAULT_TIMEOUT = 60
+DEFAULT_CONNECT_TIMEOUT = 10
+
+# Retry configuration
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
+DEFAULT_BACKOFF_FACTOR = 0.5
 
 
 is_beta = os.getenv("IS_BETA") == "True"
@@ -896,28 +915,63 @@ def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
 
 
 class Exa:
-    """A client for interacting with Exa API."""
+    """A client for interacting with Exa API.
+
+    Example:
+        >>> from exa_py import Exa
+        >>> exa = Exa()  # Uses EXA_API_KEY env var
+        >>> results = exa.search("latest AI news")
+        >>> for r in results.results:
+        ...     print(r.title, r.url)
+
+    With custom configuration:
+        >>> exa = Exa(
+        ...     api_key="your-api-key",
+        ...     timeout=30,
+        ...     max_retries=5,
+        ... )
+    """
 
     def __init__(
         self,
-        api_key: Optional[str],
+        api_key: Optional[str] = None,
         base_url: str = "https://api.exa.ai",
         user_agent: Optional[str] = None,
+        timeout: float = DEFAULT_TIMEOUT,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        retry_on_status: tuple = DEFAULT_RETRY_STATUS_CODES,
+        backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
     ):
-        """Initialize the Exa client with the provided API key and optional base URL and user agent.
+        """Initialize the Exa client with the provided API key and configuration.
 
         Args:
-            api_key (str): The API key for authenticating with the Exa API.
-            base_url (str, optional): The base URL for the Exa API. Defaults to "https://api.exa.ai".
-            user_agent (str, optional): Custom user agent. Defaults to "exa-py {version}".
+            api_key (str, optional): The API key for authenticating with the Exa API.
+                If not provided, will look for EXA_API_KEY environment variable.
+            base_url (str, optional): The base URL for the Exa API.
+                Defaults to "https://api.exa.ai".
+            user_agent (str, optional): Custom user agent.
+                Defaults to "exa-py {version}".
+            timeout (float, optional): Request timeout in seconds.
+                Defaults to 60 seconds.
+            max_retries (int, optional): Maximum number of retry attempts for failed requests.
+                Defaults to 3. Set to 0 to disable retries.
+            retry_on_status (tuple, optional): HTTP status codes that trigger a retry.
+                Defaults to (429, 500, 502, 503, 504).
+            backoff_factor (float, optional): Multiplier for exponential backoff between retries.
+                Wait time = backoff_factor * (2 ** retry_number). Defaults to 0.5.
+
+        Raises:
+            ExaValidationError: If API key is not provided and not found in environment.
+
+        Example:
+            >>> exa = Exa(api_key="your-key", timeout=30, max_retries=5)
         """
         if api_key is None:
-            import os
-
             api_key = os.environ.get("EXA_API_KEY")
             if api_key is None:
-                raise ValueError(
-                    "API key must be provided as an argument or in EXA_API_KEY environment variable"
+                raise ExaValidationError(
+                    "API key must be provided as an argument or in EXA_API_KEY environment variable",
+                    param="api_key",
                 )
 
         # Set default user agent with dynamic version if not provided
@@ -925,6 +979,10 @@ class Exa:
             user_agent = f"exa-py {_get_package_version()}"
 
         self.base_url = base_url
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.retry_on_status = retry_on_status
+        self.backoff_factor = backoff_factor
         self.headers = {
             "x-api-key": api_key,
             "User-Agent": user_agent,
@@ -934,6 +992,90 @@ class Exa:
         # Research tasks client (new, mirrors Websets design)
         self.research = ResearchClient(self)
 
+    def _make_request(
+        self,
+        method: str,
+        url: str,
+        headers: Dict[str, str],
+        data: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+        stream: bool = False,
+    ) -> requests.Response:
+        """Make a single HTTP request with timeout."""
+        import time
+
+        try:
+            if method.upper() == "GET":
+                return requests.get(
+                    url,
+                    headers=headers,
+                    params=params,
+                    stream=stream,
+                    timeout=self.timeout,
+                )
+            elif method.upper() == "POST":
+                return requests.post(
+                    url,
+                    data=data,
+                    headers=headers,
+                    stream=stream,
+                    timeout=self.timeout,
+                )
+            elif method.upper() == "PATCH":
+                return requests.patch(
+                    url,
+                    data=data,
+                    headers=headers,
+                    timeout=self.timeout,
+                )
+            elif method.upper() == "DELETE":
+                return requests.delete(
+                    url,
+                    headers=headers,
+                    timeout=self.timeout,
+                )
+            else:
+                raise ExaValidationError(f"Unsupported HTTP method: {method}", param="method")
+        except requests.exceptions.Timeout as e:
+            raise ExaTimeoutError(
+                f"Request timed out after {self.timeout} seconds",
+                timeout=self.timeout,
+            ) from e
+        except requests.exceptions.ConnectionError as e:
+            raise ExaNetworkError(f"Connection error: {e}") from e
+        except requests.exceptions.RequestException as e:
+            raise ExaNetworkError(f"Request failed: {e}") from e
+
+    def _handle_error_response(self, res: requests.Response) -> None:
+        """Handle error responses and raise appropriate exceptions."""
+        if res.status_code >= 400:
+            # Try to parse error message from response
+            try:
+                error_body = res.json()
+                message = error_body.get("error", error_body.get("message", res.text))
+            except (json.JSONDecodeError, ValueError):
+                message = res.text
+
+            # Get retry-after header for rate limits
+            retry_after = None
+            if res.status_code == 429:
+                retry_after_header = res.headers.get("Retry-After")
+                if retry_after_header:
+                    try:
+                        retry_after = int(retry_after_header)
+                    except ValueError:
+                        pass
+
+            # Get request ID for debugging
+            request_id = res.headers.get("x-request-id")
+
+            raise exception_from_status_code(
+                status_code=res.status_code,
+                message=message,
+                request_id=request_id,
+                retry_after=retry_after,
+            )
+
     def request(
         self,
         endpoint: str,
@@ -942,31 +1084,33 @@ class Exa:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
     ) -> Union[Dict[str, Any], requests.Response]:
-        """Send a request to the Exa API, optionally streaming if data['stream'] is True.
+        """Send a request to the Exa API with automatic retries.
 
         Args:
             endpoint (str): The API endpoint (path).
             data (dict, optional): The JSON payload to send. Defaults to None.
             method (str, optional): The HTTP method to use. Defaults to "POST".
             params (Dict[str, Any], optional): Query parameters to include. Defaults to None.
-            headers (Dict[str, str], optional): Additional headers to include in the request. Defaults to None.
+            headers (Dict[str, str], optional): Additional headers to include. Defaults to None.
 
         Returns:
             Union[dict, requests.Response]: If streaming, returns the Response object.
             Otherwise, returns the JSON-decoded response as a dict.
 
         Raises:
-            ValueError: If the request fails (non-200 status code).
+            ExaAPIError: If the API returns an error response.
+            ExaTimeoutError: If the request times out.
+            ExaNetworkError: If a network error occurs.
         """
+        import time
+
         # Handle the case when data is a string
         if isinstance(data, str):
-            # Use the string directly as the data payload
             json_data = data
         else:
-            # Otherwise, serialize the dictionary to JSON if it exists
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
 
-        # Check if we need streaming (either from data for POST or params for GET)
+        # Check if we need streaming
         needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or (
             params and params.get("stream") == "true"
         )
@@ -976,46 +1120,65 @@ class Exa:
         if headers:
             request_headers.update(headers)
 
-        if method.upper() == "GET":
-            if needs_streaming:
-                res = requests.get(
-                    self.base_url + endpoint,
-                    headers=request_headers,
-                    params=params,
-                    stream=True,
-                )
-                return res
-            else:
-                res = requests.get(
-                    self.base_url + endpoint, headers=request_headers, params=params
-                )
-        elif method.upper() == "POST":
-            if needs_streaming:
-                res = requests.post(
-                    self.base_url + endpoint,
-                    data=json_data,
-                    headers=request_headers,
-                    stream=True,
-                )
-                return res
-            else:
-                res = requests.post(
-                    self.base_url + endpoint, data=json_data, headers=request_headers
-                )
-        elif method.upper() == "PATCH":
-            res = requests.patch(
-                self.base_url + endpoint, data=json_data, headers=request_headers
-            )
-        elif method.upper() == "DELETE":
-            res = requests.delete(self.base_url + endpoint, headers=request_headers)
-        else:
-            raise ValueError(f"Unsupported HTTP method: {method}")
+        url = self.base_url + endpoint
+        last_exception: Optional[Exception] = None
 
-        if res.status_code >= 400:
-            raise ValueError(
-                f"Request failed with status code {res.status_code}: {res.text}"
-            )
-        return res.json()
+        # Retry loop
+        for attempt in range(self.max_retries + 1):
+            try:
+                res = self._make_request(
+                    method=method,
+                    url=url,
+                    headers=request_headers,
+                    data=json_data,
+                    params=params,
+                    stream=needs_streaming,
+                )
+
+                # For streaming requests, return immediately (don't check status here)
+                if needs_streaming:
+                    return res
+
+                # Check for errors
+                if res.status_code >= 400:
+                    # Check if we should retry
+                    if (
+                        res.status_code in self.retry_on_status
+                        and attempt < self.max_retries
+                    ):
+                        # Get retry-after header or use exponential backoff
+                        retry_after = None
+                        if res.status_code == 429:
+                            retry_after_header = res.headers.get("Retry-After")
+                            if retry_after_header:
+                                try:
+                                    retry_after = int(retry_after_header)
+                                except ValueError:
+                                    pass
+
+                        wait_time = retry_after or (
+                            self.backoff_factor * (2 ** attempt)
+                        )
+                        time.sleep(wait_time)
+                        continue
+
+                    # No more retries, raise the error
+                    self._handle_error_response(res)
+
+                return res.json()
+
+            except (ExaTimeoutError, ExaNetworkError) as e:
+                last_exception = e
+                if attempt < self.max_retries:
+                    wait_time = self.backoff_factor * (2 ** attempt)
+                    time.sleep(wait_time)
+                    continue
+                raise
+
+        # Should not reach here, but just in case
+        if last_exception:
+            raise last_exception
+        raise ExaError("Request failed after all retries")
 
     def search(
         self,
@@ -1862,8 +2025,54 @@ class Exa:
 
 
 class AsyncExa(Exa):
-    def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
-        super().__init__(api_key, api_base)
+    """Async client for interacting with the Exa API.
+
+    Example:
+        >>> from exa_py import AsyncExa
+        >>> async def main():
+        ...     exa = AsyncExa()
+        ...     results = await exa.search("latest AI news")
+        ...     async with exa:  # Use as context manager for proper cleanup
+        ...         results = await exa.search("query")
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        base_url: str = "https://api.exa.ai",
+        user_agent: Optional[str] = None,
+        timeout: float = DEFAULT_TIMEOUT,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        retry_on_status: tuple = DEFAULT_RETRY_STATUS_CODES,
+        backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
+    ):
+        """Initialize the async Exa client.
+
+        Args:
+            api_key (str, optional): The API key for authenticating with the Exa API.
+                If not provided, will look for EXA_API_KEY environment variable.
+            base_url (str, optional): The base URL for the Exa API.
+                Defaults to "https://api.exa.ai".
+            user_agent (str, optional): Custom user agent.
+                Defaults to "exa-py {version}".
+            timeout (float, optional): Request timeout in seconds.
+                Defaults to 60 seconds.
+            max_retries (int, optional): Maximum number of retry attempts.
+                Defaults to 3. Set to 0 to disable retries.
+            retry_on_status (tuple, optional): HTTP status codes that trigger a retry.
+                Defaults to (429, 500, 502, 503, 504).
+            backoff_factor (float, optional): Multiplier for exponential backoff.
+                Defaults to 0.5.
+        """
+        super().__init__(
+            api_key=api_key,
+            base_url=base_url,
+            user_agent=user_agent,
+            timeout=timeout,
+            max_retries=max_retries,
+            retry_on_status=retry_on_status,
+            backoff_factor=backoff_factor,
+        )
         # Override the synchronous ResearchClient with its async counterpart.
         self.research = AsyncResearchClient(self)
         # Override the synchronous WebsetsClient with its async counterpart.
@@ -1872,12 +2081,28 @@ class AsyncExa(Exa):
 
     @property
     def client(self) -> httpx.AsyncClient:
-        # this may only be a
+        """Get or create the httpx async client."""
         if self._client is None:
             self._client = httpx.AsyncClient(
-                base_url=self.base_url, headers=self.headers, timeout=600
+                base_url=self.base_url,
+                headers=self.headers,
+                timeout=self.timeout,
             )
         return self._client
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - closes the client."""
+        await self.close()
+
+    async def close(self):
+        """Close the async HTTP client."""
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
 
     async def async_request(
         self,
@@ -1887,23 +2112,27 @@ class AsyncExa(Exa):
         params=None,
         headers: Optional[Dict[str, str]] = None,
     ):
-        """Send a request to the Exa API, optionally streaming if data['stream'] is True.
+        """Send an async request to the Exa API with automatic retries.
 
         Args:
             endpoint (str): The API endpoint (path).
             data (dict, optional): The JSON payload to send.
             method (str, optional): The HTTP method to use. Defaults to "POST".
             params (dict, optional): Query parameters.
-            headers (Dict[str, str], optional): Additional headers to include in the request. Defaults to None.
+            headers (Dict[str, str], optional): Additional headers.
 
         Returns:
             Union[dict, httpx.Response]: If streaming, returns the Response object.
             Otherwise, returns the JSON-decoded response as a dict.
 
         Raises:
-            ValueError: If the request fails (non-200 status code).
+            ExaAPIError: If the API returns an error response.
+            ExaTimeoutError: If the request times out.
+            ExaNetworkError: If a network error occurs.
         """
-        # Check if we need streaming (either from data for POST or params for GET)
+        import asyncio
+
+        # Check if we need streaming
         needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or (
             params and params.get("stream") == "true"
         )
@@ -1913,36 +2142,128 @@ class AsyncExa(Exa):
         if headers:
             request_headers.update(headers)
 
-        if method.upper() == "GET":
-            if needs_streaming:
-                request = httpx.Request(
-                    "GET",
-                    self.base_url + endpoint,
-                    params=params,
-                    headers=request_headers,
+        last_exception: Optional[Exception] = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                if method.upper() == "GET":
+                    if needs_streaming:
+                        request = httpx.Request(
+                            "GET",
+                            self.base_url + endpoint,
+                            params=params,
+                            headers=request_headers,
+                        )
+                        res = await self.client.send(request, stream=True)
+                        return res
+                    else:
+                        res = await self.client.get(
+                            self.base_url + endpoint,
+                            params=params,
+                            headers=request_headers,
+                        )
+                elif method.upper() == "POST":
+                    if needs_streaming:
+                        request = httpx.Request(
+                            "POST",
+                            self.base_url + endpoint,
+                            json=data,
+                            headers=request_headers,
+                        )
+                        res = await self.client.send(request, stream=True)
+                        return res
+                    else:
+                        res = await self.client.post(
+                            self.base_url + endpoint,
+                            json=data,
+                            headers=request_headers,
+                        )
+                elif method.upper() == "PATCH":
+                    res = await self.client.patch(
+                        self.base_url + endpoint,
+                        json=data,
+                        headers=request_headers,
+                    )
+                elif method.upper() == "DELETE":
+                    res = await self.client.delete(
+                        self.base_url + endpoint,
+                        headers=request_headers,
+                    )
+                else:
+                    raise ExaValidationError(
+                        f"Unsupported HTTP method: {method}", param="method"
+                    )
+
+                # Check for errors
+                if res.status_code >= 400:
+                    # Check if we should retry
+                    if (
+                        res.status_code in self.retry_on_status
+                        and attempt < self.max_retries
+                    ):
+                        retry_after = None
+                        if res.status_code == 429:
+                            retry_after_header = res.headers.get("retry-after")
+                            if retry_after_header:
+                                try:
+                                    retry_after = int(retry_after_header)
+                                except ValueError:
+                                    pass
+
+                        wait_time = retry_after or (self.backoff_factor * (2 ** attempt))
+                        await asyncio.sleep(wait_time)
+                        continue
+
+                    # No more retries, raise the error
+                    self._handle_async_error_response(res)
+
+                return res.json()
+
+            except httpx.TimeoutException as e:
+                last_exception = ExaTimeoutError(
+                    f"Request timed out after {self.timeout} seconds",
+                    timeout=self.timeout,
                 )
-                res = await self.client.send(request, stream=True)
-                return res
-            else:
-                res = await self.client.get(
-                    self.base_url + endpoint, params=params, headers=request_headers
-                )
-        elif method.upper() == "POST":
-            if needs_streaming:
-                request = httpx.Request(
-                    "POST", self.base_url + endpoint, json=data, headers=request_headers
-                )
-                res = await self.client.send(request, stream=True)
-                return res
-            else:
-                res = await self.client.post(
-                    self.base_url + endpoint, json=data, headers=request_headers
-                )
-        if res.status_code != 200 and res.status_code != 201:
-            raise ValueError(
-                f"Request failed with status code {res.status_code}: {res.text}"
-            )
-        return res.json()
+                if attempt < self.max_retries:
+                    await asyncio.sleep(self.backoff_factor * (2 ** attempt))
+                    continue
+                raise last_exception from e
+            except httpx.NetworkError as e:
+                last_exception = ExaNetworkError(f"Network error: {e}")
+                if attempt < self.max_retries:
+                    await asyncio.sleep(self.backoff_factor * (2 ** attempt))
+                    continue
+                raise last_exception from e
+
+        if last_exception:
+            raise last_exception
+        raise ExaError("Request failed after all retries")
+
+    def _handle_async_error_response(self, res: httpx.Response) -> None:
+        """Handle error responses and raise appropriate exceptions."""
+        try:
+            error_body = res.json()
+            message = error_body.get("error", error_body.get("message", res.text))
+        except (json.JSONDecodeError, ValueError):
+            message = res.text
+
+        retry_after = None
+        if res.status_code == 429:
+            retry_after_header = res.headers.get("retry-after")
+            if retry_after_header:
+                try:
+                    retry_after = int(retry_after_header)
+                except ValueError:
+                    pass
+
+        request_id = res.headers.get("x-request-id")
+
+        raise exception_from_status_code(
+            status_code=res.status_code,
+            message=message,
+            request_id=request_id,
+            retry_after=retry_after,
+        )
 
     async def search(
         self,
