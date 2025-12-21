@@ -152,6 +152,7 @@ SEARCH_OPTIONS_TYPES = {
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
     "additional_queries": [list],  # Alternative query formulations for deep search (max 5). Only used when type='deep'.
+    "effort": [str],  # Deep search effort level: 'medium' (default, faster) or 'high' (maximum quality). Only used when type='deep'.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1037,6 +1038,7 @@ class Exa:
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
+        effort: Optional[Literal["medium", "high"]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1065,6 +1067,9 @@ class Exa:
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
+            effort (Literal["medium", "high"], optional): Deep search effort level. Only applicable when type='deep'.
+                'medium' (default): Faster, cheaper searches using deep_lite service.
+                'high': Maximum quality using full deep service.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -1964,6 +1969,7 @@ class AsyncExa(Exa):
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
+        effort: Optional[Literal["medium", "high"]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -1992,6 +1998,9 @@ class AsyncExa(Exa):
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
+            effort (Literal["medium", "high"], optional): Deep search effort level. Only applicable when type='deep'.
+                'medium' (default): Faster, cheaper searches using deep_lite service.
+                'high': Maximum quality using full deep service.
 
         Returns:
             SearchResponse: The response containing search results, etc.
