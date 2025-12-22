@@ -664,14 +664,16 @@ class StreamChunk:
     Attributes:
         content (Optional[str]): The partial text content of the answer
         citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk
+        cost_dollars (CostDollars, optional): Cost breakdown (typically in final chunk).
     """
 
     content: Optional[str] = None
     citations: Optional[List[AnswerResult]] = None
+    cost_dollars: Optional[CostDollars] = None
 
     def has_data(self) -> bool:
         """Check if this chunk contains any data."""
-        return self.content is not None or self.citations is not None
+        return self.content is not None or self.citations is not None or self.cost_dollars is not None
 
     def __str__(self) -> str:
         """Format the chunk data as a string."""
@@ -682,6 +684,12 @@ class StreamChunk:
             output += "\nCitations:"
             for source in self.citations:
                 output += f"\n{source}"
+        if self.cost_dollars:
+            output += f"\nCostDollars: total={self.cost_dollars.total}"
+            if self.cost_dollars.search:
+                output += f"\n  - search: {self.cost_dollars.search}"
+            if self.cost_dollars.contents:
+                output += f"\n  - contents: {self.cost_dollars.contents}"
         return output
 
 
@@ -692,10 +700,12 @@ class AnswerResponse:
     Attributes:
         answer (str): The generated answer.
         citations (List[AnswerResult]): A list of citations used to generate the answer.
+        cost_dollars (CostDollars, optional): Cost breakdown.
     """
 
     answer: Union[str, dict[str, Any]]
     citations: List[AnswerResult]
+    cost_dollars: Optional[CostDollars] = None
 
     def __str__(self):
         output = f"Answer: {self.answer}\n\nCitations:"
@@ -707,6 +717,12 @@ class AnswerResponse:
             output += f"\nAuthor: {source.author}"
             output += f"\nText: {source.text}"
             output += "\n"
+        if self.cost_dollars:
+            output += f"\nCostDollars: total={self.cost_dollars.total}"
+            if self.cost_dollars.search:
+                output += f"\n  - search: {self.cost_dollars.search}"
+            if self.cost_dollars.contents:
+                output += f"\n  - contents: {self.cost_dollars.contents}"
         return output
 
 
@@ -759,7 +775,9 @@ class StreamAnswerResponse:
                         )
                     )
 
-            stream_chunk = StreamChunk(content=content, citations=citations)
+            cost_dollars = parse_cost_dollars(chunk.get("costDollars"))
+
+            stream_chunk = StreamChunk(content=content, citations=citations, cost_dollars=cost_dollars)
             if stream_chunk.has_data():
                 yield stream_chunk
 
@@ -818,7 +836,9 @@ class AsyncStreamAnswerResponse:
                             )
                         )
 
-                stream_chunk = StreamChunk(content=content, citations=citations)
+                cost_dollars = parse_cost_dollars(chunk.get("costDollars"))
+
+                stream_chunk = StreamChunk(content=content, citations=citations, cost_dollars=cost_dollars)
                 if stream_chunk.has_data():
                     yield stream_chunk
 
@@ -1825,7 +1845,8 @@ class Exa:
                     text=snake_result.get("text"),
                 )
             )
-        return AnswerResponse(response["answer"], citations)
+        cost_dollars = parse_cost_dollars(response.get("costDollars"))
+        return AnswerResponse(response["answer"], citations, cost_dollars=cost_dollars)
 
     def stream_answer(
         self,
@@ -2415,7 +2436,8 @@ class AsyncExa(Exa):
                     text=snake_result.get("text"),
                 )
             )
-        return AnswerResponse(response["answer"], citations)
+        cost_dollars = parse_cost_dollars(response.get("costDollars"))
+        return AnswerResponse(response["answer"], citations, cost_dollars=cost_dollars)
 
     async def stream_answer(
         self,
