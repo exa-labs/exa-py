@@ -472,7 +472,11 @@ class Result(_Result):
 
     def __str__(self):
         base_str = super().__str__()
-        result = base_str + f"Text: {self.text}\nSummary: {self.summary}\n"
+        result = base_str
+        if self.text is not None:
+            result += f"Text: {self.text}\n"
+        if self.summary is not None:
+            result += f"Summary: {self.summary}\n"
         if self.highlights:
             result += f"Highlights: {self.highlights}\n"
         if self.highlight_scores:
