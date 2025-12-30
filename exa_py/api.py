@@ -305,11 +305,13 @@ class HighlightsContentsOptions(TypedDict, total=False):
         query (str): The query string for highlight generation. Highlights will be biased towards this query.
         num_sentences (int): The number of sentences per highlight.
         highlights_per_url (int): The number of highlights to return per URL.
+        link_policy (Literal["strip", "keep"]): Whether to strip or keep links in the highlights.
     """
 
     query: str
     num_sentences: int
     highlights_per_url: int
+    link_policy: Literal["strip", "keep"]
 
 
 class ContextContentsOptions(TypedDict, total=False):
