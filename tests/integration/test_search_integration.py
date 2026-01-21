@@ -116,3 +116,39 @@ class TestAsyncSearchContentsOptions:
         sample_result = response.results[0]
         assert sample_result.text is None
         assert sample_result.summary is None
+
+
+class TestCompanyCategorySearch:
+    """Test suite for company category search with entities."""
+
+    @pytest.mark.timeout(15)
+    def test_returns_entities_for_company_category_search(self, exa):
+        """Verify company category search returns entities."""
+        response = exa.search(
+            "Exa AI search company",
+            category="company",
+            num_results=5,
+            contents=False,
+        )
+
+        assert len(response.results) > 0
+
+        # Find a result with entities
+        result_with_entities = next(
+            (r for r in response.results if r.entities and len(r.entities) > 0),
+            None,
+        )
+
+        assert result_with_entities is not None, "No results with entities found"
+        assert result_with_entities.entities is not None
+        assert len(result_with_entities.entities) > 0
+
+        # Verify entity structure
+        entity = result_with_entities.entities[0]
+        assert entity.type == "company"
+        assert entity.id is not None
+        assert entity.version is not None
+        assert entity.properties is not None
+
+        # Company entity should have name property
+        assert entity.properties.name is not None

@@ -352,6 +352,105 @@ class CostDollars:
     contents: CostDollarsContents = None
 
 
+# Entity types for company/people search results
+# Only returned when using category="company" or category="people" searches
+
+
+@dataclass
+class EntityWorkforce:
+    """Company workforce information."""
+
+    total: Optional[int] = None
+
+
+@dataclass
+class EntityHeadquarters:
+    """Company headquarters information."""
+
+    address: Optional[str] = None
+    city: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+
+
+@dataclass
+class EntityFinancials:
+    """Company financial information."""
+
+    revenue_annual: Optional[int] = None
+    funding_total: Optional[int] = None
+
+
+@dataclass
+class EntityCompanyProperties:
+    """Structured properties for a company entity."""
+
+    name: Optional[str] = None
+    founded_year: Optional[int] = None
+    description: Optional[str] = None
+    workforce: Optional[EntityWorkforce] = None
+    headquarters: Optional[EntityHeadquarters] = None
+    financials: Optional[EntityFinancials] = None
+
+
+@dataclass
+class EntityDateRange:
+    """Date range for work history entries."""
+
+    from_date: Optional[str] = None  # 'from' is a reserved keyword
+    to: Optional[str] = None
+
+
+@dataclass
+class EntityCompanyRef:
+    """Reference to a company in work history."""
+
+    id: Optional[str] = None
+    name: Optional[str] = None
+
+
+@dataclass
+class EntityWorkHistoryEntry:
+    """A single work history entry for a person."""
+
+    title: Optional[str] = None
+    location: Optional[str] = None
+    dates: Optional[EntityDateRange] = None
+    company: Optional[EntityCompanyRef] = None
+
+
+@dataclass
+class EntityPersonProperties:
+    """Structured properties for a person entity."""
+
+    name: Optional[str] = None
+    location: Optional[str] = None
+    work_history: Optional[List[EntityWorkHistoryEntry]] = None
+
+
+@dataclass
+class CompanyEntity:
+    """Structured entity data for a company."""
+
+    id: str
+    type: str  # "company"
+    version: int
+    properties: EntityCompanyProperties
+
+
+@dataclass
+class PersonEntity:
+    """Structured entity data for a person."""
+
+    id: str
+    type: str  # "person"
+    version: int
+    properties: EntityPersonProperties
+
+
+Entity = Union[CompanyEntity, PersonEntity]
+
+
 @dataclass
 class _Result:
     """A class representing the base fields of a search result.
@@ -367,6 +466,7 @@ class _Result:
         favicon (str, optional): A URL to the favicon (if available).
         subpages (List[_Result], optional): Subpages of main page
         extras (Dict, optional): Additional metadata; e.g. links, images.
+        entities (List[Entity], optional): Structured entity data for company or person searches.
     """
 
     url: str
@@ -379,6 +479,7 @@ class _Result:
     favicon: Optional[str] = None
     subpages: Optional[List[_Result]] = None
     extras: Optional[Dict] = None
+    entities: Optional[List[Entity]] = None
 
     def __init__(
         self,
@@ -392,6 +493,7 @@ class _Result:
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
     ):
         self.url = url
         self.id = id
@@ -403,9 +505,10 @@ class _Result:
         self.favicon = favicon
         self.subpages = subpages
         self.extras = extras
+        self.entities = entities
 
     def __str__(self):
-        return (
+        result = (
             f"Title: {self.title}\n"
             f"URL: {self.url}\n"
             f"ID: {self.id}\n"
@@ -417,6 +520,9 @@ class _Result:
             f"Extras: {self.extras}\n"
             f"Subpages: {self.subpages}\n"
         )
+        if self.entities:
+            result += f"Entities: {self.entities}\n"
+        return result
 
 
 @dataclass
@@ -448,6 +554,7 @@ class Result(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         text=None,
         summary=None,
         highlights=None,
@@ -464,6 +571,7 @@ class Result(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.text = text
         self.summary = summary
@@ -503,6 +611,7 @@ class ResultWithText(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         text="",
     ):
         super().__init__(
@@ -516,6 +625,7 @@ class ResultWithText(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.text = text
 
@@ -547,6 +657,7 @@ class ResultWithSummary(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         summary="",
     ):
         super().__init__(
@@ -560,6 +671,7 @@ class ResultWithSummary(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.summary = summary
 
@@ -593,6 +705,7 @@ class ResultWithTextAndSummary(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         text="",
         summary="",
     ):
@@ -607,6 +720,7 @@ class ResultWithTextAndSummary(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.text = text
         self.summary = summary
