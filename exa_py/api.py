@@ -425,11 +425,15 @@ class HighlightsContentsOptions(TypedDict, total=False):
 
     Attributes:
         query (str): The query string for highlight generation. Highlights will be biased towards this query.
-        num_sentences (int): The number of sentences per highlight.
-        highlights_per_url (int): The number of highlights to return per URL.
+        max_characters (int): Maximum total characters across all highlights per URL. Characters are distributed
+            across multiple non-contiguous highlights (default 5). If the full page is shorter than max_characters,
+            the entire page is returned. Default is 2000.
+        num_sentences (int): Deprecated: use max_characters instead. The number of sentences per highlight.
+        highlights_per_url (int): Deprecated: use max_characters instead. The number of highlights to return per URL.
     """
 
     query: str
+    max_characters: int
     num_sentences: int
     highlights_per_url: int
 
