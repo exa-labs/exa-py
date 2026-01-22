@@ -128,14 +128,14 @@ class TestEntityCompanyProperties:
 
 class TestEntityDateRange:
     def test_date_range_full(self):
-        dates = EntityDateRange(from_date="2020-01-15", to="2023-06-30")
+        dates = EntityDateRange(from_date="2020-01-15", to_date="2023-06-30")
         assert dates.from_date == "2020-01-15"
-        assert dates.to == "2023-06-30"
+        assert dates.to_date == "2023-06-30"
 
     def test_date_range_open_ended(self):
         dates = EntityDateRange(from_date="2020-01-15")
         assert dates.from_date == "2020-01-15"
-        assert dates.to is None
+        assert dates.to_date is None
 
 
 class TestEntityPersonPropertiesCompanyRef:
@@ -158,7 +158,7 @@ class TestEntityPersonPropertiesWorkHistoryEntry:
         entry = EntityPersonPropertiesWorkHistoryEntry(
             title="Software Engineer",
             location="San Francisco, CA",
-            dates=EntityDateRange(from_date="2020-01-15", to="2023-06-30"),
+            dates=EntityDateRange(from_date="2020-01-15", to_date="2023-06-30"),
             company=EntityPersonPropertiesCompanyRef(id="exa-id", name="Exa"),
         )
         assert entry.title == "Software Engineer"
@@ -281,6 +281,7 @@ class TestResultWithEntities:
         )
         result_str = str(result)
         assert "Entities:" in result_str
+        assert "[company] Exa" in result_str
 
     def test_result_str_without_entities(self):
         result = _Result(

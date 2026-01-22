@@ -122,6 +122,119 @@ def to_snake_case(data: dict) -> dict:
     return data
 
 
+def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
+    """
+    Parse entity data from API response into Entity dataclasses.
+
+    Handles field mapping for reserved Python keywords:
+    - 'from' -> 'from_date'
+    - 'to' -> 'to_date'
+    """
+    if not entities_data:
+        return None
+
+    # Import here to avoid circular imports (Entity types defined later in file)
+    from exa_py.api import (
+        CompanyEntity,
+        PersonEntity,
+        EntityCompanyProperties,
+        EntityPersonProperties,
+        EntityCompanyPropertiesWorkforce,
+        EntityCompanyPropertiesHeadquarters,
+        EntityCompanyPropertiesFinancials,
+        EntityCompanyPropertiesFundingRound,
+        EntityDateRange,
+        EntityPersonPropertiesCompanyRef,
+        EntityPersonPropertiesWorkHistoryEntry,
+    )
+
+    def parse_date_range(data: Optional[dict]) -> Optional[EntityDateRange]:
+        if not data:
+            return None
+        return EntityDateRange(
+            from_date=data.get("from"),
+            to_date=data.get("to"),
+        )
+
+    def parse_company_ref(data: Optional[dict]) -> Optional[EntityPersonPropertiesCompanyRef]:
+        if not data:
+            return None
+        return EntityPersonPropertiesCompanyRef(
+            id=data.get("id"),
+            name=data.get("name"),
+        )
+
+    def parse_work_history_entry(data: dict) -> EntityPersonPropertiesWorkHistoryEntry:
+        return EntityPersonPropertiesWorkHistoryEntry(
+            title=data.get("title"),
+            location=data.get("location"),
+            dates=parse_date_range(data.get("dates")),
+            company=parse_company_ref(data.get("company")),
+        )
+
+    def parse_funding_round(data: Optional[dict]) -> Optional[EntityCompanyPropertiesFundingRound]:
+        if not data:
+            return None
+        return EntityCompanyPropertiesFundingRound(
+            name=data.get("name"),
+            date=data.get("date"),
+            amount=data.get("amount"),
+        )
+
+    def parse_financials(data: Optional[dict]) -> Optional[EntityCompanyPropertiesFinancials]:
+        if not data:
+            return None
+        return EntityCompanyPropertiesFinancials(
+            revenue_annual=data.get("revenueAnnual"),
+            funding_total=data.get("fundingTotal"),
+            funding_latest_round=parse_funding_round(data.get("fundingLatestRound")),
+        )
+
+    def parse_company_properties(data: dict) -> EntityCompanyProperties:
+        workforce_data = data.get("workforce")
+        headquarters_data = data.get("headquarters")
+        return EntityCompanyProperties(
+            name=data.get("name"),
+            founded_year=data.get("foundedYear"),
+            description=data.get("description"),
+            workforce=EntityCompanyPropertiesWorkforce(total=workforce_data.get("total")) if workforce_data else None,
+            headquarters=EntityCompanyPropertiesHeadquarters(
+                address=headquarters_data.get("address"),
+                city=headquarters_data.get("city"),
+                postal_code=headquarters_data.get("postalCode"),
+                country=headquarters_data.get("country"),
+            ) if headquarters_data else None,
+            financials=parse_financials(data.get("financials")),
+        )
+
+    def parse_person_properties(data: dict) -> EntityPersonProperties:
+        work_history = data.get("workHistory")
+        return EntityPersonProperties(
+            name=data.get("name"),
+            location=data.get("location"),
+            work_history=[parse_work_history_entry(wh) for wh in work_history] if work_history else None,
+        )
+
+    entities = []
+    for entity_data in entities_data:
+        entity_type = entity_data.get("type")
+        if entity_type == "company":
+            entities.append(CompanyEntity(
+                id=entity_data["id"],
+                type="company",
+                version=entity_data["version"],
+                properties=parse_company_properties(entity_data.get("properties", {})),
+            ))
+        elif entity_type == "person":
+            entities.append(PersonEntity(
+                id=entity_data["id"],
+                type="person",
+                version=entity_data["version"],
+                properties=parse_person_properties(entity_data.get("properties", {})),
+            ))
+    return entities if entities else None
+
+
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
@@ -407,8 +520,8 @@ class EntityCompanyProperties:
 class EntityDateRange:
     """Date range for work history entries."""
 
-    from_date: Optional[str] = None  # 'from' is a reserved keyword
-    to: Optional[str] = None
+    from_date: Optional[str] = None  # API returns 'from' but it's a reserved keyword
+    to_date: Optional[str] = None  # API returns 'to', renamed for consistency
 
 
 @dataclass
@@ -443,7 +556,7 @@ class CompanyEntity:
     """Structured entity data for a company."""
 
     id: str
-    type: str  # "company"
+    type: Literal["company"]
     version: int
     properties: EntityCompanyProperties
 
@@ -453,7 +566,7 @@ class PersonEntity:
     """Structured entity data for a person."""
 
     id: str
-    type: str  # "person"
+    type: Literal["person"]
     version: int
     properties: EntityPersonProperties
 
@@ -531,7 +644,11 @@ class _Result:
             f"Subpages: {self.subpages}\n"
         )
         if self.entities:
-            result += f"Entities: {self.entities}\n"
+            entities_str = "\n".join(
+                f"  - [{e.type}] {e.properties.name or 'Unknown'}"
+                for e in self.entities
+            )
+            result += f"Entities:\n{entities_str}\n"
         return result
 
 
@@ -1229,6 +1346,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1311,6 +1429,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1442,6 +1561,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1531,6 +1651,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1738,6 +1859,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2156,6 +2278,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2238,6 +2361,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2310,6 +2434,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2399,6 +2524,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2475,6 +2601,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
