@@ -357,14 +357,14 @@ class CostDollars:
 
 
 @dataclass
-class EntityWorkforce:
+class EntityCompanyPropertiesWorkforce:
     """Company workforce information."""
 
     total: Optional[int] = None
 
 
 @dataclass
-class EntityHeadquarters:
+class EntityCompanyPropertiesHeadquarters:
     """Company headquarters information."""
 
     address: Optional[str] = None
@@ -374,11 +374,21 @@ class EntityHeadquarters:
 
 
 @dataclass
-class EntityFinancials:
+class EntityCompanyPropertiesFundingRound:
+    """Funding round information."""
+
+    name: Optional[str] = None
+    date: Optional[str] = None
+    amount: Optional[int] = None
+
+
+@dataclass
+class EntityCompanyPropertiesFinancials:
     """Company financial information."""
 
     revenue_annual: Optional[int] = None
     funding_total: Optional[int] = None
+    funding_latest_round: Optional[EntityCompanyPropertiesFundingRound] = None
 
 
 @dataclass
@@ -388,9 +398,9 @@ class EntityCompanyProperties:
     name: Optional[str] = None
     founded_year: Optional[int] = None
     description: Optional[str] = None
-    workforce: Optional[EntityWorkforce] = None
-    headquarters: Optional[EntityHeadquarters] = None
-    financials: Optional[EntityFinancials] = None
+    workforce: Optional[EntityCompanyPropertiesWorkforce] = None
+    headquarters: Optional[EntityCompanyPropertiesHeadquarters] = None
+    financials: Optional[EntityCompanyPropertiesFinancials] = None
 
 
 @dataclass
@@ -402,7 +412,7 @@ class EntityDateRange:
 
 
 @dataclass
-class EntityCompanyRef:
+class EntityPersonPropertiesCompanyRef:
     """Reference to a company in work history."""
 
     id: Optional[str] = None
@@ -410,13 +420,13 @@ class EntityCompanyRef:
 
 
 @dataclass
-class EntityWorkHistoryEntry:
+class EntityPersonPropertiesWorkHistoryEntry:
     """A single work history entry for a person."""
 
     title: Optional[str] = None
     location: Optional[str] = None
     dates: Optional[EntityDateRange] = None
-    company: Optional[EntityCompanyRef] = None
+    company: Optional[EntityPersonPropertiesCompanyRef] = None
 
 
 @dataclass
@@ -425,7 +435,7 @@ class EntityPersonProperties:
 
     name: Optional[str] = None
     location: Optional[str] = None
-    work_history: Optional[List[EntityWorkHistoryEntry]] = None
+    work_history: Optional[List[EntityPersonPropertiesWorkHistoryEntry]] = None
 
 
 @dataclass
