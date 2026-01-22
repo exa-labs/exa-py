@@ -1163,7 +1163,7 @@ class Exa:
 
         # Set default user agent with dynamic version if not provided
         if user_agent is None:
-            user_agent = f"exa-py {_get_package_version()}"
+            user_agent = f"exa-py/{_get_package_version()}"
 
         self.base_url = base_url
         self.headers = {
