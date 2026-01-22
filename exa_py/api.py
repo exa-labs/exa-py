@@ -122,6 +122,119 @@ def to_snake_case(data: dict) -> dict:
     return data
 
 
+def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
+    """
+    Parse entity data from API response into Entity dataclasses.
+
+    Handles field mapping for reserved Python keywords:
+    - 'from' -> 'from_date'
+    - 'to' -> 'to_date'
+    """
+    if not entities_data:
+        return None
+
+    # Import here to avoid circular imports (Entity types defined later in file)
+    from exa_py.api import (
+        CompanyEntity,
+        PersonEntity,
+        EntityCompanyProperties,
+        EntityPersonProperties,
+        EntityCompanyPropertiesWorkforce,
+        EntityCompanyPropertiesHeadquarters,
+        EntityCompanyPropertiesFinancials,
+        EntityCompanyPropertiesFundingRound,
+        EntityDateRange,
+        EntityPersonPropertiesCompanyRef,
+        EntityPersonPropertiesWorkHistoryEntry,
+    )
+
+    def parse_date_range(data: Optional[dict]) -> Optional[EntityDateRange]:
+        if not data:
+            return None
+        return EntityDateRange(
+            from_date=data.get("from"),
+            to_date=data.get("to"),
+        )
+
+    def parse_company_ref(data: Optional[dict]) -> Optional[EntityPersonPropertiesCompanyRef]:
+        if not data:
+            return None
+        return EntityPersonPropertiesCompanyRef(
+            id=data.get("id"),
+            name=data.get("name"),
+        )
+
+    def parse_work_history_entry(data: dict) -> EntityPersonPropertiesWorkHistoryEntry:
+        return EntityPersonPropertiesWorkHistoryEntry(
+            title=data.get("title"),
+            location=data.get("location"),
+            dates=parse_date_range(data.get("dates")),
+            company=parse_company_ref(data.get("company")),
+        )
+
+    def parse_funding_round(data: Optional[dict]) -> Optional[EntityCompanyPropertiesFundingRound]:
+        if not data:
+            return None
+        return EntityCompanyPropertiesFundingRound(
+            name=data.get("name"),
+            date=data.get("date"),
+            amount=data.get("amount"),
+        )
+
+    def parse_financials(data: Optional[dict]) -> Optional[EntityCompanyPropertiesFinancials]:
+        if not data:
+            return None
+        return EntityCompanyPropertiesFinancials(
+            revenue_annual=data.get("revenueAnnual"),
+            funding_total=data.get("fundingTotal"),
+            funding_latest_round=parse_funding_round(data.get("fundingLatestRound")),
+        )
+
+    def parse_company_properties(data: dict) -> EntityCompanyProperties:
+        workforce_data = data.get("workforce")
+        headquarters_data = data.get("headquarters")
+        return EntityCompanyProperties(
+            name=data.get("name"),
+            founded_year=data.get("foundedYear"),
+            description=data.get("description"),
+            workforce=EntityCompanyPropertiesWorkforce(total=workforce_data.get("total")) if workforce_data else None,
+            headquarters=EntityCompanyPropertiesHeadquarters(
+                address=headquarters_data.get("address"),
+                city=headquarters_data.get("city"),
+                postal_code=headquarters_data.get("postalCode"),
+                country=headquarters_data.get("country"),
+            ) if headquarters_data else None,
+            financials=parse_financials(data.get("financials")),
+        )
+
+    def parse_person_properties(data: dict) -> EntityPersonProperties:
+        work_history = data.get("workHistory")
+        return EntityPersonProperties(
+            name=data.get("name"),
+            location=data.get("location"),
+            work_history=[parse_work_history_entry(wh) for wh in work_history] if work_history else None,
+        )
+
+    entities = []
+    for entity_data in entities_data:
+        entity_type = entity_data.get("type")
+        if entity_type == "company":
+            entities.append(CompanyEntity(
+                id=entity_data["id"],
+                type="company",
+                version=entity_data["version"],
+                properties=parse_company_properties(entity_data.get("properties", {})),
+            ))
+        elif entity_type == "person":
+            entities.append(PersonEntity(
+                id=entity_data["id"],
+                type="person",
+                version=entity_data["version"],
+                properties=parse_person_properties(entity_data.get("properties", {})),
+            ))
+    return entities if entities else None
+
+
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
@@ -352,6 +465,115 @@ class CostDollars:
     contents: CostDollarsContents = None
 
 
+# Entity types for company/people search results
+# Only returned when using category="company" or category="people" searches
+
+
+@dataclass
+class EntityCompanyPropertiesWorkforce:
+    """Company workforce information."""
+
+    total: Optional[int] = None
+
+
+@dataclass
+class EntityCompanyPropertiesHeadquarters:
+    """Company headquarters information."""
+
+    address: Optional[str] = None
+    city: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+
+
+@dataclass
+class EntityCompanyPropertiesFundingRound:
+    """Funding round information."""
+
+    name: Optional[str] = None
+    date: Optional[str] = None
+    amount: Optional[int] = None
+
+
+@dataclass
+class EntityCompanyPropertiesFinancials:
+    """Company financial information."""
+
+    revenue_annual: Optional[int] = None
+    funding_total: Optional[int] = None
+    funding_latest_round: Optional[EntityCompanyPropertiesFundingRound] = None
+
+
+@dataclass
+class EntityCompanyProperties:
+    """Structured properties for a company entity."""
+
+    name: Optional[str] = None
+    founded_year: Optional[int] = None
+    description: Optional[str] = None
+    workforce: Optional[EntityCompanyPropertiesWorkforce] = None
+    headquarters: Optional[EntityCompanyPropertiesHeadquarters] = None
+    financials: Optional[EntityCompanyPropertiesFinancials] = None
+
+
+@dataclass
+class EntityDateRange:
+    """Date range for work history entries."""
+
+    from_date: Optional[str] = None  # API returns 'from' but it's a reserved keyword
+    to_date: Optional[str] = None  # API returns 'to', renamed for consistency
+
+
+@dataclass
+class EntityPersonPropertiesCompanyRef:
+    """Reference to a company in work history."""
+
+    id: Optional[str] = None
+    name: Optional[str] = None
+
+
+@dataclass
+class EntityPersonPropertiesWorkHistoryEntry:
+    """A single work history entry for a person."""
+
+    title: Optional[str] = None
+    location: Optional[str] = None
+    dates: Optional[EntityDateRange] = None
+    company: Optional[EntityPersonPropertiesCompanyRef] = None
+
+
+@dataclass
+class EntityPersonProperties:
+    """Structured properties for a person entity."""
+
+    name: Optional[str] = None
+    location: Optional[str] = None
+    work_history: Optional[List[EntityPersonPropertiesWorkHistoryEntry]] = None
+
+
+@dataclass
+class CompanyEntity:
+    """Structured entity data for a company."""
+
+    id: str
+    type: Literal["company"]
+    version: int
+    properties: EntityCompanyProperties
+
+
+@dataclass
+class PersonEntity:
+    """Structured entity data for a person."""
+
+    id: str
+    type: Literal["person"]
+    version: int
+    properties: EntityPersonProperties
+
+
+Entity = Union[CompanyEntity, PersonEntity]
+
+
 @dataclass
 class _Result:
     """A class representing the base fields of a search result.
@@ -367,6 +589,7 @@ class _Result:
         favicon (str, optional): A URL to the favicon (if available).
         subpages (List[_Result], optional): Subpages of main page
         extras (Dict, optional): Additional metadata; e.g. links, images.
+        entities (List[Entity], optional): Structured entity data for company or person searches.
     """
 
     url: str
@@ -379,6 +602,7 @@ class _Result:
     favicon: Optional[str] = None
     subpages: Optional[List[_Result]] = None
     extras: Optional[Dict] = None
+    entities: Optional[List[Entity]] = None
 
     def __init__(
         self,
@@ -392,6 +616,7 @@ class _Result:
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
     ):
         self.url = url
         self.id = id
@@ -403,9 +628,10 @@ class _Result:
         self.favicon = favicon
         self.subpages = subpages
         self.extras = extras
+        self.entities = entities
 
     def __str__(self):
-        return (
+        result = (
             f"Title: {self.title}\n"
             f"URL: {self.url}\n"
             f"ID: {self.id}\n"
@@ -417,6 +643,13 @@ class _Result:
             f"Extras: {self.extras}\n"
             f"Subpages: {self.subpages}\n"
         )
+        if self.entities:
+            entities_str = "\n".join(
+                f"  - [{e.type}] {e.properties.name or 'Unknown'}"
+                for e in self.entities
+            )
+            result += f"Entities:\n{entities_str}\n"
+        return result
 
 
 @dataclass
@@ -448,6 +681,7 @@ class Result(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         text=None,
         summary=None,
         highlights=None,
@@ -464,6 +698,7 @@ class Result(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.text = text
         self.summary = summary
@@ -503,6 +738,7 @@ class ResultWithText(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         text="",
     ):
         super().__init__(
@@ -516,6 +752,7 @@ class ResultWithText(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.text = text
 
@@ -547,6 +784,7 @@ class ResultWithSummary(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         summary="",
     ):
         super().__init__(
@@ -560,6 +798,7 @@ class ResultWithSummary(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.summary = summary
 
@@ -593,6 +832,7 @@ class ResultWithTextAndSummary(_Result):
         favicon=None,
         subpages=None,
         extras=None,
+        entities=None,
         text="",
         summary="",
     ):
@@ -607,6 +847,7 @@ class ResultWithTextAndSummary(_Result):
             favicon,
             subpages,
             extras,
+            entities,
         )
         self.text = text
         self.summary = summary
@@ -922,7 +1163,7 @@ class Exa:
 
         # Set default user agent with dynamic version if not provided
         if user_agent is None:
-            user_agent = f"exa-py {_get_package_version()}"
+            user_agent = f"exa-py/{_get_package_version()}"
 
         self.base_url = base_url
         self.headers = {
@@ -1105,6 +1346,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1187,6 +1429,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1318,6 +1561,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1407,6 +1651,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -1614,6 +1859,7 @@ class Exa:
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2032,6 +2278,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2114,6 +2361,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2186,6 +2434,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2275,6 +2524,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
@@ -2351,6 +2601,7 @@ class AsyncExa(Exa):
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
+                    entities=_parse_entities(result.get("entities")),
                 )
             )
         return SearchResponse(
