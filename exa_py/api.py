@@ -143,6 +143,7 @@ def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
         EntityCompanyPropertiesHeadquarters,
         EntityCompanyPropertiesFinancials,
         EntityCompanyPropertiesFundingRound,
+        EntityCompanyPropertiesWebTraffic,
         EntityDateRange,
         EntityPersonPropertiesCompanyRef,
         EntityPersonPropertiesWorkHistoryEntry,
@@ -190,6 +191,13 @@ def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
             funding_latest_round=parse_funding_round(data.get("fundingLatestRound")),
         )
 
+    def parse_web_traffic(data: Optional[dict]) -> Optional[EntityCompanyPropertiesWebTraffic]:
+        if not data:
+            return None
+        return EntityCompanyPropertiesWebTraffic(
+            visits_monthly=data.get("visitsMonthly"),
+        )
+
     def parse_company_properties(data: dict) -> EntityCompanyProperties:
         workforce_data = data.get("workforce")
         headquarters_data = data.get("headquarters")
@@ -205,6 +213,7 @@ def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
                 country=headquarters_data.get("country"),
             ) if headquarters_data else None,
             financials=parse_financials(data.get("financials")),
+            web_traffic=parse_web_traffic(data.get("webTraffic")),
         )
 
     def parse_person_properties(data: dict) -> EntityPersonProperties:
@@ -505,6 +514,13 @@ class EntityCompanyPropertiesFinancials:
 
 
 @dataclass
+class EntityCompanyPropertiesWebTraffic:
+    """Company web traffic information."""
+
+    visits_monthly: Optional[int] = None
+
+
+@dataclass
 class EntityCompanyProperties:
     """Structured properties for a company entity."""
 
@@ -514,6 +530,7 @@ class EntityCompanyProperties:
     workforce: Optional[EntityCompanyPropertiesWorkforce] = None
     headquarters: Optional[EntityCompanyPropertiesHeadquarters] = None
     financials: Optional[EntityCompanyPropertiesFinancials] = None
+    web_traffic: Optional[EntityCompanyPropertiesWebTraffic] = None
 
 
 @dataclass

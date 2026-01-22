@@ -17,6 +17,7 @@ from exa_py.api import (
     EntityCompanyPropertiesHeadquarters,
     EntityCompanyPropertiesFinancials,
     EntityCompanyPropertiesFundingRound,
+    EntityCompanyPropertiesWebTraffic,
     EntityDateRange,
     EntityPersonPropertiesCompanyRef,
     EntityPersonPropertiesWorkHistoryEntry,
@@ -103,6 +104,16 @@ class TestEntityCompanyPropertiesFinancials:
         assert financials.funding_latest_round is None
 
 
+class TestEntityCompanyPropertiesWebTraffic:
+    def test_web_traffic_with_visits(self):
+        web_traffic = EntityCompanyPropertiesWebTraffic(visits_monthly=266306714)
+        assert web_traffic.visits_monthly == 266306714
+
+    def test_web_traffic_empty(self):
+        web_traffic = EntityCompanyPropertiesWebTraffic()
+        assert web_traffic.visits_monthly is None
+
+
 class TestEntityCompanyProperties:
     def test_company_properties_full(self):
         props = EntityCompanyProperties(
@@ -112,18 +123,21 @@ class TestEntityCompanyProperties:
             workforce=EntityCompanyPropertiesWorkforce(total=50),
             headquarters=EntityCompanyPropertiesHeadquarters(city="San Francisco"),
             financials=EntityCompanyPropertiesFinancials(funding_total=50000000),
+            web_traffic=EntityCompanyPropertiesWebTraffic(visits_monthly=266306714),
         )
         assert props.name == "Exa"
         assert props.founded_year == 2022
         assert props.workforce.total == 50
         assert props.headquarters.city == "San Francisco"
         assert props.financials.funding_total == 50000000
+        assert props.web_traffic.visits_monthly == 266306714
 
     def test_company_properties_minimal(self):
         props = EntityCompanyProperties(name="Unknown Corp")
         assert props.name == "Unknown Corp"
         assert props.founded_year is None
         assert props.workforce is None
+        assert props.web_traffic is None
 
 
 class TestEntityDateRange:
