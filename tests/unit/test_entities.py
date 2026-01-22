@@ -13,30 +13,31 @@ from exa_py.api import (
     PersonEntity,
     EntityCompanyProperties,
     EntityPersonProperties,
-    EntityWorkforce,
-    EntityHeadquarters,
-    EntityFinancials,
+    EntityCompanyPropertiesWorkforce,
+    EntityCompanyPropertiesHeadquarters,
+    EntityCompanyPropertiesFinancials,
+    EntityCompanyPropertiesFundingRound,
     EntityDateRange,
-    EntityCompanyRef,
-    EntityWorkHistoryEntry,
+    EntityPersonPropertiesCompanyRef,
+    EntityPersonPropertiesWorkHistoryEntry,
     Result,
     _Result,
 )
 
 
-class TestEntityWorkforce:
+class TestEntityCompanyPropertiesWorkforce:
     def test_workforce_with_total(self):
-        workforce = EntityWorkforce(total=500)
+        workforce = EntityCompanyPropertiesWorkforce(total=500)
         assert workforce.total == 500
 
     def test_workforce_with_none(self):
-        workforce = EntityWorkforce()
+        workforce = EntityCompanyPropertiesWorkforce()
         assert workforce.total is None
 
 
-class TestEntityHeadquarters:
+class TestEntityCompanyPropertiesHeadquarters:
     def test_headquarters_full(self):
-        hq = EntityHeadquarters(
+        hq = EntityCompanyPropertiesHeadquarters(
             address="123 Main St",
             city="San Francisco",
             postal_code="94105",
@@ -48,25 +49,58 @@ class TestEntityHeadquarters:
         assert hq.country == "US"
 
     def test_headquarters_partial(self):
-        hq = EntityHeadquarters(city="New York")
+        hq = EntityCompanyPropertiesHeadquarters(city="New York")
         assert hq.city == "New York"
         assert hq.address is None
         assert hq.postal_code is None
 
 
-class TestEntityFinancials:
+class TestEntityCompanyPropertiesFundingRound:
+    def test_funding_round_full(self):
+        round = EntityCompanyPropertiesFundingRound(
+            name="Series B",
+            date="2023-06-15",
+            amount=50000000,
+        )
+        assert round.name == "Series B"
+        assert round.date == "2023-06-15"
+        assert round.amount == 50000000
+
+    def test_funding_round_empty(self):
+        round = EntityCompanyPropertiesFundingRound()
+        assert round.name is None
+        assert round.date is None
+        assert round.amount is None
+
+
+class TestEntityCompanyPropertiesFinancials:
     def test_financials_full(self):
-        financials = EntityFinancials(
+        financials = EntityCompanyPropertiesFinancials(
             revenue_annual=1000000000,
             funding_total=500000000,
         )
         assert financials.revenue_annual == 1000000000
         assert financials.funding_total == 500000000
 
+    def test_financials_with_latest_round(self):
+        financials = EntityCompanyPropertiesFinancials(
+            funding_total=500000000,
+            funding_latest_round=EntityCompanyPropertiesFundingRound(
+                name="Series B",
+                date="2023-06-15",
+                amount=50000000,
+            ),
+        )
+        assert financials.funding_total == 500000000
+        assert financials.funding_latest_round is not None
+        assert financials.funding_latest_round.name == "Series B"
+        assert financials.funding_latest_round.amount == 50000000
+
     def test_financials_empty(self):
-        financials = EntityFinancials()
+        financials = EntityCompanyPropertiesFinancials()
         assert financials.revenue_annual is None
         assert financials.funding_total is None
+        assert financials.funding_latest_round is None
 
 
 class TestEntityCompanyProperties:
@@ -75,9 +109,9 @@ class TestEntityCompanyProperties:
             name="Exa",
             founded_year=2022,
             description="AI-powered search engine",
-            workforce=EntityWorkforce(total=50),
-            headquarters=EntityHeadquarters(city="San Francisco"),
-            financials=EntityFinancials(funding_total=50000000),
+            workforce=EntityCompanyPropertiesWorkforce(total=50),
+            headquarters=EntityCompanyPropertiesHeadquarters(city="San Francisco"),
+            financials=EntityCompanyPropertiesFinancials(funding_total=50000000),
         )
         assert props.name == "Exa"
         assert props.founded_year == 2022
@@ -104,9 +138,9 @@ class TestEntityDateRange:
         assert dates.to is None
 
 
-class TestEntityCompanyRef:
+class TestEntityPersonPropertiesCompanyRef:
     def test_company_ref_full(self):
-        ref = EntityCompanyRef(
+        ref = EntityPersonPropertiesCompanyRef(
             id="https://exa.ai/library/company/exa",
             name="Exa",
         )
@@ -114,18 +148,18 @@ class TestEntityCompanyRef:
         assert ref.name == "Exa"
 
     def test_company_ref_name_only(self):
-        ref = EntityCompanyRef(name="Startup Inc")
+        ref = EntityPersonPropertiesCompanyRef(name="Startup Inc")
         assert ref.id is None
         assert ref.name == "Startup Inc"
 
 
-class TestEntityWorkHistoryEntry:
+class TestEntityPersonPropertiesWorkHistoryEntry:
     def test_work_history_entry_full(self):
-        entry = EntityWorkHistoryEntry(
+        entry = EntityPersonPropertiesWorkHistoryEntry(
             title="Software Engineer",
             location="San Francisco, CA",
             dates=EntityDateRange(from_date="2020-01-15", to="2023-06-30"),
-            company=EntityCompanyRef(id="exa-id", name="Exa"),
+            company=EntityPersonPropertiesCompanyRef(id="exa-id", name="Exa"),
         )
         assert entry.title == "Software Engineer"
         assert entry.location == "San Francisco, CA"
@@ -133,7 +167,7 @@ class TestEntityWorkHistoryEntry:
         assert entry.company.name == "Exa"
 
     def test_work_history_entry_minimal(self):
-        entry = EntityWorkHistoryEntry(title="Developer")
+        entry = EntityPersonPropertiesWorkHistoryEntry(title="Developer")
         assert entry.title == "Developer"
         assert entry.location is None
         assert entry.dates is None
@@ -146,13 +180,13 @@ class TestEntityPersonProperties:
             name="John Doe",
             location="San Francisco, CA",
             work_history=[
-                EntityWorkHistoryEntry(
+                EntityPersonPropertiesWorkHistoryEntry(
                     title="Software Engineer",
-                    company=EntityCompanyRef(name="Exa"),
+                    company=EntityPersonPropertiesCompanyRef(name="Exa"),
                 ),
-                EntityWorkHistoryEntry(
+                EntityPersonPropertiesWorkHistoryEntry(
                     title="Junior Developer",
-                    company=EntityCompanyRef(name="Startup Inc"),
+                    company=EntityPersonPropertiesCompanyRef(name="Startup Inc"),
                 ),
             ],
         )
