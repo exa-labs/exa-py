@@ -147,6 +147,64 @@ def parse_args_section(args_text: str) -> dict[str, str]:
     return params
 
 
+def format_examples_section(examples_text: str) -> str:
+    """Format the Examples section from a docstring into markdown code blocks.
+    
+    Parses doctest-style examples (>>> and ...) and formats them as Python code blocks.
+    """
+    lines = examples_text.strip().split("\n")
+    result = []
+    in_code_block = False
+    code_lines = []
+    current_description = []
+    
+    for line in lines:
+        stripped = line.strip()
+        
+        # Check if this is a code line (starts with >>> or ...)
+        if stripped.startswith(">>>") or stripped.startswith("..."):
+            # If we have a description, add it first
+            if current_description and not in_code_block:
+                result.append(" ".join(current_description))
+                result.append("")
+                current_description = []
+            
+            # Start or continue code block
+            if not in_code_block:
+                result.append("```python")
+                in_code_block = True
+            
+            # Remove the >>> or ... prefix and add the code
+            if stripped.startswith(">>>"):
+                code_line = stripped[3:].strip()
+            else:
+                code_line = stripped[3:].strip()
+            code_lines.append(code_line)
+        else:
+            # This is a description line
+            if in_code_block:
+                # End the code block
+                result.extend(code_lines)
+                result.append("```")
+                result.append("")
+                code_lines = []
+                in_code_block = False
+            
+            if stripped:
+                current_description.append(stripped)
+    
+    # Handle any remaining code block
+    if in_code_block:
+        result.extend(code_lines)
+        result.append("```")
+    
+    # Handle any remaining description
+    if current_description:
+        result.append(" ".join(current_description))
+    
+    return "\n".join(result)
+
+
 def parse_function_def(node: ast.FunctionDef | ast.AsyncFunctionDef) -> ParsedMethod:
     """Parse a function definition node into a ParsedMethod."""
     params = []
@@ -287,6 +345,17 @@ def generate_method_markdown(method: ParsedMethod, class_name: str) -> str:
         lines.append("**Returns:**")
         lines.append(f"`{method.return_type}`")
         lines.append("")
+    
+    # Examples
+    if method.docstring:
+        parsed_doc = parse_google_docstring(method.docstring)
+        if "examples" in parsed_doc:
+            lines.append("**Examples:**")
+            lines.append("")
+            examples_text = parsed_doc["examples"]
+            # Format examples as code blocks
+            lines.append(format_examples_section(examples_text))
+            lines.append("")
     
     return "\n".join(lines)
 
