@@ -359,6 +359,66 @@ def parse_sdk_file(filepath: Path) -> tuple[dict[str, list[ParsedMethod]], list[
     return methods_by_class, classes
 
 
+def generate_getting_started_section() -> str:
+    """Generate the Getting Started section with UV/PIP installation tabs."""
+    return '''## Getting Started
+
+### Installation
+
+<Tabs>
+  <Tab title="uv">
+    ```bash
+    uv add exa-py
+    ```
+  </Tab>
+  <Tab title="pip">
+    ```bash
+    pip install exa-py
+    ```
+  </Tab>
+</Tabs>
+
+### Basic Usage
+
+```python
+from exa_py import Exa
+
+# Initialize the client
+exa = Exa(api_key="your-api-key")
+
+# Or use the EXA_API_KEY environment variable
+exa = Exa()
+
+# Perform a search
+results = exa.search("latest AI research papers")
+
+# Search with content retrieval
+results = exa.search(
+    "machine learning tutorials",
+    contents={"text": {"max_characters": 1000}}
+)
+
+# Find similar pages
+similar = exa.find_similar("https://example.com/article")
+```
+
+### Async Usage
+
+```python
+import asyncio
+from exa_py import AsyncExa
+
+async def main():
+    exa = AsyncExa(api_key="your-api-key")
+    results = await exa.search("async search example")
+    print(results)
+
+asyncio.run(main())
+```
+
+'''
+
+
 def generate_full_documentation(filepath: Path) -> str:
     """Generate the full markdown documentation."""
     methods_by_class, classes = parse_sdk_file(filepath)
@@ -375,6 +435,9 @@ def generate_full_documentation(filepath: Path) -> str:
     lines.append("")
     lines.append("This reference documentation is auto-generated from the SDK source code.")
     lines.append("")
+    
+    # Getting Started section
+    lines.append(generate_getting_started_section())
     
     # Exa class methods
     if "Exa" in methods_by_class:
