@@ -145,6 +145,10 @@
     "research.list": "ListResearchResponseDto"
   },
   "manual_types": {
+    "JSONSchemaInput": {
+      "description": "Input type for JSON schema parameters. Can be either a Pydantic model class (automatically converted to JSON Schema) or a raw JSON Schema dictionary.",
+      "definition": "Union[type[BaseModel], dict[str, Any]]"
+    },
     "Entity": {
       "description": "Union type representing either a company or person entity. See CompanyEntity and PersonEntity for details.",
       "definition": "Union[CompanyEntity, PersonEntity]"
