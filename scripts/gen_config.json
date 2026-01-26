@@ -14,17 +14,7 @@
       "ExtrasOptions",
       "ContentsOptions"
     ],
-    "dataclasses": [
-      "_Result", "Result", "SearchResponse", "AnswerResponse", "AnswerResult", "StreamChunk",
-      "CompanyEntity", "PersonEntity",
-      "EntityCompanyProperties", "EntityPersonProperties",
-      "EntityCompanyPropertiesWorkforce", "EntityCompanyPropertiesHeadquarters",
-      "EntityCompanyPropertiesFundingRound", "EntityCompanyPropertiesFinancials",
-      "EntityCompanyPropertiesWebTraffic", "EntityDateRange",
-      "EntityPersonPropertiesCompanyRef", "EntityPersonPropertiesWorkHistoryEntry",
-      "ResearchCompletedDto", "ListResearchResponseDto",
-      "CostDollars", "ResearchOutput"
-    ]
+    "dataclasses": ["_Result"]
   },
   "getting_started": {
     "api_key_url": "https://dashboard.exa.ai/api-keys"

@@ -61,15 +61,16 @@ class DocGenerator:
 
         self.export_methods = self.config["export"]["methods"]
         self.export_research_methods = self.config["export"]["research_methods"]
-        self.export_typeddicts = self.config["export"]["typeddicts"]
-        self.export_dataclasses = self.config["export"]["dataclasses"]
+        self.export_typeddicts = self.config["export"].get("typeddicts", [])
+        # dataclasses list is now optional - if empty, we auto-discover all classes
+        self.export_dataclasses = self.config["export"].get("dataclasses", [])
         self.getting_started = self.config["getting_started"]
         self.output_examples = self.config.get("output_examples", {})
         self.method_result_objects = self.config.get("method_result_objects", {})
         self.manual_types = self.config.get("manual_types", {})
         # Will be populated when parsing classes
         self.parsed_classes: Dict[str, ParsedClass] = {}
-        # Auto-infer linkable types from exported types and manual types
+        # Start with manual types and explicitly listed types; auto-discovered classes added during parsing
         self.all_linkable_types: set = set(self.export_typeddicts) | set(self.export_dataclasses) | set(self.manual_types.keys())
 
     def get_type_annotation_str(self, node: ast.expr) -> str:
@@ -372,8 +373,17 @@ class DocGenerator:
                     methods = [methods_dict[name] for name in export_methods[class_name] if name in methods_dict]
                     methods_by_class[class_name] = methods
 
-                if class_name in self.export_typeddicts or class_name in self.export_dataclasses:
-                    classes.append(self.parse_class_def(node, all_class_nodes))
+                # Export classes that are:
+                # 1. Explicitly listed in typeddicts or dataclasses config
+                # 2. Auto-discovered (not client classes, not private unless explicitly listed)
+                is_explicitly_listed = class_name in self.export_typeddicts or class_name in self.export_dataclasses
+                is_client_class = class_name in (list(export_methods.keys()) + ["ResearchBaseClient"])
+
+                if is_explicitly_listed or (not is_client_class and not class_name.startswith('_')):
+                    parsed_class = self.parse_class_def(node, all_class_nodes)
+                    classes.append(parsed_class)
+                    # Auto-add to linkable types
+                    self.all_linkable_types.add(class_name)
 
         return methods_by_class, classes
 
@@ -559,16 +569,9 @@ exa = Exa()  # Reads EXA_API_KEY from environment
 
         typeddict_classes = [c for c in classes if c.name in self.export_typeddicts]
 
-        # Separate result classes from entity classes
-        entity_class_names = [
-            "CompanyEntity", "PersonEntity",
-            "EntityCompanyProperties", "EntityPersonProperties",
-            "EntityCompanyPropertiesWorkforce", "EntityCompanyPropertiesHeadquarters",
-            "EntityCompanyPropertiesFundingRound", "EntityCompanyPropertiesFinancials",
-            "EntityCompanyPropertiesWebTraffic", "EntityDateRange",
-            "EntityPersonPropertiesCompanyRef", "EntityPersonPropertiesWorkHistoryEntry"
-        ]
-        result_classes = [c for c in classes if c.name in self.export_dataclasses and c.name not in entity_class_names]
+        # Separate entity classes from other response types
+        entity_class_names = {c.name for c in classes if c.name.startswith("Entity") or c.name in ["CompanyEntity", "PersonEntity"]}
+        result_classes = [c for c in classes if c.name not in self.export_typeddicts and c.name not in entity_class_names]
         entity_classes = [c for c in classes if c.name in entity_class_names]
 
         if typeddict_classes:
