@@ -244,6 +244,19 @@ def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
     return entities if entities else None
 
 
+# Category options for search filtering
+Category = Literal[
+    "company",
+    "research paper",
+    "news",
+    "pdf",
+    "tweet",
+    "personal site",
+    "financial report",
+    "people",
+]
+"""Data category to focus on when searching. Each category returns results specialized for that content type."""
+
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
@@ -269,7 +282,7 @@ SEARCH_OPTIONS_TYPES = {
     "type": [
         str
     ],  # 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (Default: auto)
-    "category": [str],  # A data category to focus on (known categories: company, research paper, news, pdf, github, tweet, personal site, financial report, people)
+    "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
@@ -288,7 +301,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "include_text": [list],
     "exclude_text": [list],
     "exclude_source_domain": [bool],
-    "category": [str],  # A data category to focus on
+    "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "contents": [dict, bool],  # Options for retrieving page contents
 }
@@ -1319,7 +1332,7 @@ class Exa:
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         type: Optional[str] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
@@ -1346,7 +1359,7 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (default 'auto').
-            category (str, optional): e.g. 'company'
+            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
@@ -1677,7 +1690,7 @@ class Exa:
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[Result]:
         """Finds similar pages to a given URL, potentially with domain filters and date filters.
@@ -1699,7 +1712,7 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
-            category (str, optional): A data category to focus on.
+            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags.
 
         Returns:
@@ -1773,7 +1786,7 @@ class Exa:
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
@@ -1799,7 +1812,7 @@ class Exa:
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
@@ -1825,7 +1838,7 @@ class Exa:
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
@@ -1851,7 +1864,7 @@ class Exa:
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
@@ -1878,7 +1891,7 @@ class Exa:
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
@@ -2000,7 +2013,7 @@ class Exa:
             include_text: Optional[List[str]] = None,
             exclude_text: Optional[List[str]] = None,
             type: Optional[str] = None,
-            category: Optional[str] = None,
+            category: Optional[Category] = None,
             result_max_len: int = 2048,
             flags: Optional[List[str]] = None,
             # OpenAI args
@@ -2326,7 +2339,7 @@ class AsyncExa(Exa):
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         type: Optional[str] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
@@ -2353,7 +2366,7 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (default 'auto').
-            category (str, optional): e.g. 'company'
+            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
@@ -2623,7 +2636,7 @@ class AsyncExa(Exa):
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
         exclude_source_domain: Optional[bool] = None,
-        category: Optional[str] = None,
+        category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[Result]:
         """Finds similar pages to a given URL, potentially with domain filters and date filters.
@@ -2645,7 +2658,7 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
-            category (str, optional): A data category to focus on.
+            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags.
 
         Returns:
