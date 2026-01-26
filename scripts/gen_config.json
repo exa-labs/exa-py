@@ -144,6 +144,9 @@
     "research.poll_until_finished": "ResearchCompletedDto",
     "research.list": "ListResearchResponseDto"
   },
+  "external_type_links": {
+    "BaseModel": "https://docs.pydantic.dev/latest/api/base_model/#BaseModel"
+  },
   "manual_types": {
     "JSONSchemaInput": {
       "description": "Input type for JSON schema parameters. Can be either a Pydantic model class (automatically converted to JSON Schema) or a raw JSON Schema dictionary.",

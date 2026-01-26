@@ -68,6 +68,7 @@ class DocGenerator:
         self.output_examples = self.config.get("output_examples", {})
         self.method_result_objects = self.config.get("method_result_objects", {})
         self.manual_types = self.config.get("manual_types", {})
+        self.external_type_links = self.config.get("external_type_links", {})
         # Will be populated when parsing classes
         self.parsed_classes: Dict[str, ParsedClass] = {}
         # Start with manual types and explicitly listed types; auto-discovered classes added during parsing
@@ -92,11 +93,19 @@ class DocGenerator:
             return type_str
 
         result = type_str
-        # Use all_linkable_types which includes both config and auto-discovered types
+
+        # First, handle external type links (like BaseModel -> Pydantic docs)
+        for type_name, url in self.external_type_links.items():
+            # Negative lookahead to avoid re-linking already linked types
+            pattern = rf'\b{type_name}\b(?!\]\()'
+            replacement = f'[{type_name}]({url})'
+            result = re.sub(pattern, replacement, result)
+
+        # Then, handle internal type links
         for type_name in self.all_linkable_types:
             anchor = type_name.lower()
-            # Negative lookahead for ](#  to avoid re-linking already linked types
-            pattern = rf'\b{type_name}\b(?!\]\(#)'
+            # Negative lookahead for ]( to avoid re-linking already linked types
+            pattern = rf'\b{type_name}\b(?!\]\()'
             replacement = f'[{type_name}](#{anchor})'
             result = re.sub(pattern, replacement, result)
 
