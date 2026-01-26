@@ -66,7 +66,6 @@ class DocGenerator:
         self.getting_started = self.config["getting_started"]
         self.output_examples = self.config.get("output_examples", {})
         self.method_result_objects = self.config.get("method_result_objects", {})
-        self.manual_result_objects = self.config.get("manual_result_objects", {})
         self.manual_types = self.config.get("manual_types", {})
         # Will be populated when parsing classes
         self.parsed_classes: Dict[str, ParsedClass] = {}
@@ -261,7 +260,42 @@ class DocGenerator:
             is_async=isinstance(node, ast.AsyncFunctionDef),
         )
 
-    def parse_class_def(self, node: ast.ClassDef) -> ParsedClass:
+    def extract_pydantic_field_info(self, annotation: ast.expr) -> tuple[str, Optional[str]]:
+        """Extract type and description from Pydantic Annotated[type, Field(...)] syntax.
+
+        Returns:
+            Tuple of (type_str, description or None)
+        """
+        # Check if it's Annotated[..., Field(...)]
+        if isinstance(annotation, ast.Subscript):
+            if isinstance(annotation.value, ast.Name) and annotation.value.id == "Annotated":
+                if isinstance(annotation.slice, ast.Tuple) and len(annotation.slice.elts) >= 2:
+                    # First element is the actual type
+                    base_type = self.get_type_annotation_str(annotation.slice.elts[0])
+
+                    # Look for Field() call in remaining elements
+                    for elem in annotation.slice.elts[1:]:
+                        if isinstance(elem, ast.Call):
+                            # Check if it's a Field() call
+                            func_name = ""
+                            if isinstance(elem.func, ast.Name):
+                                func_name = elem.func.id
+                            elif isinstance(elem.func, ast.Attribute):
+                                func_name = elem.func.attr
+
+                            if func_name == "Field":
+                                # Look for description keyword argument
+                                for keyword in elem.keywords:
+                                    if keyword.arg == "description":
+                                        if isinstance(keyword.value, ast.Constant):
+                                            return base_type, keyword.value.value
+
+                    return base_type, None
+
+        # Not an Annotated type, return as-is
+        return self.get_type_annotation_str(annotation), None
+
+    def parse_class_def(self, node: ast.ClassDef, all_class_nodes: Optional[dict] = None) -> ParsedClass:
         """Parse a class definition node into a ParsedClass."""
         docstring = ast.get_docstring(node)
         parsed_doc = self.parse_google_docstring(docstring) if docstring else {}
@@ -269,11 +303,30 @@ class DocGenerator:
 
         fields = []
 
+        # First, collect fields from parent classes (for inheritance)
+        if all_class_nodes:
+            for base in node.bases:
+                base_name = None
+                if isinstance(base, ast.Name):
+                    base_name = base.id
+                elif isinstance(base, ast.Attribute):
+                    base_name = base.attr
+
+                if base_name and base_name in all_class_nodes:
+                    parent_node = all_class_nodes[base_name]
+                    parent_class = self.parse_class_def(parent_node, all_class_nodes)
+                    fields.extend(parent_class.fields)
+
+        # Then collect fields from this class
         for item in node.body:
             if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                 field_name = item.target.id
-                field_type = self.get_type_annotation_str(item.annotation)
-                field_desc = attr_descriptions.get(field_name)
+
+                # Try to extract from Pydantic Field() first
+                field_type, pydantic_desc = self.extract_pydantic_field_info(item.annotation)
+
+                # Use Pydantic description, fall back to docstring attributes
+                field_desc = pydantic_desc or attr_descriptions.get(field_name)
                 fields.append((field_name, field_type, field_desc))
 
         return ParsedClass(
@@ -295,6 +348,12 @@ class DocGenerator:
         methods_by_class: dict[str, list[ParsedMethod]] = {}
         classes: list[ParsedClass] = []
 
+        # First pass: collect all class definitions for inheritance lookup
+        all_class_nodes: dict[str, ast.ClassDef] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                all_class_nodes[node.name] = node
+
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 class_name = node.name
@@ -314,7 +373,7 @@ class DocGenerator:
                     methods_by_class[class_name] = methods
 
                 if class_name in self.export_typeddicts or class_name in self.export_dataclasses:
-                    classes.append(self.parse_class_def(node))
+                    classes.append(self.parse_class_def(node, all_class_nodes))
 
         return methods_by_class, classes
 
@@ -442,9 +501,8 @@ exa = Exa()  # Reads EXA_API_KEY from environment
             lines.append("```")
             lines.append("")
 
-        # Result Object table - extract fields from parsed class or manual config
+        # Result Object table - extract fields from parsed class
         result_class_name = self.method_result_objects.get(config_key)
-        manual_result = self.manual_result_objects.get(config_key)
 
         if result_class_name and result_class_name in self.parsed_classes:
             result_class = self.parsed_classes[result_class_name]
@@ -454,16 +512,6 @@ exa = Exa()  # Reads EXA_API_KEY from environment
             lines.append("| ----- | ---- | ----------- |")
             for field_name, field_type, field_desc in result_class.fields:
                 # Linkify types in the type column (no backticks so links work)
-                linked_type = self.linkify_type(field_type)
-                desc_str = self.escape_mdx_braces(field_desc) if field_desc else "-"
-                lines.append(f"| {field_name} | {linked_type} | {desc_str} |")
-            lines.append("")
-        elif manual_result:
-            lines.append("### Result Object")
-            lines.append("")
-            lines.append("| Field | Type | Description |")
-            lines.append("| ----- | ---- | ----------- |")
-            for field_name, field_type, field_desc in manual_result["fields"]:
                 linked_type = self.linkify_type(field_type)
                 desc_str = self.escape_mdx_braces(field_desc) if field_desc else "-"
                 lines.append(f"| {field_name} | {linked_type} | {desc_str} |")
@@ -566,10 +614,13 @@ exa = Exa()  # Reads EXA_API_KEY from environment
 
         return "\n".join(lines)
 
-    def generate_full_documentation(self, api_filepath: Path, research_filepath: Path) -> str:
+    def generate_full_documentation(self, api_filepath: Path, research_filepath: Path, research_models_filepath: Path) -> str:
         """Generate the full markdown documentation."""
         methods_by_class, classes = self.parse_sdk_file(api_filepath)
         research_methods, _ = self.parse_sdk_file(research_filepath, self.export_research_methods)
+        # Parse research models for Pydantic DTOs
+        _, research_classes = self.parse_sdk_file(research_models_filepath)
+        classes.extend(research_classes)
 
         # Store parsed classes for lookup by generate_method_markdown
         for cls in classes:
@@ -610,6 +661,7 @@ def main():
     config_file = script_dir / "gen_config.json"
     api_file = script_dir.parent / "exa_py" / "api.py"
     research_file = script_dir.parent / "exa_py" / "research" / "sync_client.py"
+    research_models_file = script_dir.parent / "exa_py" / "research" / "models.py"
 
     if not config_file.exists():
         print(f"Error: Config file not found at {config_file}", file=sys.stderr)
@@ -623,8 +675,12 @@ def main():
         print(f"Error: Research client file not found at {research_file}", file=sys.stderr)
         sys.exit(1)
 
+    if not research_models_file.exists():
+        print(f"Error: Research models file not found at {research_models_file}", file=sys.stderr)
+        sys.exit(1)
+
     generator = DocGenerator(config_file)
-    docs = generator.generate_full_documentation(api_file, research_file)
+    docs = generator.generate_full_documentation(api_file, research_file, research_models_file)
     print(docs)
 
 

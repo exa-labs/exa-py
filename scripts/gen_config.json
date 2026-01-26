@@ -21,7 +21,8 @@
       "EntityCompanyPropertiesWorkforce", "EntityCompanyPropertiesHeadquarters",
       "EntityCompanyPropertiesFundingRound", "EntityCompanyPropertiesFinancials",
       "EntityCompanyPropertiesWebTraffic", "EntityDateRange",
-      "EntityPersonPropertiesCompanyRef", "EntityPersonPropertiesWorkHistoryEntry"
+      "EntityPersonPropertiesCompanyRef", "EntityPersonPropertiesWorkHistoryEntry",
+      "ResearchCompletedDto", "ListResearchResponseDto"
     ]
   },
   "getting_started": {
@@ -146,58 +147,16 @@
     "find_similar": "_Result",
     "get_contents": "_Result",
     "answer": "AnswerResult",
-    "stream_answer": "StreamChunk"
+    "stream_answer": "StreamChunk",
+    "research.create": "ResearchCompletedDto",
+    "research.get": "ResearchCompletedDto",
+    "research.poll_until_finished": "ResearchCompletedDto",
+    "research.list": "ListResearchResponseDto"
   },
   "manual_types": {
     "Entity": {
       "description": "Union type representing either a company or person entity. See CompanyEntity and PersonEntity for details.",
       "definition": "Union[CompanyEntity, PersonEntity]"
-    }
-  },
-  "manual_result_objects": {
-    "research.create": {
-      "name": "ResearchTask",
-      "fields": [
-        ["research_id", "str", "The unique identifier for the research task."],
-        ["status", "str", "Task status: 'pending', 'running', 'completed', 'failed', or 'canceled'."],
-        ["created_at", "float", "Creation timestamp in milliseconds since epoch."],
-        ["model", "str", "The model used for research."],
-        ["instructions", "str", "The research instructions provided."]
-      ]
-    },
-    "research.get": {
-      "name": "ResearchTask",
-      "fields": [
-        ["research_id", "str", "The unique identifier for the research task."],
-        ["status", "str", "Task status: 'pending', 'running', 'completed', 'failed', or 'canceled'."],
-        ["created_at", "float", "Creation timestamp in milliseconds since epoch."],
-        ["model", "str", "The model used for research."],
-        ["instructions", "str", "The research instructions provided."],
-        ["output", "ResearchOutput", "The research results (when completed). Contains 'content' string and optional 'parsed' dict."],
-        ["cost_dollars", "CostDollars", "Cost breakdown (when completed)."],
-        ["events", "List[ResearchEvent]", "Research events (if requested)."]
-      ]
-    },
-    "research.poll_until_finished": {
-      "name": "ResearchTask",
-      "fields": [
-        ["research_id", "str", "The unique identifier for the research task."],
-        ["status", "str", "Task status: 'completed', 'failed', or 'canceled'."],
-        ["created_at", "float", "Creation timestamp in milliseconds since epoch."],
-        ["model", "str", "The model used for research."],
-        ["instructions", "str", "The research instructions provided."],
-        ["output", "ResearchOutput", "The research results. Contains 'content' string and optional 'parsed' dict."],
-        ["cost_dollars", "CostDollars", "Cost breakdown."],
-        ["events", "List[ResearchEvent]", "Research events (if requested)."]
-      ]
-    },
-    "research.list": {
-      "name": "ListResearchResponse",
-      "fields": [
-        ["data", "List[ResearchTask]", "List of research tasks."],
-        ["has_more", "bool", "Whether there are more results to paginate through."],
-        ["next_cursor", "Optional[str]", "Cursor for the next page of results."]
-      ]
     }
   }
 }
