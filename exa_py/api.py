@@ -1358,28 +1358,19 @@ class Exa:
             SearchResponse: The response containing search results, etc.
 
         Examples:
-            Basic search with default text contents:
-            >>> exa = Exa(api_key="your-api-key")
-            >>> results = exa.search("latest AI research papers")
-            >>> print(results.results[0].title)
+            # Basic search
+            result = exa.search(
+              "hottest AI startups",
+              num_results=2
+            )
 
-            Search without contents (metadata only):
-            >>> results = exa.search("machine learning tutorials", contents=False)
-
-            Search with custom content options:
-            >>> results = exa.search(
-            ...     "python programming",
-            ...     num_results=5,
-            ...     contents={"text": {"max_characters": 1000}, "highlights": True}
-            ... )
-
-            Search with filters:
-            >>> results = exa.search(
-            ...     "climate change research",
-            ...     include_domains=["nature.com", "science.org"],
-            ...     start_published_date="2024-01-01",
-            ...     category="research paper"
-            ... )
+            # Deep search with query variations
+            deep_result = exa.search(
+              "blog post about AI",
+              type="deep",
+              additional_queries=["AI blogpost", "machine learning blogs"],
+              num_results=5
+            )
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
 
@@ -1589,21 +1580,14 @@ class Exa:
             SearchResponse[Result]: The response containing the contents of the URLs.
 
         Examples:
-            Get contents for a single URL:
-            >>> exa = Exa(api_key="your-api-key")
-            >>> results = exa.get_contents("https://example.com/article")
-            >>> print(results.results[0].text)
+            # Get contents for a single URL
+            contents = exa.get_contents("https://example.com/article")
 
-            Get contents for multiple URLs with summary:
-            >>> results = exa.get_contents(
-            ...     ["https://example.com/page1", "https://example.com/page2"],
-            ...     text=True,
-            ...     summary=True
-            ... )
-
-            Get contents from search results:
-            >>> search_results = exa.search("AI news", contents=False)
-            >>> contents = exa.get_contents(search_results.results[:5])
+            # Get contents for multiple URLs
+            contents = exa.get_contents([
+                "https://example.com/article1",
+                "https://example.com/article2"
+            ])
         """
         # Normalize urls to always be a list
         if isinstance(urls, str):
@@ -1722,24 +1706,11 @@ class Exa:
             SearchResponse[Result]
 
         Examples:
-            Find similar pages with default text contents:
-            >>> exa = Exa(api_key="your-api-key")
-            >>> results = exa.find_similar("https://www.nature.com/articles/s41586-021-03819-2")
-            >>> print(results.results[0].title)
-
-            Find similar without contents:
-            >>> results = exa.find_similar(
-            ...     "https://example.com/article",
-            ...     contents=False,
-            ...     num_results=5
-            ... )
-
-            Find similar with domain filters:
-            >>> results = exa.find_similar(
-            ...     "https://arxiv.org/abs/2301.00001",
-            ...     include_domains=["arxiv.org", "openreview.net"],
-            ...     exclude_source_domain=True
-            ... )
+            similar_results = exa.find_similar(
+                "miniclip.com",
+                num_results=2,
+                exclude_source_domain=True
+            )
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
 
@@ -2170,24 +2141,17 @@ class Exa:
             ValueError: If stream=True is provided. Use stream_answer() instead for streaming responses.
 
         Examples:
-            Basic question answering:
-            >>> exa = Exa(api_key="your-api-key")
-            >>> response = exa.answer("What are the latest developments in quantum computing?")
-            >>> print(response.answer)
+            response = exa.answer("What is the capital of France?")
 
-            Answer with full text in citations:
-            >>> response = exa.answer(
-            ...     "Explain the benefits of renewable energy",
-            ...     text=True
-            ... )
-            >>> for citation in response.citations:
-            ...     print(f"{citation.title}: {citation.url}")
+            print(response.answer)       # e.g. "Paris"
+            print(response.citations)    # list of citations used
 
-            Answer with custom system prompt:
-            >>> response = exa.answer(
-            ...     "What is machine learning?",
-            ...     system_prompt="Explain in simple terms for a beginner"
-            ... )
+            # If you want the full text of the citations in the response:
+            response_with_text = exa.answer(
+                "What is the capital of France?",
+                text=True
+            )
+            print(response_with_text.citations[0].text)  # Full page text
         """
         if stream:
             raise ValueError(
@@ -2243,18 +2207,14 @@ class Exa:
                 Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
 
         Examples:
-            Stream an answer and print chunks as they arrive:
-            >>> exa = Exa(api_key="your-api-key")
-            >>> for chunk in exa.stream_answer("What is quantum computing?"):
-            ...     if chunk.text:
-            ...         print(chunk.text, end="", flush=True)
+            stream = exa.stream_answer("What is the capital of France?", text=True)
 
-            Stream with citations:
-            >>> for chunk in exa.stream_answer("Explain climate change", text=True):
-            ...     if chunk.text:
-            ...         print(chunk.text, end="")
-            ...     if chunk.citations:
-            ...         print(f"\\nCitations: {[c.url for c in chunk.citations]}")
+            for chunk in stream:
+                if chunk.content:
+                    print("Partial answer:", chunk.content)
+                if chunk.citations:
+                    for citation in chunk.citations:
+                        print("Citation found:", citation.url)
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
 

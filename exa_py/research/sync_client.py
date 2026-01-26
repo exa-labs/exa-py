@@ -95,12 +95,36 @@ class ResearchClient(ResearchBaseClient):
         """Create a new research request.
 
         Args:
-            instructions: The research instructions.
-            model: The model to use for research.
-            output_schema: Optional JSON schema or Pydantic model for structured output.
+            instructions (str): The research instructions describing what to research.
+            model (str): The model to use ('exa-research-fast', 'exa-research', or 'exa-research-pro').
+            output_schema (dict): Optional JSON schema for structured output format.
 
         Returns:
-            The created research object.
+            The created research object with a unique research_id.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            # Create a simple research task
+            instructions = "What is the latest valuation of SpaceX?"
+            schema = {
+                "type": "object",
+                "properties": {
+                    "valuation": {"type": "string"},
+                    "date": {"type": "string"},
+                    "source": {"type": "string"}
+                }
+            }
+
+            task = exa.research.create(
+                instructions=instructions,
+                output_schema=schema
+            )
+
+            print(f"Task created with ID: {task.research_id}")
         """
         payload = {
             "instructions": instructions,
@@ -162,13 +186,22 @@ class ResearchClient(ResearchBaseClient):
         """Get a research request by ID.
 
         Args:
-            research_id: The research ID.
-            stream: Whether to stream events.
-            events: Whether to include events in non-streaming response.
-            output_schema: Optional Pydantic model for typed output validation.
+            research_id (str): The unique identifier of the research task.
+            stream (bool): Whether to stream events as they occur.
+            events (bool): Whether to include events in the response.
+            output_schema (Type[BaseModel]): Optional Pydantic model for typed output validation.
 
         Returns:
-            Research object, typed research, or event generator.
+            Research object with status and results.
+
+        Examples:
+            # Get a research task by ID
+            task_id = "your-task-id-here"
+            task = exa.research.get(task_id)
+
+            print(f"Task status: {task.status}")
+            if task.status == "completed":
+                print(f"Results: {task.output}")
         """
         params = {}
         if not stream:
@@ -215,11 +248,21 @@ class ResearchClient(ResearchBaseClient):
         """List research requests.
 
         Args:
-            cursor: Pagination cursor.
-            limit: Maximum number of results.
+            cursor (str): Pagination cursor from a previous response.
+            limit (int): Maximum number of results to return.
 
         Returns:
             List of research objects with pagination info.
+
+        Examples:
+            # List all research tasks
+            response = exa.research.list()
+            print(f"Found {len(response.data)} tasks")
+
+            # List with pagination
+            response = exa.research.list(limit=10)
+            if response.has_more:
+                next_page = exa.research.list(cursor=response.next_cursor)
         """
         params = self.build_pagination_params(cursor, limit)
         response = self.request("", method="GET", params=params)
@@ -258,18 +301,36 @@ class ResearchClient(ResearchBaseClient):
         """Poll until research is finished.
 
         Args:
-            research_id: The research ID.
-            poll_interval: Milliseconds between polls (default 1000).
-            timeout_ms: Maximum time to wait in milliseconds (default 600000).
-            events: Whether to include events in the response.
-            output_schema: Optional Pydantic model for typed output validation.
+            research_id (str): The unique identifier of the research task.
+            poll_interval (int): Milliseconds between polling attempts.
+            timeout_ms (int): Maximum time to wait in milliseconds before timing out.
+            events (bool): Whether to include events in the response.
+            output_schema (Type[BaseModel]): Optional Pydantic model for typed output validation.
 
         Returns:
-            Completed research object or typed research.
+            Completed research object with results.
 
         Raises:
             TimeoutError: If research doesn't complete within timeout.
             RuntimeError: If polling fails too many times.
+
+        Examples:
+            # Create and poll a task until completion
+            task = exa.research.create(
+                instructions="Get information about Paris, France",
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "population": {"type": "string"},
+                        "founded_date": {"type": "string"}
+                    }
+                }
+            )
+
+            # Poll until completion
+            result = exa.research.poll_until_finished(task.research_id)
+            print(f"Research complete: {result.output}")
         """
         poll_interval_sec = poll_interval / 1000
         timeout_sec = timeout_ms / 1000
