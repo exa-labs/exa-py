@@ -257,6 +257,10 @@ Category = Literal[
 ]
 """Data category to focus on when searching. Each category returns results specialized for that content type."""
 
+# Search type options
+SearchType = Literal["auto", "fast", "deep"]
+"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' performs comprehensive multi-query search."""
+
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
@@ -279,9 +283,7 @@ SEARCH_OPTIONS_TYPES = {
     "exclude_text": [
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
-    "type": [
-        str
-    ],  # 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (Default: auto)
+    "type": [SearchType],  # Search type: 'auto', 'fast', or 'deep' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
@@ -1331,7 +1333,7 @@ class Exa:
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        type: Optional[str] = None,
+        type: Optional[Union[SearchType, str]] = None,
         category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
@@ -1358,7 +1360,7 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (default 'auto').
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', or 'deep'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
@@ -2012,7 +2014,7 @@ class Exa:
             end_published_date: Optional[str] = None,
             include_text: Optional[List[str]] = None,
             exclude_text: Optional[List[str]] = None,
-            type: Optional[str] = None,
+            type: Optional[Union[SearchType, str]] = None,
             category: Optional[Category] = None,
             result_max_len: int = 2048,
             flags: Optional[List[str]] = None,
@@ -2338,7 +2340,7 @@ class AsyncExa(Exa):
         end_published_date: Optional[str] = None,
         include_text: Optional[List[str]] = None,
         exclude_text: Optional[List[str]] = None,
-        type: Optional[str] = None,
+        type: Optional[Union[SearchType, str]] = None,
         category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
@@ -2365,7 +2367,7 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (str, optional): 'keyword', 'neural', 'hybrid', 'fast', 'deep', or 'auto' (default 'auto').
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', or 'deep'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.

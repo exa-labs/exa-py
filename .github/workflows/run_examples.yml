@@ -44,13 +44,28 @@ jobs:
           total=${#examples[@]}
           per_batch=$(( (total + 2) / 3 ))
           start=$(( (matrix_batch - 1) * per_batch ))
-          end=$(( start + per_batch ))
 
           echo "Batch ${{ matrix.batch }}: running ${examples[@]:$start:$per_batch}"
 
-          for example in "${examples[@]:$start:$per_batch}"; do
-            echo "Running: $example"
-            poetry run python "$example"
-          done
+          if [ "$matrix_batch" -eq 3 ]; then
+            # Run batch 3 in parallel to speed up slow examples
+            pids=()
+            for example in "${examples[@]:$start:$per_batch}"; do
+              echo "Starting: $example"
+              poetry run python "$example" &
+              pids+=($!)
+            done
+            # Wait for all and check exit codes
+            failed=0
+            for pid in "${pids[@]}"; do
+              wait $pid || failed=1
+            done
+            exit $failed
+          else
+            for example in "${examples[@]:$start:$per_batch}"; do
+              echo "Running: $example"
+              poetry run python "$example"
+            done
+          fi
         env:
           matrix_batch: ${{ matrix.batch }}
