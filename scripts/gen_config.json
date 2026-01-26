@@ -1,0 +1,172 @@
+{
+  "export": {
+    "methods": {
+      "Exa": ["search", "find_similar", "get_contents", "answer", "stream_answer"]
+    },
+    "research_methods": {
+      "ResearchClient": ["create", "get", "poll_until_finished", "list"]
+    },
+    "typeddicts": [
+      "TextContentsOptions",
+      "SummaryContentsOptions",
+      "HighlightsContentsOptions",
+      "ContextContentsOptions",
+      "ExtrasOptions",
+      "ContentsOptions"
+    ],
+    "dataclasses": ["_Result"]
+  },
+  "getting_started": {
+    "api_key_url": "https://dashboard.exa.ai/api-keys"
+  },
+  "output_examples": {
+    "search": {
+      "autopromptString": "Here is a link to one of the hottest AI startups:",
+      "results": [
+        {
+          "title": "Adept: Useful General Intelligence",
+          "id": "https://www.adept.ai/",
+          "url": "https://www.adept.ai/",
+          "publishedDate": "2000-01-01",
+          "author": null
+        },
+        {
+          "title": "Home | Tenyx, Inc.",
+          "id": "https://www.tenyx.com/",
+          "url": "https://www.tenyx.com/",
+          "publishedDate": "2019-09-10",
+          "author": null
+        }
+      ],
+      "requestId": "a78ebce717f4d712b6f8fe0d5d7753f8"
+    },
+    "find_similar": {
+      "results": [
+        {
+          "title": "Play New Free Online Games Every Day",
+          "id": "https://www.minigames.com/new-games",
+          "url": "https://www.minigames.com/new-games",
+          "publishedDate": "2000-01-01",
+          "author": null
+        },
+        {
+          "title": "Play The best Online Games",
+          "id": "https://www.minigames.com/",
+          "url": "https://www.minigames.com/",
+          "publishedDate": "2000-01-01",
+          "author": null
+        }
+      ],
+      "requestId": "08fdc6f20e9f3ea87f860af3f6ccc30f"
+    },
+    "get_contents": {
+      "results": [
+        {
+          "url": "https://example.com/article",
+          "id": "https://example.com/article",
+          "title": "Example Article",
+          "text": "The full text content of the article..."
+        }
+      ]
+    },
+    "answer": {
+      "answer": "The capital of France is Paris.",
+      "citations": [
+        {
+          "id": "https://www.example.com/france",
+          "url": "https://www.example.com/france",
+          "title": "France - Wikipedia",
+          "publishedDate": "2023-01-01",
+          "author": null,
+          "text": "France, officially the French Republic, is a country in... [truncated for brevity]"
+        }
+      ]
+    },
+    "stream_answer": {
+      "answer": "The capital of France is Paris.",
+      "citations": [
+        {
+          "id": "https://www.example.com/france",
+          "url": "https://www.example.com/france",
+          "title": "France - Wikipedia",
+          "publishedDate": "2023-01-01",
+          "author": null,
+          "text": "France, officially the French Republic, is a country in... [truncated for brevity]"
+        }
+      ]
+    },
+    "research.create": {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    },
+    "research.get": {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "status": "completed",
+      "instructions": "What is the latest valuation of SpaceX?",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "valuation": {"type": "string"},
+          "date": {"type": "string"},
+          "source": {"type": "string"}
+        }
+      },
+      "output": {
+        "valuation": "$350 billion",
+        "date": "December 2024",
+        "source": "Financial Times"
+      }
+    },
+    "research.list": {
+      "data": [
+        {
+          "id": "task-1",
+          "status": "completed",
+          "instructions": "Research SpaceX valuation"
+        },
+        {
+          "id": "task-2",
+          "status": "running",
+          "instructions": "Compare GPU specifications"
+        }
+      ],
+      "hasMore": true,
+      "nextCursor": "eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTE1VDE4OjMwOjAwWiIsImlkIjoidGFzay0yIn0="
+    }
+  },
+  "method_result_objects": {
+    "search": "_Result",
+    "find_similar": "_Result",
+    "get_contents": "_Result",
+    "answer": "AnswerResult",
+    "stream_answer": "StreamChunk",
+    "research.create": "ResearchCompletedDto",
+    "research.get": "ResearchCompletedDto",
+    "research.poll_until_finished": "ResearchCompletedDto",
+    "research.list": "ListResearchResponseDto"
+  },
+  "external_type_links": {
+    "BaseModel": "https://docs.pydantic.dev/latest/api/base_model/#BaseModel"
+  },
+  "manual_types": {
+    "JSONSchemaInput": {
+      "description": "Input type for JSON schema parameters. Can be either a Pydantic model class (automatically converted to JSON Schema) or a raw JSON Schema dictionary.",
+      "definition": "Union[type[BaseModel], dict[str, Any]]"
+    },
+    "Entity": {
+      "description": "Union type representing either a company or person entity. See CompanyEntity and PersonEntity for details.",
+      "definition": "Union[CompanyEntity, PersonEntity]"
+    },
+    "ResearchModel": {
+      "description": "The model to use for research tasks.",
+      "definition": "Literal['exa-research-fast', 'exa-research', 'exa-research-pro']"
+    },
+    "ResearchEvent": {
+      "description": "Union of all research event types that can be streamed during research execution.",
+      "definition": "Union[ResearchMetaEvent, ResearchPlanEvent, ResearchTaskEvent]"
+    },
+    "ResearchDto": {
+      "description": "Union of all research status types. The actual type depends on the task status.",
+      "definition": "Union[ResearchPendingDto, ResearchRunningDto, ResearchCompletedDto, ResearchCanceledDto, ResearchFailedDto]"
+    }
+  }
+}
