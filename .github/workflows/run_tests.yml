@@ -14,17 +14,20 @@ jobs:
         python-version: ["3.9", "3.11", "3.13"]
 
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      
+
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-      
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.5
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
       - name: Install dependencies
         run: |
           poetry install
@@ -36,7 +39,7 @@ jobs:
           poetry run pytest tests/ -v --cov=exa_py --cov-report=xml --cov-report=term
       
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: unittests
