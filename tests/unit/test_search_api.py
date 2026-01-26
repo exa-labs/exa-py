@@ -236,7 +236,7 @@ def test_user_agent_header():
     exa = Exa(API_KEY)
     # Get the expected version dynamically
     expected_version = exa_api._get_package_version()
-    expected_user_agent = f"exa-py {expected_version}"
+    expected_user_agent = f"exa-py/{expected_version}"
     assert exa.headers["User-Agent"] == expected_user_agent
 
 

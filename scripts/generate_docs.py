@@ -52,6 +52,14 @@ class ParsedClass:
     fields: list[tuple[str, str, Optional[str]]]  # (name, type, description)
 
 
+@dataclass
+class ParsedTypeAlias:
+    """Represents a parsed type alias (e.g., Category = Literal[...])."""
+    name: str
+    definition: str
+    docstring: Optional[str]
+
+
 class DocGenerator:
     """Documentation generator that uses config file and extracts from code."""
 
@@ -305,6 +313,32 @@ class DocGenerator:
         # Not an Annotated type, return as-is
         return self.get_type_annotation_str(annotation), None
 
+    def parse_type_alias(self, node: ast.Assign, next_node: Optional[ast.Expr] = None) -> Optional[ParsedTypeAlias]:
+        """Parse a type alias assignment (e.g., Category = Literal[...])."""
+        # Only handle simple name assignments
+        if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+            return None
+
+        name = node.targets[0].id
+
+        # Skip private names and non-type-alias-looking names
+        if name.startswith('_') or not name[0].isupper():
+            return None
+
+        definition = ast.unparse(node.value)
+
+        # Check if this looks like a type alias (contains Literal, Union, etc.)
+        if not any(kw in definition for kw in ['Literal', 'Union', 'Optional', 'List', 'Dict']):
+            return None
+
+        # Get docstring from next node if it's a string expression
+        docstring = None
+        if next_node and isinstance(next_node, ast.Expr) and isinstance(next_node.value, ast.Constant):
+            if isinstance(next_node.value.value, str):
+                docstring = next_node.value.value
+
+        return ParsedTypeAlias(name=name, definition=definition, docstring=docstring)
+
     def parse_class_def(self, node: ast.ClassDef, all_class_nodes: Optional[dict] = None) -> ParsedClass:
         """Parse a class definition node into a ParsedClass."""
         docstring = ast.get_docstring(node)
@@ -345,8 +379,8 @@ class DocGenerator:
             fields=fields,
         )
 
-    def parse_sdk_file(self, filepath: Path, export_methods: Optional[dict] = None) -> tuple[dict[str, list[ParsedMethod]], list[ParsedClass]]:
-        """Parse the SDK file and extract methods and classes."""
+    def parse_sdk_file(self, filepath: Path, export_methods: Optional[dict] = None) -> tuple[dict[str, list[ParsedMethod]], list[ParsedClass], list[ParsedTypeAlias]]:
+        """Parse the SDK file and extract methods, classes, and type aliases."""
         if export_methods is None:
             export_methods = self.export_methods
 
@@ -357,12 +391,23 @@ class DocGenerator:
 
         methods_by_class: dict[str, list[ParsedMethod]] = {}
         classes: list[ParsedClass] = []
+        type_aliases: list[ParsedTypeAlias] = []
 
         # First pass: collect all class definitions for inheritance lookup
         all_class_nodes: dict[str, ast.ClassDef] = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 all_class_nodes[node.name] = node
+
+        # Parse top-level type aliases
+        body = tree.body
+        for i, node in enumerate(body):
+            if isinstance(node, ast.Assign):
+                next_node = body[i + 1] if i + 1 < len(body) else None
+                alias = self.parse_type_alias(node, next_node)
+                if alias:
+                    type_aliases.append(alias)
+                    self.all_linkable_types.add(alias.name)
 
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
@@ -386,7 +431,7 @@ class DocGenerator:
                 # 1. Explicitly listed in typeddicts or dataclasses config
                 # 2. Auto-discovered (not client classes, not private unless explicitly listed)
                 is_explicitly_listed = class_name in self.export_typeddicts or class_name in self.export_dataclasses
-                is_client_class = class_name in (list(export_methods.keys()) + ["ResearchBaseClient"])
+                is_client_class = class_name in (list(export_methods.keys()) + ["ResearchBaseClient", "AsyncExa", "AsyncResearchClient"])
 
                 if is_explicitly_listed or (not is_client_class and not class_name.startswith('_')):
                     parsed_class = self.parse_class_def(node, all_class_nodes)
@@ -394,7 +439,7 @@ class DocGenerator:
                     # Auto-add to linkable types
                     self.all_linkable_types.add(class_name)
 
-        return methods_by_class, classes
+        return methods_by_class, classes, type_aliases
 
     def generate_getting_started_section(self) -> str:
         """Generate the Getting Started section with tabs."""
@@ -565,8 +610,11 @@ exa = Exa()  # Reads EXA_API_KEY from environment
 
         return "\n".join(lines)
 
-    def generate_type_reference_section(self, classes: list[ParsedClass]) -> str:
+    def generate_type_reference_section(self, classes: list[ParsedClass], type_aliases: Optional[list[ParsedTypeAlias]] = None) -> str:
         """Generate the Types Reference section."""
+        if type_aliases is None:
+            type_aliases = []
+
         lines = []
 
         lines.append("---")
@@ -582,6 +630,9 @@ exa = Exa()  # Reads EXA_API_KEY from environment
         entity_class_names = {c.name for c in classes if c.name.startswith("Entity") or c.name in ["CompanyEntity", "PersonEntity"]}
         result_classes = [c for c in classes if c.name not in self.export_typeddicts and c.name not in entity_class_names]
         entity_classes = [c for c in classes if c.name in entity_class_names]
+
+        # Track which type aliases are code-first (skip them from manual_types)
+        code_first_alias_names = {alias.name for alias in type_aliases}
 
         if typeddict_classes:
             lines.append("### Content Options")
@@ -602,14 +653,16 @@ exa = Exa()  # Reads EXA_API_KEY from environment
                 lines.append(self.generate_class_markdown(cls))
 
         # Entity types section
-        if entity_classes or self.manual_types:
+        # Include: manual types (not code-first), code-first type aliases, entity classes
+        manual_types_to_show = {k: v for k, v in self.manual_types.items() if k not in code_first_alias_names}
+        if entity_classes or manual_types_to_show or type_aliases:
             lines.append("### Entity Types")
             lines.append("")
             lines.append("These types represent structured entity data returned for company or person searches.")
             lines.append("")
 
-            # Add manual types first (like Entity union)
-            for type_name, type_info in self.manual_types.items():
+            # Add manual types first (like Entity union) - skip code-first ones
+            for type_name, type_info in manual_types_to_show.items():
                 lines.append(f"#### `{type_name}`")
                 lines.append("")
                 # Linkify types in description and definition
@@ -620,6 +673,16 @@ exa = Exa()  # Reads EXA_API_KEY from environment
                 lines.append(f"**Type:** {definition}")
                 lines.append("")
 
+            # Add code-first type aliases
+            for alias in type_aliases:
+                lines.append(f"#### `{alias.name}`")
+                lines.append("")
+                if alias.docstring:
+                    lines.append(self.linkify_type(alias.docstring))
+                    lines.append("")
+                lines.append(f"**Type:** {self.linkify_type(alias.definition)}")
+                lines.append("")
+
             # Add entity classes
             for cls in entity_classes:
                 lines.append(self.generate_class_markdown(cls))
@@ -628,11 +691,13 @@ exa = Exa()  # Reads EXA_API_KEY from environment
 
     def generate_full_documentation(self, api_filepath: Path, research_filepath: Path, research_models_filepath: Path) -> str:
         """Generate the full markdown documentation."""
-        methods_by_class, classes = self.parse_sdk_file(api_filepath)
-        research_methods, _ = self.parse_sdk_file(research_filepath, self.export_research_methods)
+        methods_by_class, classes, type_aliases = self.parse_sdk_file(api_filepath)
+        research_methods, _, research_type_aliases = self.parse_sdk_file(research_filepath, self.export_research_methods)
         # Parse research models for Pydantic DTOs
-        _, research_classes = self.parse_sdk_file(research_models_filepath)
+        _, research_classes, research_model_aliases = self.parse_sdk_file(research_models_filepath)
         classes.extend(research_classes)
+        type_aliases.extend(research_type_aliases)
+        type_aliases.extend(research_model_aliases)
 
         # Store parsed classes for lookup by generate_method_markdown
         for cls in classes:
@@ -661,8 +726,8 @@ exa = Exa()  # Reads EXA_API_KEY from environment
                 lines.append(self.generate_method_markdown(method, "ResearchClient"))
 
         # Types Reference section
-        if classes:
-            lines.append(self.generate_type_reference_section(classes))
+        if classes or type_aliases:
+            lines.append(self.generate_type_reference_section(classes, type_aliases))
 
         return "\n".join(lines)
 
