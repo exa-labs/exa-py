@@ -22,7 +22,8 @@
       "EntityCompanyPropertiesFundingRound", "EntityCompanyPropertiesFinancials",
       "EntityCompanyPropertiesWebTraffic", "EntityDateRange",
       "EntityPersonPropertiesCompanyRef", "EntityPersonPropertiesWorkHistoryEntry",
-      "ResearchCompletedDto", "ListResearchResponseDto"
+      "ResearchCompletedDto", "ListResearchResponseDto",
+      "CostDollars", "ResearchOutput"
     ]
   },
   "getting_started": {
@@ -157,6 +158,18 @@
     "Entity": {
       "description": "Union type representing either a company or person entity. See CompanyEntity and PersonEntity for details.",
       "definition": "Union[CompanyEntity, PersonEntity]"
+    },
+    "ResearchModel": {
+      "description": "The model to use for research tasks.",
+      "definition": "Literal['exa-research-fast', 'exa-research', 'exa-research-pro']"
+    },
+    "ResearchEvent": {
+      "description": "Union of all research event types that can be streamed during research execution.",
+      "definition": "Union[ResearchMetaEvent, ResearchPlanEvent, ResearchTaskEvent]"
+    },
+    "ResearchDto": {
+      "description": "Union of all research status types. The actual type depends on the task status.",
+      "definition": "Union[ResearchPendingDto, ResearchRunningDto, ResearchCompletedDto, ResearchCanceledDto, ResearchFailedDto]"
     }
   }
 }
