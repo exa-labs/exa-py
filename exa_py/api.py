@@ -451,6 +451,35 @@ class ExtrasOptions(TypedDict, total=False):
     image_links: int
 
 
+class ContentsOptions(TypedDict, total=False):
+    """Options for retrieving page contents in search and find_similar methods.
+
+    All fields are optional. If no content options are specified, text with
+    max_characters=10000 is returned by default.
+
+    Attributes:
+        text: Options for text extraction, or True for defaults.
+        highlights: Options for highlight extraction, or True for defaults.
+        summary: Options for summary generation, or True for defaults.
+        context: Options for context aggregation, or True for defaults.
+        livecrawl: When to use live crawling: "always", "fallback", "never", "auto", or "preferred".
+        livecrawl_timeout: Timeout in milliseconds for live crawling.
+        subpages: Number of subpages to crawl.
+        subpage_target: Target subpage path(s) to crawl.
+        extras: Additional extraction options (links, images).
+    """
+
+    text: Union[TextContentsOptions, Literal[True]]
+    highlights: Union[HighlightsContentsOptions, Literal[True]]
+    summary: Union[SummaryContentsOptions, Literal[True]]
+    context: Union[ContextContentsOptions, Literal[True]]
+    livecrawl: LIVECRAWL_OPTIONS
+    livecrawl_timeout: int
+    subpages: int
+    subpage_target: Union[str, List[str]]
+    extras: ExtrasOptions
+
+
 class CostDollarsSearch(TypedDict, total=False):
     """Represents the cost breakdown for search."""
 
@@ -1279,7 +1308,7 @@ class Exa:
         self,
         query: str,
         *,
-        contents: Optional[Union[Dict, bool]] = None,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
@@ -1302,8 +1331,9 @@ class Exa:
 
         Args:
             query (str): The query string.
-            contents (dict | bool, optional): Options for retrieving page contents.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                See ContentsOptions for available options (text, highlights, summary, context, etc.).
                 Note: For deep search (type='deep'), context is always returned by the API.
             num_results (int, optional): Number of search results to return (default 10). 
                 For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
@@ -1594,7 +1624,7 @@ class Exa:
         self,
         url: str,
         *,
-        contents: Optional[Union[Dict, bool]] = None,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
@@ -1614,8 +1644,9 @@ class Exa:
 
         Args:
             url (str): The URL to find similar pages for.
-            contents (dict | bool, optional): Options for retrieving page contents.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                See ContentsOptions for available options (text, highlights, summary, context, etc.).
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -2211,7 +2242,7 @@ class AsyncExa(Exa):
         self,
         query: str,
         *,
-        contents: Optional[Union[Dict, bool]] = None,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
@@ -2234,8 +2265,9 @@ class AsyncExa(Exa):
 
         Args:
             query (str): The query string.
-            contents (dict | bool, optional): Options for retrieving page contents.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                See ContentsOptions for available options (text, highlights, summary, context, etc.).
                 Note: For deep search (type='deep'), context is always returned by the API.
             num_results (int, optional): Number of search results to return (default 10). 
                 For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
@@ -2467,7 +2499,7 @@ class AsyncExa(Exa):
         self,
         url: str,
         *,
-        contents: Optional[Union[Dict, bool]] = None,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
         exclude_domains: Optional[List[str]] = None,
@@ -2487,8 +2519,9 @@ class AsyncExa(Exa):
 
         Args:
             url (str): The URL to find similar pages for.
-            contents (dict | bool, optional): Options for retrieving page contents.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                See ContentsOptions for available options (text, highlights, summary, context, etc.).
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
