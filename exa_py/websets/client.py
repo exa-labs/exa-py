@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import asyncio
-from typing import List, Optional, Literal, Dict, Any, Union
+from typing import List, Optional, Literal, Dict, Any, Union, Iterator, AsyncIterator, Callable
 
 from .types import (
     Webset,
@@ -136,13 +136,52 @@ class WebsetsClient(WebsetsBaseClient):
         response = self.request(f"/v0/websets/{id}/cancel", method="POST")
         return Webset.model_validate(response)
 
-    def wait_until_idle(self, id: str, *, timeout: int = 3600, poll_interval: int = 5) -> Webset:
+    def list_all(self, *, limit: Optional[int] = None) -> Iterator[Webset]:
+        """Iterate through all Websets, handling pagination automatically.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Yields:
+            Webset: Each webset.
+        """
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit)
+            for webset in response.data:
+                yield webset
+            
+            if not response.has_more or not response.next_cursor:
+                break
+                
+            cursor = response.next_cursor
+
+    def get_all(self, *, limit: Optional[int] = None) -> List[Webset]:
+        """Collect all Websets into a list.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Returns:
+            List[Webset]: All websets.
+        """
+        return list(self.list_all(limit=limit))
+
+    def wait_until_idle(
+        self, 
+        id: str, 
+        *, 
+        timeout: int = 3600, 
+        poll_interval: int = 5,
+        on_poll: Optional[Callable[[Webset], None]] = None
+    ) -> Webset:
         """Wait until a Webset is idle.
         
         Args:
             id (str): The id or externalId of the Webset.
             timeout (int, optional): Maximum time to wait in seconds. Defaults to 3600.
             poll_interval (int, optional): Time to wait between polls in seconds. Defaults to 5.
+            on_poll (Callable[[Webset], None], optional): Callback function called on each poll with the current webset.
             
         Returns:
             Webset: The webset once it's idle.
@@ -153,6 +192,10 @@ class WebsetsClient(WebsetsBaseClient):
         start_time = time.time()
         while True:
             webset = self.get(id)
+            
+            if on_poll:
+                on_poll(webset)
+            
             if webset.status == WebsetStatus.idle.value:
                 return webset
                 
@@ -270,13 +313,55 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         response = await self.request(f"/v0/websets/{id}/cancel", method="POST")
         return Webset.model_validate(response)
 
-    async def wait_until_idle(self, id: str, *, timeout: int = 3600, poll_interval: int = 5) -> Webset:
+    async def list_all(self, *, limit: Optional[int] = None) -> AsyncIterator[Webset]:
+        """Iterate through all Websets, handling pagination automatically.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Yields:
+            Webset: Each webset.
+        """
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit)
+            for webset in response.data:
+                yield webset
+            
+            if not response.has_more or not response.next_cursor:
+                break
+                
+            cursor = response.next_cursor
+
+    async def get_all(self, *, limit: Optional[int] = None) -> List[Webset]:
+        """Collect all Websets into a list.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Returns:
+            List[Webset]: All websets.
+        """
+        websets = []
+        async for webset in self.list_all(limit=limit):
+            websets.append(webset)
+        return websets
+
+    async def wait_until_idle(
+        self, 
+        id: str, 
+        *, 
+        timeout: int = 3600, 
+        poll_interval: int = 5,
+        on_poll: Optional[Callable[[Webset], None]] = None
+    ) -> Webset:
         """Wait until a Webset is idle.
         
         Args:
             id (str): The id or externalId of the Webset.
             timeout (int, optional): Maximum time to wait in seconds. Defaults to 3600.
             poll_interval (int, optional): Time to wait between polls in seconds. Defaults to 5.
+            on_poll (Callable[[Webset], None], optional): Callback function called on each poll with the current webset.
             
         Returns:
             Webset: The webset once it's idle.
@@ -287,6 +372,10 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         start_time = asyncio.get_event_loop().time()
         while True:
             webset = await self.get(id)
+            
+            if on_poll:
+                on_poll(webset)
+            
             if webset.status == WebsetStatus.idle.value:
                 return webset
                 

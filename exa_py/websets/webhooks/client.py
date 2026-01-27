@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, Iterator, AsyncIterator, List
 
 from ..types import (
     CreateWebhookParameters,
@@ -8,6 +8,7 @@ from ..types import (
     ListWebhooksResponse,
     UpdateWebhookParameters,
     ListWebhookAttemptsResponse,
+    WebhookAttempt,
     EventType,
 )
 from ..core.base import WebsetsBaseClient
@@ -121,6 +122,99 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         response = self.request(f"/v0/webhooks/{id}", method="DELETE")
         return Webhook.model_validate(response)
 
+    def list_all(self, *, limit: Optional[int] = None) -> Iterator[Webhook]:
+        """Iterate through all Webhooks, handling pagination automatically.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Yields:
+            Webhook: Each webhook.
+        """
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit)
+            for webhook in response.data:
+                yield webhook
+            
+            if not response.has_more or not response.next_cursor:
+                break
+                
+            cursor = response.next_cursor
+
+    def get_all(self, *, limit: Optional[int] = None) -> List[Webhook]:
+        """Collect all Webhooks into a list.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Returns:
+            List[Webhook]: All webhooks.
+        """
+        return list(self.list_all(limit=limit))
+
+    def list_all_attempts(
+        self, 
+        webhook_id: str, 
+        *, 
+        limit: Optional[int] = None,
+        event_type: Optional[Union[EventType, str]] = None,
+        successful: Optional[bool] = None
+    ) -> Iterator[WebhookAttempt]:
+        """Iterate through all attempts for a Webhook, handling pagination automatically.
+        
+        Args:
+            webhook_id (str): The ID of the webhook.
+            limit (int, optional): The number of results to return per page (max 200).
+            event_type (Union[EventType, str], optional): The type of event to filter by.
+            successful (bool, optional): Filter attempts by success status.
+            
+        Yields:
+            WebhookAttempt: Each webhook attempt.
+        """
+        cursor = None
+        while True:
+            response = self.attempts.list(
+                webhook_id, 
+                cursor=cursor, 
+                limit=limit, 
+                event_type=event_type, 
+                successful=successful
+            )
+            for attempt in response.data:
+                yield attempt
+            
+            if not response.has_more or not response.next_cursor:
+                break
+                
+            cursor = response.next_cursor
+
+    def get_all_attempts(
+        self, 
+        webhook_id: str, 
+        *, 
+        limit: Optional[int] = None,
+        event_type: Optional[Union[EventType, str]] = None,
+        successful: Optional[bool] = None
+    ) -> List[WebhookAttempt]:
+        """Collect all attempts for a Webhook into a list.
+        
+        Args:
+            webhook_id (str): The ID of the webhook.
+            limit (int, optional): The number of results to return per page (max 200).
+            event_type (Union[EventType, str], optional): The type of event to filter by.
+            successful (bool, optional): Filter attempts by success status.
+            
+        Returns:
+            List[WebhookAttempt]: All webhook attempts.
+        """
+        return list(self.list_all_attempts(
+            webhook_id, 
+            limit=limit, 
+            event_type=event_type, 
+            successful=successful
+        ))
+
 
 class AsyncWebhookAttemptsClient(WebsetsAsyncBaseClient):
     """Async client for managing Webhook Attempts."""
@@ -181,3 +275,102 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         """Delete a Webhook."""
         response = await self.request(f"/v0/webhooks/{id}", method="DELETE")
         return Webhook.model_validate(response)
+
+    async def list_all(self, *, limit: Optional[int] = None) -> AsyncIterator[Webhook]:
+        """Iterate through all Webhooks, handling pagination automatically.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Yields:
+            Webhook: Each webhook.
+        """
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit)
+            for webhook in response.data:
+                yield webhook
+            
+            if not response.has_more or not response.next_cursor:
+                break
+                
+            cursor = response.next_cursor
+
+    async def get_all(self, *, limit: Optional[int] = None) -> List[Webhook]:
+        """Collect all Webhooks into a list.
+        
+        Args:
+            limit (int, optional): The number of results to return per page (max 200).
+            
+        Returns:
+            List[Webhook]: All webhooks.
+        """
+        webhooks = []
+        async for webhook in self.list_all(limit=limit):
+            webhooks.append(webhook)
+        return webhooks
+
+    async def list_all_attempts(
+        self, 
+        webhook_id: str, 
+        *, 
+        limit: Optional[int] = None,
+        event_type: Optional[Union[EventType, str]] = None,
+        successful: Optional[bool] = None
+    ) -> AsyncIterator[WebhookAttempt]:
+        """Iterate through all attempts for a Webhook, handling pagination automatically.
+        
+        Args:
+            webhook_id (str): The ID of the webhook.
+            limit (int, optional): The number of results to return per page (max 200).
+            event_type (Union[EventType, str], optional): The type of event to filter by.
+            successful (bool, optional): Filter attempts by success status.
+            
+        Yields:
+            WebhookAttempt: Each webhook attempt.
+        """
+        cursor = None
+        while True:
+            response = await self.attempts.list(
+                webhook_id, 
+                cursor=cursor, 
+                limit=limit, 
+                event_type=event_type, 
+                successful=successful
+            )
+            for attempt in response.data:
+                yield attempt
+            
+            if not response.has_more or not response.next_cursor:
+                break
+                
+            cursor = response.next_cursor
+
+    async def get_all_attempts(
+        self, 
+        webhook_id: str, 
+        *, 
+        limit: Optional[int] = None,
+        event_type: Optional[Union[EventType, str]] = None,
+        successful: Optional[bool] = None
+    ) -> List[WebhookAttempt]:
+        """Collect all attempts for a Webhook into a list.
+        
+        Args:
+            webhook_id (str): The ID of the webhook.
+            limit (int, optional): The number of results to return per page (max 200).
+            event_type (Union[EventType, str], optional): The type of event to filter by.
+            successful (bool, optional): Filter attempts by success status.
+            
+        Returns:
+            List[WebhookAttempt]: All webhook attempts.
+        """
+        attempts = []
+        async for attempt in self.list_all_attempts(
+            webhook_id, 
+            limit=limit, 
+            event_type=event_type, 
+            successful=successful
+        ):
+            attempts.append(attempt)
+        return attempts

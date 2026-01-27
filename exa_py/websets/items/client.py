@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Iterator, AsyncIterator
+from typing import Optional, Iterator, AsyncIterator, List
 
 from ..types import (
     WebsetItem,
@@ -53,6 +53,19 @@ class WebsetItemsClient(WebsetsBaseClient):
                 break
                 
             cursor = response.next_cursor
+
+    def get_all(self, webset_id: str, *, limit: Optional[int] = None, source_id: Optional[str] = None) -> List[WebsetItem]:
+        """Collect all Items from a Webset into a list.
+        
+        Args:
+            webset_id (str): The id or externalId of the Webset.
+            limit (int, optional): The number of results to return per page (max 200).
+            source_id (str, optional): Filter items by source ID.
+            
+        Returns:
+            List[WebsetItem]: All items in the webset.
+        """
+        return list(self.list_all(webset_id, limit=limit, source_id=source_id))
 
     def get(self, webset_id: str, id: str) -> WebsetItem:
         """Get an Item by ID.
@@ -126,6 +139,22 @@ class AsyncWebsetItemsClient(WebsetsAsyncBaseClient):
                 
             cursor = response.next_cursor
 
+    async def get_all(self, webset_id: str, *, limit: Optional[int] = None, source_id: Optional[str] = None) -> List[WebsetItem]:
+        """Collect all Items from a Webset into a list.
+        
+        Args:
+            webset_id (str): The id or externalId of the Webset.
+            limit (int, optional): The number of results to return per page (max 200).
+            source_id (str, optional): Filter items by source ID.
+            
+        Returns:
+            List[WebsetItem]: All items in the webset.
+        """
+        items = []
+        async for item in self.list_all(webset_id, limit=limit, source_id=source_id):
+            items.append(item)
+        return items
+
     async def get(self, webset_id: str, id: str) -> WebsetItem:
         """Get an Item by ID.
         
@@ -150,4 +179,4 @@ class AsyncWebsetItemsClient(WebsetsAsyncBaseClient):
             WebsetItem: The deleted item.
         """
         response = await self.request(f"/v0/websets/{webset_id}/items/{id}", method="DELETE")
-        return WebsetItem.model_validate(response) 
+        return WebsetItem.model_validate(response)      
