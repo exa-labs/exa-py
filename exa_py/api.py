@@ -383,16 +383,39 @@ def parse_cost_dollars(raw: dict) -> Optional[CostDollars]:
     return CostDollars(total=total, search=search_part, contents=contents_part)
 
 
+VERBOSITY_OPTIONS = Literal["compact", "standard", "full"]
+"""Verbosity levels for content filtering.
+- compact: Most concise output, main content only (default)
+- standard: Balanced content with more detail
+- full: Complete content including all sections
+"""
+
+SECTION_TAG = Literal[
+    "unspecified", "header", "navigation", "banner", "body", "sidebar", "footer", "metadata"
+]
+"""Section tags for semantic content filtering."""
+
+
 class TextContentsOptions(TypedDict, total=False):
     """A class representing the options that you can specify when requesting text
 
     Attributes:
         max_characters (int): The maximum number of characters to return. Default: None (no limit).
         include_html_tags (bool): If true, include HTML tags in the returned text. Default false.
+        verbosity (VERBOSITY_OPTIONS): Controls verbosity level of returned content.
+            "compact" (default): main content only; "standard": balanced; "full": all sections.
+            Requires livecrawl="always" to take effect.
+        include_sections (List[SECTION_TAG]): Only include content from these semantic sections.
+            Requires livecrawl="always" to take effect.
+        exclude_sections (List[SECTION_TAG]): Exclude content from these semantic sections.
+            Requires livecrawl="always" to take effect.
     """
 
     max_characters: int
     include_html_tags: bool
+    verbosity: VERBOSITY_OPTIONS
+    include_sections: List[SECTION_TAG]
+    exclude_sections: List[SECTION_TAG]
 
 
 class JSONSchema(TypedDict, total=False):
