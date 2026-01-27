@@ -320,6 +320,7 @@ CONTENTS_OPTIONS_TYPES = {
     "metadata": [dict, bool],
     "livecrawl_timeout": [int],
     "livecrawl": [LIVECRAWL_OPTIONS],
+    "max_age_hours": [int],
     "filter_empty_results": [bool],
     "flags": [list],  # We allow flags to be passed here too
 }
@@ -502,6 +503,7 @@ class ContentsOptions(TypedDict, total=False):
         context: Options for context aggregation, or True for defaults.
         livecrawl: When to use live crawling: "always", "fallback", "never", "auto", or "preferred".
         livecrawl_timeout: Timeout in milliseconds for live crawling.
+        max_age_hours: Maximum age of indexed content in hours. If older, fetches with livecrawl. 0 = always livecrawl, -1 = never livecrawl (cache only). Cannot be used together with livecrawl.
         subpages: Number of subpages to crawl.
         subpage_target: Target subpage path(s) to crawl.
         extras: Additional extraction options (links, images).
@@ -513,6 +515,7 @@ class ContentsOptions(TypedDict, total=False):
     context: Union[ContextContentsOptions, Literal[True]]
     livecrawl: LIVECRAWL_OPTIONS
     livecrawl_timeout: int
+    max_age_hours: int
     subpages: int
     subpage_target: Union[str, List[str]]
     extras: ExtrasOptions
@@ -1503,6 +1506,7 @@ class Exa:
                 "subpage_target",
                 "livecrawl",
                 "livecrawl_timeout",
+                "max_age_hours",
                 "extras",
             ],
             "contents",
@@ -1546,6 +1550,7 @@ class Exa:
         urls: Union[str, List[str], List[_Result]],
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1561,6 +1566,7 @@ class Exa:
         text: Union[TextContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1576,6 +1582,7 @@ class Exa:
         summary: Union[SummaryContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1592,6 +1599,7 @@ class Exa:
         summary: Union[SummaryContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1608,6 +1616,7 @@ class Exa:
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             livecrawl (str, optional): Livecrawl option ('always', 'fallback', or 'never').
             livecrawl_timeout (int, optional): Timeout for livecrawl in milliseconds.
+            max_age_hours (int, optional): Maximum age of indexed content in hours. If older, fetches with livecrawl. 0 = always livecrawl, -1 = never livecrawl (cache only). Cannot be used together with livecrawl.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
             subpage_target (str | List[str], optional): Target subpages to retrieve.
@@ -1815,6 +1824,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1841,6 +1851,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1867,6 +1878,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1893,6 +1905,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1920,6 +1933,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1968,6 +1982,7 @@ class Exa:
                 "subpage_target",
                 "livecrawl",
                 "livecrawl_timeout",
+                "max_age_hours",
                 "extras",
             ],
             "contents",
@@ -2508,6 +2523,7 @@ class AsyncExa(Exa):
                 "subpage_target",
                 "livecrawl",
                 "livecrawl_timeout",
+                "max_age_hours",
                 "extras",
             ],
             "contents",
@@ -2554,6 +2570,7 @@ class AsyncExa(Exa):
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             livecrawl (str, optional): Livecrawl option ('always', 'fallback', or 'never').
             livecrawl_timeout (int, optional): Timeout for livecrawl in milliseconds.
+            max_age_hours (int, optional): Maximum age of indexed content in hours. If older, fetches with livecrawl. 0 = always livecrawl, -1 = never livecrawl (cache only). Cannot be used together with livecrawl.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
             subpage_target (str | List[str], optional): Target subpages to retrieve.
@@ -2789,6 +2806,7 @@ class AsyncExa(Exa):
                 "subpage_target",
                 "livecrawl",
                 "livecrawl_timeout",
+                "max_age_hours",
                 "extras",
             ],
             "contents",
