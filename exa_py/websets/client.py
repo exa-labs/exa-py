@@ -173,7 +173,7 @@ class WebsetsClient(WebsetsBaseClient):
         *, 
         timeout: int = 3600, 
         poll_interval: int = 5,
-        on_poll: Optional[Callable[[WebsetStatus], None]] = None
+        on_poll: Optional[Callable[[Webset], None]] = None
     ) -> Webset:
         """Wait until a Webset is idle.
         
@@ -181,7 +181,7 @@ class WebsetsClient(WebsetsBaseClient):
             id (str): The id or externalId of the Webset.
             timeout (int, optional): Maximum time to wait in seconds. Defaults to 3600.
             poll_interval (int, optional): Time to wait between polls in seconds. Defaults to 5.
-            on_poll (Callable[[WebsetStatus], None], optional): Callback function called on each poll with the current status.
+            on_poll (Callable[[Webset], None], optional): Callback function called on each poll with the current webset.
             
         Returns:
             Webset: The webset once it's idle.
@@ -194,7 +194,7 @@ class WebsetsClient(WebsetsBaseClient):
             webset = self.get(id)
             
             if on_poll:
-                on_poll(webset.status)
+                on_poll(webset)
             
             if webset.status == WebsetStatus.idle.value:
                 return webset
@@ -353,7 +353,7 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         *, 
         timeout: int = 3600, 
         poll_interval: int = 5,
-        on_poll: Optional[Callable[[WebsetStatus], None]] = None
+        on_poll: Optional[Callable[[Webset], None]] = None
     ) -> Webset:
         """Wait until a Webset is idle.
         
@@ -361,7 +361,7 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
             id (str): The id or externalId of the Webset.
             timeout (int, optional): Maximum time to wait in seconds. Defaults to 3600.
             poll_interval (int, optional): Time to wait between polls in seconds. Defaults to 5.
-            on_poll (Callable[[WebsetStatus], None], optional): Callback function called on each poll with the current status.
+            on_poll (Callable[[Webset], None], optional): Callback function called on each poll with the current webset.
             
         Returns:
             Webset: The webset once it's idle.
@@ -374,7 +374,7 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
             webset = await self.get(id)
             
             if on_poll:
-                on_poll(webset.status)
+                on_poll(webset)
             
             if webset.status == WebsetStatus.idle.value:
                 return webset
