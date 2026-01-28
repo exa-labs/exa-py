@@ -1,104 +1,146 @@
-# Exa
+# Exa Python SDK
 
-Exa API in Python
+[![PyPI version](https://img.shields.io/pypi/v/exa-py.svg)](https://pypi.org/project/exa-py/)
+[![Downloads](https://img.shields.io/pypi/dm/exa-py.svg)](https://pypi.org/project/exa-py/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## Installation
+The official Python SDK for [Exa](https://exa.ai), the web search API for AI.
+
+**[Documentation](https://docs.exa.ai)** | **[Dashboard](https://dashboard.exa.ai)** | **[Discord](https://discord.gg/exa)**
+
+## Install
 
 ```bash
-pip install exa_py
+pip install exa-py
 ```
 
-## Usage
+Requires Python 3.9+
 
-Import the package and initialize the Exa client with your API key:
+## Quick Start
 
 ```python
 from exa_py import Exa
 
 exa = Exa(api_key="your-api-key")
+
+# Search the web
+results = exa.search("best restaurants in SF")
+
+# Search and get page contents
+results = exa.search_and_contents("latest AI research papers")
+
+# Find similar pages
+results = exa.find_similar("https://example.com")
+
+# Get contents from URLs
+results = exa.get_contents(["https://example.com"])
+
+# Ask a question
+response = exa.answer("What is the capital of France?")
 ```
 
-## Common requests
+## Search
 
 ```python
+# Basic search
+results = exa.search("machine learning startups")
 
-  # basic search
-  results = exa.search("This is a Exa query:")
+# With filters
+results = exa.search(
+    "climate tech news",
+    num_results=20,
+    start_published_date="2024-01-01",
+    include_domains=["techcrunch.com", "wired.com"]
+)
 
-  # search with date filters
-  results = exa.search("This is a Exa query:", start_published_date="2019-01-01", end_published_date="2019-01-31")
-
-  # search with domain filters
-  results = exa.search("This is a Exa query:", include_domains=["www.cnn.com", "www.nytimes.com"])
-
-  # search and get text contents
-  results = exa.search_and_contents("This is a Exa query:")
-
-  # search and get contents with contents options
-  results = exa.search_and_contents("This is a Exa query:",
-                                    text={"include_html_tags": True, "max_characters": 1000})
-
-  # find similar documents
-  results = exa.find_similar("https://example.com")
-
-  # find similar excluding source domain
-  results = exa.find_similar("https://example.com", exclude_source_domain=True)
-
-  # find similar with contents
-  results = exa.find_similar_and_contents("https://example.com", text=True)
-
-  # get text contents
-  results = exa.get_contents(["tesla.com"])
-
-  # get contents with contents options
-  results = exa.get_contents(["urls"],
-                             text={"include_html_tags": True, "max_characters": 1000})
-
-  # basic answer
-  response = exa.answer("This is a query to answer a question")
-
-  # answer with full text
-  response = exa.answer("This is a query to answer a question", text=True)
-
-  # answer with streaming
-  response = exa.stream_answer("This is a query to answer:")
-
-  # Print each chunk as it arrives when using the stream_answer method
-  for chunk in response:
-    print(chunk, end='', flush=True)
-
-  # research task example – answer a question with citations
-  # Example prompt & schema inspired by the TypeScript example.
-  QUESTION = (
-      "Summarize the history of San Francisco highlighting one or two major events "
-      "for each decade from 1850 to 1950"
-  )
-  OUTPUT_SCHEMA: Dict[str, Any] = {
-      "type": "object",
-      "required": ["timeline"],
-      "properties": {
-          "timeline": {
-              "type": "array",
-              "items": {
-                  "type": "object",
-                  "required": ["decade", "notableEvents"],
-                  "properties": {
-                      "decade": {
-                          "type": "string",
-                          "description": 'Decade label e.g. "1850s"',
-                      },
-                      "notableEvents": {
-                          "type": "string",
-                          "description": "A summary of notable events.",
-                      },
-                  },
-              },
-          },
-      },
-  }
-  resp = exa.research.create_task(
-      instructions=QUESTION,
-      model="exa-research",
-      output_schema=OUTPUT_SCHEMA,
-  )
+# Search and get contents in one call
+results = exa.search_and_contents(
+    "best python libraries",
+    text=True,
+    highlights=True
+)
 ```
+
+## Contents
+
+```python
+# Get text from URLs
+results = exa.get_contents(
+    ["https://example.com"],
+    text=True
+)
+
+# Get summaries
+results = exa.get_contents(
+    ["https://example.com"],
+    summary=True
+)
+
+# Get highlights (key passages)
+results = exa.get_contents(
+    ["https://example.com"],
+    highlights={"num_sentences": 3}
+)
+```
+
+## Find Similar
+
+```python
+# Find pages similar to a URL
+results = exa.find_similar("https://example.com")
+
+# Exclude the source domain
+results = exa.find_similar(
+    "https://example.com",
+    exclude_source_domain=True
+)
+
+# With contents
+results = exa.find_similar_and_contents(
+    "https://example.com",
+    text=True
+)
+```
+
+## Answer
+
+```python
+# Get an answer with citations
+response = exa.answer("What caused the 2008 financial crisis?")
+print(response.answer)
+
+# Stream the response
+for chunk in exa.stream_answer("Explain quantum computing"):
+    print(chunk, end="", flush=True)
+```
+
+## Async
+
+```python
+from exa_py import AsyncExa
+
+exa = AsyncExa(api_key="your-api-key")
+
+results = await exa.search("async search example")
+```
+
+## Research
+
+For complex research tasks with structured output:
+
+```python
+response = exa.research.create_task(
+    instructions="Summarize recent advances in fusion energy",
+    output_schema={
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "key_developments": {"type": "array", "items": {"type": "string"}}
+        }
+    }
+)
+```
+
+## More
+
+See the [full documentation](https://docs.exa.ai) for all features including websets, filters, and advanced options.
