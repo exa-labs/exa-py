@@ -124,7 +124,7 @@ results = await exa.search("async search example")
 For complex research tasks with structured output:
 
 ```python
-response = exa.research.create_task(
+response = exa.research.create(
     instructions="Summarize recent advances in fusion energy",
     output_schema={
         "type": "object",
