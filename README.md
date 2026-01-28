@@ -22,16 +22,17 @@ from exa_py import Exa
 exa = Exa(api_key="your-api-key")
 
 # Search the web
-results = exa.search("best restaurants in SF")
-
-# Search and get page contents
-results = exa.search_and_contents("latest AI research papers")
+results = exa.search(
+    "blog post about artificial intelligence",
+    type="auto",
+    contents={"text": True}
+)
 
 # Find similar pages
-results = exa.find_similar("https://paulgraham.com/greatwork.html")
-
-# Get contents from URLs
-results = exa.get_contents(["https://www.adept.ai/"])
+results = exa.find_similar(
+    "https://paulgraham.com/greatwork.html",
+    contents={"text": True}
+)
 
 # Ask a question
 response = exa.answer("What is the capital of France?")
@@ -40,22 +41,19 @@ response = exa.answer("What is the capital of France?")
 ## Search
 
 ```python
-# Basic search
-results = exa.search("machine learning startups")
+# Basic search with contents
+results = exa.search(
+    "machine learning startups",
+    contents={"text": True}
+)
 
 # With filters
 results = exa.search(
     "climate tech news",
     num_results=20,
     start_published_date="2024-01-01",
-    include_domains=["techcrunch.com", "wired.com"]
-)
-
-# Search and get contents in one call
-results = exa.search_and_contents(
-    "best python libraries",
-    text=True,
-    highlights=True
+    include_domains=["techcrunch.com", "wired.com"],
+    contents={"text": True}
 )
 ```
 
@@ -85,18 +83,16 @@ results = exa.get_contents(
 
 ```python
 # Find pages similar to a URL
-results = exa.find_similar("https://paulgraham.com/greatwork.html")
+results = exa.find_similar(
+    "https://paulgraham.com/greatwork.html",
+    contents={"text": True}
+)
 
 # Exclude the source domain
 results = exa.find_similar(
     "https://amistrongeryet.substack.com/p/are-we-on-the-brink-of-agi",
-    exclude_source_domain=True
-)
-
-# With contents
-results = exa.find_similar_and_contents(
-    "https://waitbutwhy.com/2015/01/artificial-intelligence-revolution-1.html",
-    text=True
+    exclude_source_domain=True,
+    contents={"text": True}
 )
 ```
 
