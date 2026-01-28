@@ -1,8 +1,6 @@
 # Exa Python SDK
 
 [![PyPI version](https://img.shields.io/pypi/v/exa-py.svg)](https://pypi.org/project/exa-py/)
-[![Downloads](https://img.shields.io/pypi/dm/exa-py.svg)](https://pypi.org/project/exa-py/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 The official Python SDK for [Exa](https://exa.ai), the web search API for AI.
 
