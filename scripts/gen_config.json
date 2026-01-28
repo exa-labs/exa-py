@@ -168,5 +168,18 @@
       "description": "Union of all research status types. The actual type depends on the task status.",
       "definition": "Union[ResearchPendingDto, ResearchRunningDto, ResearchCompletedDto, ResearchCanceledDto, ResearchFailedDto]"
     }
+  },
+  "exclude_type_aliases": ["LIVECRAWL_OPTIONS"],
+  "type_field_overrides": {
+    "ContentsOptions": [
+      {"name": "text", "type": "Union[TextContentsOptions, Literal[True]]", "description": "Options for text extraction, or True for defaults."},
+      {"name": "highlights", "type": "Union[HighlightsContentsOptions, Literal[True]]", "description": "Options for highlight extraction, or True for defaults."},
+      {"name": "summary", "type": "Union[SummaryContentsOptions, Literal[True]]", "description": "Options for summary generation, or True for defaults."},
+      {"name": "context", "type": "Union[ContextContentsOptions, Literal[True]]", "description": "Options for context aggregation, or True for defaults."},
+      {"name": "max_age_hours", "type": "int", "description": "Maximum age of cached content in hours. If content is older, it will be fetched fresh. Special values: 0 = always fetch fresh content, -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days."},
+      {"name": "subpages", "type": "int", "description": "Number of subpages to crawl."},
+      {"name": "subpage_target", "type": "Union[str, List[str]]", "description": "Target subpage path(s) to crawl."},
+      {"name": "extras", "type": "ExtrasOptions", "description": "Additional extraction options (links, images)."}
+    ]
   }
 }

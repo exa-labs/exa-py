@@ -308,7 +308,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "contents": [dict, bool],  # Options for retrieving page contents
 }
 
-# the livecrawl options
+# Livecrawl options
 LIVECRAWL_OPTIONS = Literal["always", "fallback", "never", "auto", "preferred"]
 
 CONTENTS_OPTIONS_TYPES = {
@@ -405,11 +405,11 @@ class TextContentsOptions(TypedDict, total=False):
         include_html_tags (bool): If true, include HTML tags in the returned text. Default false.
         verbosity (VERBOSITY_OPTIONS): Controls verbosity level of returned content.
             "compact" (default): main content only; "standard": balanced; "full": all sections.
-            Requires livecrawl="always" to take effect.
+            Requires max_age_hours=0 to take effect.
         include_sections (List[SECTION_TAG]): Only include content from these semantic sections.
-            Requires livecrawl="always" to take effect.
+            Requires max_age_hours=0 to take effect.
         exclude_sections (List[SECTION_TAG]): Exclude content from these semantic sections.
-            Requires livecrawl="always" to take effect.
+            Requires max_age_hours=0 to take effect.
     """
 
     max_characters: int
@@ -497,16 +497,16 @@ class ContentsOptions(TypedDict, total=False):
     max_characters=10000 is returned by default.
 
     Attributes:
-        text: Options for text extraction, or True for defaults.
-        highlights: Options for highlight extraction, or True for defaults.
-        summary: Options for summary generation, or True for defaults.
-        context: Options for context aggregation, or True for defaults.
-        livecrawl: When to use live crawling: "always", "fallback", "never", "auto", or "preferred".
-        livecrawl_timeout: Timeout in milliseconds for live crawling.
-        max_age_hours: Maximum age of indexed content in hours. If older, fetches with livecrawl. 0 = always livecrawl, -1 = never livecrawl (cache only). Cannot be used together with livecrawl.
-        subpages: Number of subpages to crawl.
-        subpage_target: Target subpage path(s) to crawl.
-        extras: Additional extraction options (links, images).
+        text (TextContentsOptions | True): Options for text extraction, or True for defaults.
+        highlights (HighlightsContentsOptions | True): Options for highlight extraction, or True for defaults.
+        summary (SummaryContentsOptions | True): Options for summary generation, or True for defaults.
+        context (ContextContentsOptions | True): Options for context aggregation, or True for defaults.
+        max_age_hours (int): Maximum age of cached content in hours. If content is older, it will be
+            fetched fresh. Special values: 0 = always fetch fresh content,
+            -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days.
+        subpages (int): Number of subpages to crawl.
+        subpage_target (str | List[str]): Target subpage path(s) to crawl.
+        extras (ExtrasOptions): Additional extraction options (links, images).
     """
 
     text: Union[TextContentsOptions, Literal[True]]
@@ -1614,9 +1614,9 @@ class Exa:
             urls (str | List[str] | List[Result]): A single URL, list of URLs, or list of Result objects.
             text (TextContentsOptions | True, optional): Options for text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
-            livecrawl (str, optional): Livecrawl option ('always', 'fallback', or 'never').
-            livecrawl_timeout (int, optional): Timeout for livecrawl in milliseconds.
-            max_age_hours (int, optional): Maximum age of indexed content in hours. If older, fetches with livecrawl. 0 = always livecrawl, -1 = never livecrawl (cache only). Cannot be used together with livecrawl.
+            max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
+                it will be fetched fresh. Special values: 0 = always fetch fresh content,
+                -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
             subpage_target (str | List[str], optional): Target subpages to retrieve.
@@ -2568,9 +2568,9 @@ class AsyncExa(Exa):
             urls (str | List[str] | List[Result]): A single URL, list of URLs, or list of Result objects.
             text (TextContentsOptions | True, optional): Options for text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
-            livecrawl (str, optional): Livecrawl option ('always', 'fallback', or 'never').
-            livecrawl_timeout (int, optional): Timeout for livecrawl in milliseconds.
-            max_age_hours (int, optional): Maximum age of indexed content in hours. If older, fetches with livecrawl. 0 = always livecrawl, -1 = never livecrawl (cache only). Cannot be used together with livecrawl.
+            max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
+                it will be fetched fresh. Special values: 0 = always fetch fresh content,
+                -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
             subpage_target (str | List[str], optional): Target subpages to retrieve.
