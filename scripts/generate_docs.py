@@ -77,6 +77,8 @@ class DocGenerator:
         self.method_result_objects = self.config.get("method_result_objects", {})
         self.manual_types = self.config.get("manual_types", {})
         self.external_type_links = self.config.get("external_type_links", {})
+        self.type_field_overrides = self.config.get("type_field_overrides", {})
+        self.exclude_type_aliases = set(self.config.get("exclude_type_aliases", []))
         # Will be populated when parsing classes
         self.parsed_classes: Dict[str, ParsedClass] = {}
         # Start with manual types and explicitly listed types; auto-discovered classes added during parsing
@@ -321,8 +323,8 @@ class DocGenerator:
 
         name = node.targets[0].id
 
-        # Skip private names and non-type-alias-looking names
-        if name.startswith('_') or not name[0].isupper():
+        # Skip private names, non-type-alias-looking names, and excluded aliases
+        if name.startswith('_') or not name[0].isupper() or name in self.exclude_type_aliases:
             return None
 
         definition = ast.unparse(node.value)
@@ -344,6 +346,17 @@ class DocGenerator:
         docstring = ast.get_docstring(node)
         parsed_doc = self.parse_google_docstring(docstring) if docstring else {}
         attr_descriptions = self.parse_args_section(parsed_doc.get("attributes", "")) if "attributes" in parsed_doc else {}
+
+        # Check for field overrides in config
+        class_name = node.name
+        if class_name in self.type_field_overrides:
+            overrides = self.type_field_overrides[class_name]
+            fields = [(o["name"], o["type"], o["description"]) for o in overrides]
+            return ParsedClass(
+                name=class_name,
+                docstring=docstring,
+                fields=fields,
+            )
 
         fields = []
 
