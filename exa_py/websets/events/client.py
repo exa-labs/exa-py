@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Iterator, AsyncIterator
 
 from ..types import (
     EventType,
@@ -55,44 +55,23 @@ class EventsClient(WebsetsBaseClient):
 
     def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, 
              types: Optional[List[EventType]] = None) -> ListEventsResponse:
-        """List all Events.
-        
-        Args:
-            cursor (str, optional): The cursor to paginate through the results.
-            limit (int, optional): The number of results to return.
-            types (List[EventType], optional): The types of events to filter by.
-        
-        Returns:
-            ListEventsResponse: List of events.
-        """
+        """List all Events."""
         params = {}
         if cursor is not None:
             params["cursor"] = cursor
         if limit is not None:
             params["limit"] = limit
         if types is not None:
-            # Convert EventType enums to their string values
             params["types"] = [t.value if hasattr(t, 'value') else t for t in types]
             
         response = self.request("/v0/events", params=params, method="GET")
         return ListEventsResponse.model_validate(response)
 
     def get(self, id: str) -> Event:
-        """Get an Event by ID.
-        
-        Args:
-            id (str): The ID of the Event.
-        
-        Returns:
-            Event: The retrieved event.
-        """
+        """Get an Event by ID."""
         response = self.request(f"/v0/events/{id}", method="GET")
-        
-        # The response should contain a 'type' field that helps us determine
-        # which specific event class to use for validation
         event_type = response.get('type')
         
-        # Map event types to their corresponding classes
         event_type_map = {
             'webset.created': WebsetCreatedEvent,
             'webset.deleted': WebsetDeletedEvent,
@@ -117,15 +96,27 @@ class EventsClient(WebsetsBaseClient):
         if event_class:
             return event_class.model_validate(response)
         else:
-            # Fallback - try each type until one validates
-            # This shouldn't happen in normal operation
             for event_class in event_type_map.values():
                 try:
                     return event_class.model_validate(response)
                 except Exception:
                     continue
-            
             raise ValueError(f"Unknown event type: {event_type}")
+
+    def list_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> Iterator[Event]:
+        """Iterate through all Events, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit, types=types)
+            for event in response.data:
+                yield event
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    def get_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> List[Event]:
+        """Collect all Events into a list."""
+        return list(self.list_all(limit=limit, types=types))
 
 
 class AsyncEventsClient(WebsetsAsyncBaseClient):
@@ -136,44 +127,23 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
 
     async def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, 
              types: Optional[List[EventType]] = None) -> ListEventsResponse:
-        """List all Events.
-        
-        Args:
-            cursor (str, optional): The cursor to paginate through the results.
-            limit (int, optional): The number of results to return.
-            types (List[EventType], optional): The types of events to filter by.
-        
-        Returns:
-            ListEventsResponse: List of events.
-        """
+        """List all Events."""
         params = {}
         if cursor is not None:
             params["cursor"] = cursor
         if limit is not None:
             params["limit"] = limit
         if types is not None:
-            # Convert EventType enums to their string values
             params["types"] = [t.value if hasattr(t, 'value') else t for t in types]
             
         response = await self.request("/v0/events", params=params, method="GET")
         return ListEventsResponse.model_validate(response)
 
     async def get(self, id: str) -> Event:
-        """Get an Event by ID.
-        
-        Args:
-            id (str): The ID of the Event.
-        
-        Returns:
-            Event: The retrieved event.
-        """
+        """Get an Event by ID."""
         response = await self.request(f"/v0/events/{id}", method="GET")
-        
-        # The response should contain a 'type' field that helps us determine
-        # which specific event class to use for validation
         event_type = response.get('type')
         
-        # Map event types to their corresponding classes
         event_type_map = {
             'webset.created': WebsetCreatedEvent,
             'webset.deleted': WebsetDeletedEvent,
@@ -198,12 +168,27 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
         if event_class:
             return event_class.model_validate(response)
         else:
-            # Fallback - try each type until one validates
-            # This shouldn't happen in normal operation
             for event_class in event_type_map.values():
                 try:
                     return event_class.model_validate(response)
                 except Exception:
                     continue
-            
             raise ValueError(f"Unknown event type: {event_type}")
+
+    async def list_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> AsyncIterator[Event]:
+        """Iterate through all Events, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit, types=types)
+            for event in response.data:
+                yield event
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    async def get_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> List[Event]:
+        """Collect all Events into a list."""
+        events = []
+        async for event in self.list_all(limit=limit, types=types):
+            events.append(event)
+        return events
