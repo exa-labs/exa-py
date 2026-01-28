@@ -6,7 +6,7 @@
 
 The official Python SDK for [Exa](https://exa.ai), the web search API for AI.
 
-**[Documentation](https://docs.exa.ai)** | **[Dashboard](https://dashboard.exa.ai)** | **[Discord](https://discord.gg/exa)**
+**[Documentation](https://docs.exa.ai)** | **[Dashboard](https://dashboard.exa.ai)**
 
 ## Install
 
