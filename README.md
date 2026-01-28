@@ -41,13 +41,13 @@ response = exa.answer("What is the capital of France?")
 ## Search
 
 ```python
-# Basic search with contents
 results = exa.search(
     "machine learning startups",
     contents={"text": True}
 )
+```
 
-# With filters
+```python
 results = exa.search(
     "climate tech news",
     num_results=20,
@@ -60,19 +60,20 @@ results = exa.search(
 ## Contents
 
 ```python
-# Get text from URLs
 results = exa.get_contents(
     ["https://openai.com/research"],
     text=True
 )
+```
 
-# Get summaries
+```python
 results = exa.get_contents(
     ["https://stripe.com/docs/api"],
     summary=True
 )
+```
 
-# Get highlights (key passages)
+```python
 results = exa.get_contents(
     ["https://arxiv.org/abs/2303.08774"],
     highlights={"num_sentences": 3}
@@ -82,13 +83,13 @@ results = exa.get_contents(
 ## Find Similar
 
 ```python
-# Find pages similar to a URL
 results = exa.find_similar(
     "https://paulgraham.com/greatwork.html",
     contents={"text": True}
 )
+```
 
-# Exclude the source domain
+```python
 results = exa.find_similar(
     "https://amistrongeryet.substack.com/p/are-we-on-the-brink-of-agi",
     exclude_source_domain=True,
@@ -99,11 +100,11 @@ results = exa.find_similar(
 ## Answer
 
 ```python
-# Get an answer with citations
 response = exa.answer("What caused the 2008 financial crisis?")
 print(response.answer)
+```
 
-# Stream the response
+```python
 for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
