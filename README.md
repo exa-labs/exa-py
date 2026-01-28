@@ -28,10 +28,10 @@ results = exa.search("best restaurants in SF")
 results = exa.search_and_contents("latest AI research papers")
 
 # Find similar pages
-results = exa.find_similar("https://example.com")
+results = exa.find_similar("https://paulgraham.com/greatwork.html")
 
 # Get contents from URLs
-results = exa.get_contents(["https://example.com"])
+results = exa.get_contents(["https://www.adept.ai/"])
 
 # Ask a question
 response = exa.answer("What is the capital of France?")
@@ -64,19 +64,19 @@ results = exa.search_and_contents(
 ```python
 # Get text from URLs
 results = exa.get_contents(
-    ["https://example.com"],
+    ["https://openai.com/research"],
     text=True
 )
 
 # Get summaries
 results = exa.get_contents(
-    ["https://example.com"],
+    ["https://stripe.com/docs/api"],
     summary=True
 )
 
 # Get highlights (key passages)
 results = exa.get_contents(
-    ["https://example.com"],
+    ["https://arxiv.org/abs/2303.08774"],
     highlights={"num_sentences": 3}
 )
 ```
@@ -85,17 +85,17 @@ results = exa.get_contents(
 
 ```python
 # Find pages similar to a URL
-results = exa.find_similar("https://example.com")
+results = exa.find_similar("https://paulgraham.com/greatwork.html")
 
 # Exclude the source domain
 results = exa.find_similar(
-    "https://example.com",
+    "https://amistrongeryet.substack.com/p/are-we-on-the-brink-of-agi",
     exclude_source_domain=True
 )
 
 # With contents
 results = exa.find_similar_and_contents(
-    "https://example.com",
+    "https://waitbutwhy.com/2015/01/artificial-intelligence-revolution-1.html",
     text=True
 )
 ```
