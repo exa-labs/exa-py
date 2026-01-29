@@ -2919,6 +2919,7 @@ class AsyncExa(Exa):
         system_prompt: Optional[str] = None,
         model: Optional[Literal["exa", "exa-pro"]] = None,
         output_schema: Optional[JSONSchemaInput] = None,
+        user_location: Optional[str] = None,
     ) -> AsyncStreamAnswerResponse:
         """Generate a streaming answer response.
 
@@ -2928,6 +2929,7 @@ class AsyncExa(Exa):
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Defaults to None.
             output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
+            user_location (str, optional): The user's location for location-aware answers.
 
         Returns:
             AsyncStreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
