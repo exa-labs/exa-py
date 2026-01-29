@@ -2282,8 +2282,13 @@ class Exa:
 
 
 class AsyncExa(Exa):
-    def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
-        super().__init__(api_key, api_base)
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = "https://api.exa.ai",
+        user_agent: Optional[str] = None,
+    ):
+        super().__init__(api_key, base_url, user_agent)
         # Override the synchronous ResearchClient with its async counterpart.
         self.research = AsyncResearchClient(self)
         # Override the synchronous WebsetsClient with its async counterpart.
