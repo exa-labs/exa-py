@@ -1180,6 +1180,7 @@ class SearchResponse(Generic[T]):
         context (str, optional): Combined context string when requested via contents.context.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
+        search_time (float, optional): Time taken for the search in milliseconds.
     """
 
     results: List[T]
@@ -1188,6 +1189,7 @@ class SearchResponse(Generic[T]):
     context: Optional[str] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
+    search_time: Optional[float] = None
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
@@ -1195,6 +1197,8 @@ class SearchResponse(Generic[T]):
             output += f"\nContext: {self.context}"
         if self.resolved_search_type:
             output += f"\nResolved Search Type: {self.resolved_search_type}"
+        if self.search_time is not None:
+            output += f"\nSearch Time: {self.search_time}ms"
         if self.cost_dollars:
             output += f"\nCostDollars: total={self.cost_dollars.total}"
             if self.cost_dollars.search:
@@ -1458,6 +1462,7 @@ class Exa:
             data["autoDate"] if "autoDate" in data else None,
             context=data.get("context"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     def search_and_contents(self, query: str, **kwargs):
@@ -1542,6 +1547,7 @@ class Exa:
             data.get("autoDate"),
             context=data.get("context"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     @overload
@@ -1707,6 +1713,7 @@ class Exa:
             context=data.get("context"),
             cost_dollars=cost_dollars,
             statuses=statuses,
+            search_time=data.get("searchTime"),
         )
 
     def find_similar(
@@ -1803,6 +1810,7 @@ class Exa:
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     @overload
@@ -2018,6 +2026,7 @@ class Exa:
             data.get("autoDate"),
             context=data.get("context"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     def wrap(self, client: OpenAI):
@@ -2475,6 +2484,7 @@ class AsyncExa(Exa):
             data.get("autoDate"),
             context=data.get("context"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     async def search_and_contents(self, query: str, **kwargs):
@@ -2559,6 +2569,7 @@ class AsyncExa(Exa):
             data.get("autoDate"),
             context=data.get("context"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     async def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
@@ -2661,6 +2672,7 @@ class AsyncExa(Exa):
             context=data.get("context"),
             cost_dollars=cost_dollars,
             statuses=statuses,
+            search_time=data.get("searchTime"),
         )
 
     async def find_similar(
@@ -2763,6 +2775,7 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     async def find_similar_and_contents(self, url: str, **kwargs):
@@ -2842,6 +2855,7 @@ class AsyncExa(Exa):
             data.get("autoDate"),
             context=data.get("context"),
             cost_dollars=cost_dollars,
+            search_time=data.get("searchTime"),
         )
 
     async def answer(
