@@ -191,6 +191,44 @@ def test_search_accepts_highlights_with_options_offline():
         assert highlights_opts["highlightsPerUrl"] == 3
 
 
+def test_search_accepts_highlights_with_max_characters_offline():
+    """Test that search method accepts max_characters in highlights options."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "highlights": ["highlight 1"],
+                "highlightScores": [0.9],
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "test query",
+            contents={
+                "highlights": {
+                    "query": "key points",
+                    "max_characters": 500,
+                }
+            },
+            num_results=1,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].highlights == ["highlight 1"]
+
+        # Verify the request was called with correct camelCase parameters
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        highlights_opts = options["contents"]["highlights"]
+        assert highlights_opts["query"] == "key points"
+        assert highlights_opts["maxCharacters"] == 500
+
+
 def test_search_and_contents_with_highlights_offline():
     """Test deprecated search_and_contents method with highlights."""
     exa = Exa(API_KEY)

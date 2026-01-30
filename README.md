@@ -76,7 +76,7 @@ results = exa.get_contents(
 ```python
 results = exa.get_contents(
     ["https://arxiv.org/abs/2303.08774"],
-    highlights={"num_sentences": 3}
+    highlights={"max_characters": 500}
 )
 ```
 
