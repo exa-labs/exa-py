@@ -1020,10 +1020,12 @@ class AnswerResponse:
     Attributes:
         answer (str): The generated answer.
         citations (List[AnswerResult]): A list of citations used to generate the answer.
+        cost_dollars (CostDollars, optional): The cost breakdown for this request.
     """
 
     answer: Union[str, dict[str, Any]]
     citations: List[AnswerResult]
+    cost_dollars: Optional[CostDollars] = None
 
     def __str__(self):
         output = f"Answer: {self.answer}\n\nCitations:"
@@ -2243,7 +2245,8 @@ class Exa:
                     text=snake_result.get("text"),
                 )
             )
-        return AnswerResponse(response["answer"], citations)
+        cost_dollars = parse_cost_dollars(response.get("costDollars"))
+        return AnswerResponse(response["answer"], citations, cost_dollars)
 
     def stream_answer(
         self,
@@ -2923,7 +2926,8 @@ class AsyncExa(Exa):
                     text=snake_result.get("text"),
                 )
             )
-        return AnswerResponse(response["answer"], citations)
+        cost_dollars = parse_cost_dollars(response.get("costDollars"))
+        return AnswerResponse(response["answer"], citations, cost_dollars)
 
     async def stream_answer(
         self,
