@@ -478,6 +478,10 @@ class HighlightsContentsOptions(TypedDict, total=False):
 class ContextContentsOptions(TypedDict, total=False):
     """Options for retrieving aggregated context from a set of search results.
 
+    .. deprecated::
+        Use ``highlights`` or ``text`` instead. The ``context`` option is deprecated
+        and will be removed in a future version.
+
     Attributes:
         max_characters (int): The maximum number of characters to include in the context string.
     """
@@ -502,7 +506,7 @@ class ContentsOptions(TypedDict, total=False):
         text (TextContentsOptions | True): Options for text extraction, or True for defaults.
         highlights (HighlightsContentsOptions | True): Options for highlight extraction, or True for defaults.
         summary (SummaryContentsOptions | True): Options for summary generation, or True for defaults.
-        context (ContextContentsOptions | True): Options for context aggregation, or True for defaults.
+        context (ContextContentsOptions | True): Deprecated. Use ``highlights`` or ``text`` instead. Will be removed in a future version.
         max_age_hours (int): Maximum age of cached content in hours. If content is older, it will be
             fetched fresh. Special values: 0 = always fetch fresh content,
             -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days.
@@ -1181,7 +1185,7 @@ class SearchResponse(Generic[T]):
         results (List[Result]): A list of search results.
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
-        context (str, optional): Combined context string when requested via contents.context.
+        context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1382,8 +1386,8 @@ class Exa:
             query (str): The query string.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, context, etc.).
-                Note: For deep search (type='deep'), context is always returned by the API.
+                See ContentsOptions for available options (text, highlights, summary, etc.).
+                Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return (default 10). 
                 For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
             include_domains (List[str], optional): Domains to include in the search.
@@ -1746,7 +1750,7 @@ class Exa:
             url (str): The URL to find similar pages for.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, context, etc.).
+                See ContentsOptions for available options (text, highlights, summary, etc.).
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -2407,8 +2411,8 @@ class AsyncExa(Exa):
             query (str): The query string.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, context, etc.).
-                Note: For deep search (type='deep'), context is always returned by the API.
+                See ContentsOptions for available options (text, highlights, summary, etc.).
+                Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return (default 10). 
                 For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
             include_domains (List[str], optional): Domains to include in the search.
@@ -2706,7 +2710,7 @@ class AsyncExa(Exa):
             url (str): The URL to find similar pages for.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, context, etc.).
+                See ContentsOptions for available options (text, highlights, summary, etc.).
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
