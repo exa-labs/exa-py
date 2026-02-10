@@ -80,6 +80,28 @@ def test_search_accepts_additional_queries_offline():
         assert options["type"] == "deep"
 
 
+def test_search_accepts_instant_type_offline():
+    """Test that search method accepts instant search type and forwards it as-is."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Instant Search Result"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "instant query",
+            type="instant",
+            num_results=3,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "instant"
+
+
 @pytest.mark.asyncio
 async def test_async_request_accepts_201():
     ax = AsyncExa(API_KEY)

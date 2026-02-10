@@ -258,8 +258,8 @@ Category = Literal[
 """Data category to focus on when searching. Each category returns results specialized for that content type."""
 
 # Search type options
-SearchType = Literal["auto", "fast", "deep", "neural"]
-"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' performs comprehensive multi-query search, 'neural' uses embedding-based semantic search."""
+SearchType = Literal["auto", "fast", "deep", "neural", "instant"]
+"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' performs comprehensive multi-query search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
@@ -283,7 +283,7 @@ SEARCH_OPTIONS_TYPES = {
     "exclude_text": [
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
-    "type": [SearchType],  # Search type: 'auto', 'fast', or 'deep' (Default: auto)
+    "type": [SearchType],  # Search type: 'auto', 'fast', 'deep', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
@@ -1398,7 +1398,7 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', or 'neural'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
@@ -2423,7 +2423,7 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', or 'neural'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
