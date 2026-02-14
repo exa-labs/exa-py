@@ -981,6 +981,7 @@ class MonitorRunStatus(Enum):
     running = 'running'
     completed = 'completed'
     canceled = 'canceled'
+    failed = 'failed'
 
 
 class MonitorStatus(Enum):
