@@ -1915,6 +1915,7 @@ class WebsetSearchStatus(Enum):
     """
 
     created = 'created'
+    pending = 'pending'
     running = 'running'
     completed = 'completed'
     canceled = 'canceled'
@@ -2038,6 +2039,7 @@ class WebsetStatus(Enum):
     """
 
     idle = 'idle'
+    pending = 'pending'
     running = 'running'
     paused = 'paused'
 
