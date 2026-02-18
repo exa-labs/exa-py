@@ -2038,6 +2038,7 @@ class WebsetStatus(Enum):
     """
 
     idle = 'idle'
+    pending = 'pending'
     running = 'running'
     paused = 'paused'
 
