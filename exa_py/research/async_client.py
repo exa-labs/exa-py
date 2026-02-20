@@ -40,20 +40,19 @@ class AsyncResearchTyped(Generic[T]):
     def __init__(self, research: ResearchDto, parsed_output: T):
         self.research = research
         self.parsed_output = parsed_output
-        # Expose research fields
         self.research_id = research.research_id
         self.status = research.status
         self.created_at = research.created_at
         self.model = research.model
         self.instructions = research.instructions
         self.output_schema = research.output_schema
-        if hasattr(research, "events"):
-            self.events = research.events
-        if hasattr(research, "output"):
+        # Type-safe access based on status
+        if research.status in ["running", "completed", "canceled", "failed"]:
+            self.events = getattr(research, "events", None)
+        if research.status == "completed":
             self.output = research.output
-        if hasattr(research, "cost_dollars"):
             self.cost_dollars = research.cost_dollars
-        if hasattr(research, "error"):
+        if research.status == "failed":
             self.error = research.error
 
 
@@ -90,7 +89,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         self,
         *,
         instructions: str,
-        model: Literal["exa-research", "exa-research-pro"] = "exa-research",
+        model: ResearchModel = "exa-research-fast",
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
     ) -> ResearchDto:
         """Create a new research request.
@@ -103,19 +102,19 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         Returns:
             The created research object.
         """
-        payload = {
+        payload: Dict[str, Any] = {
             "instructions": instructions,
             "model": model,
         }
 
         if output_schema is not None:
             if is_pydantic_model(output_schema):
-                payload["outputSchema"] = pydantic_to_json_schema(output_schema)
+                payload["outputSchema"] = pydantic_to_json_schema(output_schema)  # type: ignore[arg-type]
             else:
                 payload["outputSchema"] = output_schema
 
         response = await self.request("", method="POST", data=payload)
-        adapter = TypeAdapter(ResearchDto)
+        adapter: TypeAdapter[ResearchDto] = TypeAdapter(ResearchDto)
         return adapter.validate_python(response)
 
     @overload
@@ -139,7 +138,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         research_id: str,
         *,
         stream: Literal[True],
-        events: Optional[bool] = None,
+        events: bool = False,
     ) -> AsyncGenerator[ResearchEvent, None]: ...
 
     @overload
@@ -190,7 +189,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             response = await self.request(
                 f"/{research_id}", method="GET", params=params
             )
-            adapter = TypeAdapter(ResearchDto)
+            adapter: TypeAdapter[ResearchDto] = TypeAdapter(ResearchDto)
             research = adapter.validate_python(response)
 
             if output_schema and hasattr(research, "output") and research.output:
@@ -287,11 +286,10 @@ class AsyncResearchClient(AsyncResearchBaseClient):
                         research_id, events=events, output_schema=output_schema
                     )
                 else:
-                    result = await self.get(research_id, events=events)
+                    result = await self.get(research_id, events=events)  # type: ignore[assignment]
 
                 consecutive_failures = 0
 
-                # Check if research is finished
                 status = result.status if hasattr(result, "status") else None
                 if status in ["completed", "failed", "canceled"]:
                     return result
