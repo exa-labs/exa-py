@@ -63,7 +63,7 @@ results = exa.search(
     type="deep",
     answer=True,
     effort="high",
-    structured_outputs={
+    output_schema={
         "type": "object",
         "properties": {
             "summary": {"type": "string"},

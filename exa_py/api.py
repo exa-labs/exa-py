@@ -293,7 +293,7 @@ SEARCH_OPTIONS_TYPES = {
     "contents": [dict, bool],  # Options for retrieving page contents
     "additional_queries": [list],  # Alternative query formulations for deep search (max 5). Only used when type='deep'.
     "answer": [bool],  # Deep search answer mode. Returns answer and citations when true.
-    "structured_outputs": [dict],  # JSON schema for deep search structured answer output.
+    "output_schema": [dict],  # JSON schema for deep search structured answer output.
     "effort": [DeepSearchEffort],  # Deep search effort budget: 'medium' (default) or 'high'.
 }
 
@@ -1421,7 +1421,7 @@ class Exa:
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         answer: Optional[bool] = None,
-        structured_outputs: Optional[Dict[str, Any]] = None,
+        output_schema: Optional[Dict[str, Any]] = None,
         effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
@@ -1454,7 +1454,7 @@ class Exa:
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
                 Only applicable when type='deep'.
-            structured_outputs (dict[str, Any], optional): JSON schema for deep search structured answer output.
+            output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
                 When provided, the response answer follows this schema. Only applicable when type='deep'.
             effort (Literal["medium", "high"], optional): Deep search effort budget. "medium" is default behavior;
                 "high" enables more search/reasoning rounds. Only applicable when type='deep'.
@@ -1491,7 +1491,7 @@ class Exa:
             options["contents"] = contents
 
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["structured_outputs"])
+        options = to_camel_case(options, skip_keys=["output_schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         citations = parse_search_citations(data.get("citations"))
@@ -2458,7 +2458,7 @@ class AsyncExa(Exa):
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         answer: Optional[bool] = None,
-        structured_outputs: Optional[Dict[str, Any]] = None,
+        output_schema: Optional[Dict[str, Any]] = None,
         effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
@@ -2491,7 +2491,7 @@ class AsyncExa(Exa):
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
                 Only applicable when type='deep'.
-            structured_outputs (dict[str, Any], optional): JSON schema for deep search structured answer output.
+            output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
                 When provided, the response answer follows this schema. Only applicable when type='deep'.
             effort (Literal["medium", "high"], optional): Deep search effort budget. "medium" is default behavior;
                 "high" enables more search/reasoning rounds. Only applicable when type='deep'.
@@ -2526,7 +2526,7 @@ class AsyncExa(Exa):
             options["contents"] = contents
 
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["structured_outputs"])
+        options = to_camel_case(options, skip_keys=["output_schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         citations = parse_search_citations(data.get("citations"))

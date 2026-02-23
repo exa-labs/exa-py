@@ -109,7 +109,7 @@ def test_search_accepts_instant_type_offline():
 
 
 def test_search_accepts_deepv3_params_offline():
-    """Test deep search accepts answer, structured_outputs, and effort params."""
+    """Test deep search accepts answer, output_schema, and effort params."""
     exa = Exa(API_KEY)
     mock_response = {
         "results": [
@@ -120,7 +120,7 @@ def test_search_accepts_deepv3_params_offline():
         "costDollars": {"total": 0.002},
     }
 
-    structured_outputs = {
+    output_schema = {
         "type": "object",
         "properties": {
             "answer_text": {"type": "string"},
@@ -133,7 +133,7 @@ def test_search_accepts_deepv3_params_offline():
             "machine learning",
             type="deep",
             answer=True,
-            structured_outputs=structured_outputs,
+            output_schema=output_schema,
             effort="high",
             num_results=5,
         )
@@ -150,21 +150,21 @@ def test_search_accepts_deepv3_params_offline():
         assert options["type"] == "deep"
         assert options["answer"] is True
         assert options["effort"] == "high"
-        assert "structuredOutputs" in options
-        assert options["structuredOutputs"]["properties"]["answer_text"]["type"] == "string"
-        assert "answerText" not in options["structuredOutputs"]["properties"]
+        assert "outputSchema" in options
+        assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
+        assert "answerText" not in options["outputSchema"]["properties"]
 
 
 @pytest.mark.asyncio
 async def test_async_search_accepts_deepv3_params_offline():
-    """Test async deep search accepts answer, structured_outputs, and effort params."""
+    """Test async deep search accepts answer, output_schema, and effort params."""
     ax = AsyncExa(API_KEY)
     mock_response = {
         "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
         "costDollars": {"total": 0.001},
     }
 
-    structured_outputs = {
+    output_schema = {
         "type": "object",
         "properties": {
             "answer_text": {"type": "string"},
@@ -178,7 +178,7 @@ async def test_async_search_accepts_deepv3_params_offline():
             "async deep query",
             type="deep",
             answer=True,
-            structured_outputs=structured_outputs,
+            output_schema=output_schema,
             effort="medium",
         )
         assert isinstance(resp, exa_api.SearchResponse)
@@ -189,10 +189,8 @@ async def test_async_search_accepts_deepv3_params_offline():
         assert options["type"] == "deep"
         assert options["answer"] is True
         assert options["effort"] == "medium"
-        assert options["structuredOutputs"]["properties"]["answer_text"]["type"] == "string"
-        assert "answerText" not in options["structuredOutputs"]["properties"]
-
-
+        assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
+        assert "answerText" not in options["outputSchema"]["properties"]
 @pytest.mark.asyncio
 async def test_async_request_accepts_201():
     ax = AsyncExa(API_KEY)
