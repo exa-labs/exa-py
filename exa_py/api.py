@@ -261,6 +261,9 @@ Category = Literal[
 SearchType = Literal["auto", "fast", "deep", "neural", "instant"]
 """Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' performs comprehensive multi-query search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
+DeepSearchEffort = Literal["medium", "high"]
+"""Effort level for deep search. 'medium' is the default, and 'high' enables a larger search/reasoning budget."""
+
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
@@ -289,6 +292,9 @@ SEARCH_OPTIONS_TYPES = {
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
     "additional_queries": [list],  # Alternative query formulations for deep search (max 5). Only used when type='deep'.
+    "answer": [bool],  # Deep search answer mode. Returns answer and citations when true.
+    "structured_outputs": [dict],  # JSON schema for deep search structured answer output.
+    "effort": [DeepSearchEffort],  # Deep search effort budget: 'medium' (default) or 'high'.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -382,6 +388,26 @@ def parse_cost_dollars(raw: dict) -> Optional[CostDollars]:
     contents_part = raw.get("contents")
 
     return CostDollars(total=total, search=search_part, contents=contents_part)
+
+
+def parse_search_citations(raw: Optional[List[dict[str, Any]]]) -> Optional[List["SearchCitation"]]:
+    """Parse deep-search citation objects from a /search response."""
+    if not raw:
+        return None
+
+    citations = []
+    for citation in raw:
+        if not isinstance(citation, dict):
+            continue
+        citations.append(
+            SearchCitation(
+                index=citation.get("index"),
+                url=citation.get("url", ""),
+                title=citation.get("title"),
+            )
+        )
+
+    return citations if citations else None
 
 
 VERBOSITY_OPTIONS = Literal["compact", "standard", "full"]
@@ -1178,6 +1204,15 @@ class ContentStatus:
 
 
 @dataclass
+class SearchCitation:
+    """Citation metadata returned by deep-search answer mode."""
+
+    index: Optional[int] = None
+    url: str = ""
+    title: Optional[str] = None
+
+
+@dataclass
 class SearchResponse(Generic[T]):
     """A class representing the response for a search operation.
 
@@ -1186,6 +1221,8 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
+        answer (str | dict, optional): Deep search synthesized answer text/object when answer mode is enabled.
+        citations (List[SearchCitation], optional): Citation metadata for deep-search answer mode.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1195,6 +1232,8 @@ class SearchResponse(Generic[T]):
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
     context: Optional[str] = None
+    answer: Optional[Union[str, dict[str, Any]]] = None
+    citations: Optional[List[SearchCitation]] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
     search_time: Optional[float] = None
@@ -1203,6 +1242,10 @@ class SearchResponse(Generic[T]):
         output = "\n\n".join(str(result) for result in self.results)
         if self.context:
             output += f"\nContext: {self.context}"
+        if self.answer is not None:
+            output += f"\nAnswer: {self.answer}"
+        if self.citations:
+            output += f"\nCitations: {self.citations}"
         if self.resolved_search_type:
             output += f"\nResolved Search Type: {self.resolved_search_type}"
         if self.search_time is not None:
@@ -1377,6 +1420,9 @@ class Exa:
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
+        answer: Optional[bool] = None,
+        structured_outputs: Optional[Dict[str, Any]] = None,
+        effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1406,6 +1452,12 @@ class Exa:
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
+            answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
+                Only applicable when type='deep'.
+            structured_outputs (dict[str, Any], optional): JSON schema for deep search structured answer output.
+                When provided, the response answer follows this schema. Only applicable when type='deep'.
+            effort (Literal["medium", "high"], optional): Deep search effort budget. "medium" is default behavior;
+                "high" enables more search/reasoning rounds. Only applicable when type='deep'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -1439,9 +1491,10 @@ class Exa:
             options["contents"] = contents
 
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["structured_outputs"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        citations = parse_search_citations(data.get("citations"))
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
@@ -1469,6 +1522,8 @@ class Exa:
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
             context=data.get("context"),
+            answer=data.get("answer"),
+            citations=citations,
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2402,6 +2457,9 @@ class AsyncExa(Exa):
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
+        answer: Optional[bool] = None,
+        structured_outputs: Optional[Dict[str, Any]] = None,
+        effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2431,6 +2489,12 @@ class AsyncExa(Exa):
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
+            answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
+                Only applicable when type='deep'.
+            structured_outputs (dict[str, Any], optional): JSON schema for deep search structured answer output.
+                When provided, the response answer follows this schema. Only applicable when type='deep'.
+            effort (Literal["medium", "high"], optional): Deep search effort budget. "medium" is default behavior;
+                "high" enables more search/reasoning rounds. Only applicable when type='deep'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2462,9 +2526,10 @@ class AsyncExa(Exa):
             options["contents"] = contents
 
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["structured_outputs"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
+        citations = parse_search_citations(data.get("citations"))
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
@@ -2492,6 +2557,8 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
+            answer=data.get("answer"),
+            citations=citations,
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
