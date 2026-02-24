@@ -134,7 +134,7 @@ def test_search_accepts_deepv3_params_offline():
             type="deep",
             answer=True,
             output_schema=output_schema,
-            effort="high",
+            effort="base",
             num_results=5,
         )
         assert isinstance(resp, exa_api.SearchResponse)
@@ -149,10 +149,25 @@ def test_search_accepts_deepv3_params_offline():
         options = call_args[0][1]
         assert options["type"] == "deep"
         assert options["answer"] is True
-        assert options["effort"] == "high"
+        assert options["effort"] == "base"
         assert "outputSchema" in options
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
+
+
+def test_search_accepts_lite_effort_offline():
+    """Test deep search accepts lite effort value."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Deep Result"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search("quick deep query", type="deep", effort="lite")
+        assert isinstance(resp, exa_api.SearchResponse)
+        options = mock_request.call_args[0][1]
+        assert options["effort"] == "lite"
 
 
 @pytest.mark.asyncio
@@ -179,7 +194,7 @@ async def test_async_search_accepts_deepv3_params_offline():
             type="deep",
             answer=True,
             output_schema=output_schema,
-            effort="medium",
+            effort="max",
         )
         assert isinstance(resp, exa_api.SearchResponse)
 
@@ -188,7 +203,7 @@ async def test_async_search_accepts_deepv3_params_offline():
         options = call_args[0][1]
         assert options["type"] == "deep"
         assert options["answer"] is True
-        assert options["effort"] == "medium"
+        assert options["effort"] == "max"
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
 @pytest.mark.asyncio

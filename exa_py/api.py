@@ -261,8 +261,8 @@ Category = Literal[
 SearchType = Literal["auto", "fast", "deep", "neural", "instant"]
 """Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' performs comprehensive multi-query search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
-DeepSearchEffort = Literal["medium", "high"]
-"""Effort level for deep search. 'medium' is the default, and 'high' enables a larger search/reasoning budget."""
+DeepSearchEffort = Literal["lite", "base", "max"]
+"""Effort level for deep search. 'lite' is the default, 'base' expands search/reasoning, and 'max' is the highest compute budget."""
 
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
@@ -294,7 +294,7 @@ SEARCH_OPTIONS_TYPES = {
     "additional_queries": [list],  # Alternative query formulations for deep search (max 5). Only used when type='deep'.
     "answer": [bool],  # Deep search answer mode. Returns answer and citations when true.
     "output_schema": [dict],  # JSON schema for deep search structured answer output.
-    "effort": [DeepSearchEffort],  # Deep search effort budget: 'medium' (default) or 'high'.
+    "effort": [DeepSearchEffort],  # Deep search effort budget: 'lite' (default), 'base', or 'max'.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1456,8 +1456,9 @@ class Exa:
                 Only applicable when type='deep'.
             output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
                 When provided, the response answer follows this schema. Only applicable when type='deep'.
-            effort (Literal["medium", "high"], optional): Deep search effort budget. "medium" is default behavior;
-                "high" enables more search/reasoning rounds. Only applicable when type='deep'.
+            effort (Literal["lite", "base", "max"], optional): Deep search effort budget. "lite" is default behavior;
+                "base" enables more search/reasoning rounds, and "max" requests the highest compute budget.
+                Only applicable when type='deep'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2493,8 +2494,9 @@ class AsyncExa(Exa):
                 Only applicable when type='deep'.
             output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
                 When provided, the response answer follows this schema. Only applicable when type='deep'.
-            effort (Literal["medium", "high"], optional): Deep search effort budget. "medium" is default behavior;
-                "high" enables more search/reasoning rounds. Only applicable when type='deep'.
+            effort (Literal["lite", "base", "max"], optional): Deep search effort budget. "lite" is default behavior;
+                "base" enables more search/reasoning rounds, and "max" requests the highest compute budget.
+                Only applicable when type='deep'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
