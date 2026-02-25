@@ -84,7 +84,13 @@ def test_search_accepts_instant_type_offline():
     """Test that search method accepts instant search type and forwards it as-is."""
     exa = Exa(API_KEY)
     mock_response = {
-        "results": [{"url": "http://example.com", "id": "1", "title": "Instant Search Result"}],
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Instant Search Result",
+            }
+        ],
         "costDollars": {"total": 0.001},
     }
 
@@ -102,6 +108,104 @@ def test_search_accepts_instant_type_offline():
         assert options["type"] == "instant"
 
 
+def test_search_accepts_deepv3_params_offline():
+    """Test deep search accepts answer, output_schema, and effort params."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {"url": "http://example.com", "id": "1", "title": "Deep Search Result"}
+        ],
+        "answer": {"answer_text": "Deep search synthesis"},
+        "citations": [{"index": 1, "url": "http://example.com", "title": "Example"}],
+        "costDollars": {"total": 0.002},
+    }
+
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "answer_text": {"type": "string"},
+        },
+        "required": ["answer_text"],
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "machine learning",
+            type="deep",
+            answer=True,
+            output_schema=output_schema,
+            effort="base",
+            num_results=5,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.answer == {"answer_text": "Deep search synthesis"}
+        assert resp.citations is not None
+        assert resp.citations[0].index == 1
+        assert resp.citations[0].url == "http://example.com"
+        assert resp.citations[0].title == "Example"
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "deep"
+        assert options["answer"] is True
+        assert options["effort"] == "base"
+        assert "outputSchema" in options
+        assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
+        assert "answerText" not in options["outputSchema"]["properties"]
+
+
+def test_search_accepts_lite_effort_offline():
+    """Test deep search accepts lite effort value."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Deep Result"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search("quick deep query", type="deep", effort="lite")
+        assert isinstance(resp, exa_api.SearchResponse)
+        options = mock_request.call_args[0][1]
+        assert options["effort"] == "lite"
+
+
+@pytest.mark.asyncio
+async def test_async_search_accepts_deepv3_params_offline():
+    """Test async deep search accepts answer, output_schema, and effort params."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "answer_text": {"type": "string"},
+        },
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_async_request:
+        resp = await ax.search(
+            "async deep query",
+            type="deep",
+            answer=True,
+            output_schema=output_schema,
+            effort="max",
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+
+        call_args = mock_async_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "deep"
+        assert options["answer"] is True
+        assert options["effort"] == "max"
+        assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
+        assert "answerText" not in options["outputSchema"]["properties"]
 @pytest.mark.asyncio
 async def test_async_request_accepts_201():
     ax = AsyncExa(API_KEY)

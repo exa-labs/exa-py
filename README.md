@@ -57,6 +57,23 @@ results = exa.search(
 )
 ```
 
+```python
+results = exa.search(
+    "What are the latest battery breakthroughs?",
+    type="deep",
+    answer=True,
+    output_schema={
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "key_companies": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["summary", "key_companies"],
+    },
+)
+print(results.answer)
+```
+
 ## Contents
 
 ```python
