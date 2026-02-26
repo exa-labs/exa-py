@@ -258,11 +258,16 @@ Category = Literal[
 """Data category to focus on when searching. Each category returns results specialized for that content type."""
 
 # Search type options
-SearchType = Literal["auto", "fast", "deep", "neural", "instant"]
-"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' performs comprehensive multi-query search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
-
-DeepSearchEffort = Literal["lite", "base", "max"]
-"""Effort level for deep search. 'lite' is the default, 'base' expands search/reasoning, and 'max' is the highest compute budget."""
+SearchType = Literal[
+    "auto",
+    "fast",
+    "deep",
+    "deep-reasoning",
+    "deep-max",
+    "neural",
+    "instant",
+]
+"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'deep-max' is the highest-effort deep search variant, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
@@ -286,15 +291,20 @@ SEARCH_OPTIONS_TYPES = {
     "exclude_text": [
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
-    "type": [SearchType],  # Search type: 'auto', 'fast', 'deep', 'neural', or 'instant' (Default: auto)
+    "type": [
+        SearchType
+    ],  # Search type: 'auto', 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
-    "additional_queries": [list],  # Alternative query formulations for deep search (max 5). Only used when type='deep'.
-    "answer": [bool],  # Deep search answer mode. Returns answer and citations when true.
+    "additional_queries": [
+        list
+    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning/deep-max.
+    "answer": [
+        bool
+    ],  # Deep search answer mode. Returns answer and citations when true.
     "output_schema": [dict],  # JSON schema for deep search structured answer output.
-    "effort": [DeepSearchEffort],  # Deep search effort budget: 'lite' (default), 'base', or 'max'.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1422,7 +1432,6 @@ class Exa:
         additional_queries: Optional[List[str]] = None,
         answer: Optional[bool] = None,
         output_schema: Optional[Dict[str, Any]] = None,
-        effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1444,21 +1453,20 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
-                automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
+                automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
-                Only applicable when type='deep'.
+                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
             output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
-                When provided, the response answer follows this schema. Only applicable when type='deep'.
-            effort (Literal["lite", "base", "max"], optional): Deep search effort budget. "lite" is default behavior;
-                "base" enables more search/reasoning rounds, and "max" requests the highest compute budget.
-                Only applicable when type='deep'.
+                When provided, the response answer follows this schema. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2460,7 +2468,6 @@ class AsyncExa(Exa):
         additional_queries: Optional[List[str]] = None,
         answer: Optional[bool] = None,
         output_schema: Optional[Dict[str, Any]] = None,
-        effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2482,21 +2489,20 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
-                automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
+                automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
-                Only applicable when type='deep'.
+                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
             output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
-                When provided, the response answer follows this schema. Only applicable when type='deep'.
-            effort (Literal["lite", "base", "max"], optional): Deep search effort budget. "lite" is default behavior;
-                "base" enables more search/reasoning rounds, and "max" requests the highest compute budget.
-                Only applicable when type='deep'.
+                When provided, the response answer follows this schema. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
             SearchResponse: The response containing search results, etc.

@@ -108,8 +108,8 @@ def test_search_accepts_instant_type_offline():
         assert options["type"] == "instant"
 
 
-def test_search_accepts_deepv3_params_offline():
-    """Test deep search accepts answer, output_schema, and effort params."""
+def test_search_accepts_deep_reasoning_params_offline():
+    """Test deep-reasoning search accepts answer and output_schema params."""
     exa = Exa(API_KEY)
     mock_response = {
         "results": [
@@ -131,10 +131,9 @@ def test_search_accepts_deepv3_params_offline():
     with patch.object(exa, "request", return_value=mock_response) as mock_request:
         resp = exa.search(
             "machine learning",
-            type="deep",
+            type="deep-reasoning",
             answer=True,
             output_schema=output_schema,
-            effort="base",
             num_results=5,
         )
         assert isinstance(resp, exa_api.SearchResponse)
@@ -147,16 +146,15 @@ def test_search_accepts_deepv3_params_offline():
         call_args = mock_request.call_args
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
-        assert options["type"] == "deep"
+        assert options["type"] == "deep-reasoning"
         assert options["answer"] is True
-        assert options["effort"] == "base"
         assert "outputSchema" in options
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
 
 
-def test_search_accepts_lite_effort_offline():
-    """Test deep search accepts lite effort value."""
+def test_search_accepts_deep_max_type_offline():
+    """Test deep search max variant is forwarded as-is."""
     exa = Exa(API_KEY)
     mock_response = {
         "results": [{"url": "http://example.com", "id": "1", "title": "Deep Result"}],
@@ -164,15 +162,15 @@ def test_search_accepts_lite_effort_offline():
     }
 
     with patch.object(exa, "request", return_value=mock_response) as mock_request:
-        resp = exa.search("quick deep query", type="deep", effort="lite")
+        resp = exa.search("quick deep query", type="deep-max")
         assert isinstance(resp, exa_api.SearchResponse)
         options = mock_request.call_args[0][1]
-        assert options["effort"] == "lite"
+        assert options["type"] == "deep-max"
 
 
 @pytest.mark.asyncio
 async def test_async_search_accepts_deepv3_params_offline():
-    """Test async deep search accepts answer, output_schema, and effort params."""
+    """Test async deep-max search accepts answer and output_schema params."""
     ax = AsyncExa(API_KEY)
     mock_response = {
         "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
@@ -191,21 +189,21 @@ async def test_async_search_accepts_deepv3_params_offline():
     ) as mock_async_request:
         resp = await ax.search(
             "async deep query",
-            type="deep",
+            type="deep-max",
             answer=True,
             output_schema=output_schema,
-            effort="max",
         )
         assert isinstance(resp, exa_api.SearchResponse)
 
         call_args = mock_async_request.call_args
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
-        assert options["type"] == "deep"
+        assert options["type"] == "deep-max"
         assert options["answer"] is True
-        assert options["effort"] == "max"
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
+
+
 @pytest.mark.asyncio
 async def test_async_request_accepts_201():
     ax = AsyncExa(API_KEY)
