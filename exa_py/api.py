@@ -258,11 +258,16 @@ Category = Literal[
 """Data category to focus on when searching. Each category returns results specialized for that content type."""
 
 # Search type options
-SearchType = Literal["auto", "fast", "deep", "neural", "instant"]
-"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' performs comprehensive multi-query search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
-
-DeepSearchEffort = Literal["lite", "base", "max"]
-"""Effort level for deep search. 'lite' is the default, 'base' expands search/reasoning, and 'max' is the highest compute budget."""
+SearchType = Literal[
+    "auto",
+    "fast",
+    "deep",
+    "deep-reasoning",
+    "deep-max",
+    "neural",
+    "instant",
+]
+"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'deep-max' is the highest-effort deep search variant, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
@@ -286,15 +291,17 @@ SEARCH_OPTIONS_TYPES = {
     "exclude_text": [
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
-    "type": [SearchType],  # Search type: 'auto', 'fast', 'deep', 'neural', or 'instant' (Default: auto)
+    "type": [
+        SearchType
+    ],  # Search type: 'auto', 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
-    "additional_queries": [list],  # Alternative query formulations for deep search (max 5). Only used when type='deep'.
-    "answer": [bool],  # Deep search answer mode. Returns answer and citations when true.
-    "output_schema": [dict],  # JSON schema for deep search structured answer output.
-    "effort": [DeepSearchEffort],  # Deep search effort budget: 'lite' (default), 'base', or 'max'.
+    "additional_queries": [
+        list
+    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning/deep-max.
+    "output_schema": [dict],  # JSON schema for deep search structured output.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -388,26 +395,6 @@ def parse_cost_dollars(raw: dict) -> Optional[CostDollars]:
     contents_part = raw.get("contents")
 
     return CostDollars(total=total, search=search_part, contents=contents_part)
-
-
-def parse_search_citations(raw: Optional[List[dict[str, Any]]]) -> Optional[List["SearchCitation"]]:
-    """Parse deep-search citation objects from a /search response."""
-    if not raw:
-        return None
-
-    citations = []
-    for citation in raw:
-        if not isinstance(citation, dict):
-            continue
-        citations.append(
-            SearchCitation(
-                index=citation.get("index"),
-                url=citation.get("url", ""),
-                title=citation.get("title"),
-            )
-        )
-
-    return citations if citations else None
 
 
 VERBOSITY_OPTIONS = Literal["compact", "standard", "full"]
@@ -1204,15 +1191,6 @@ class ContentStatus:
 
 
 @dataclass
-class SearchCitation:
-    """Citation metadata returned by deep-search answer mode."""
-
-    index: Optional[int] = None
-    url: str = ""
-    title: Optional[str] = None
-
-
-@dataclass
 class SearchResponse(Generic[T]):
     """A class representing the response for a search operation.
 
@@ -1221,8 +1199,7 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        answer (str | dict, optional): Deep search synthesized answer text/object when answer mode is enabled.
-        citations (List[SearchCitation], optional): Citation metadata for deep-search answer mode.
+        output (DeepSearchOutput, optional): Deep search synthesized output object containing content and citations.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1232,8 +1209,7 @@ class SearchResponse(Generic[T]):
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
     context: Optional[str] = None
-    answer: Optional[Union[str, dict[str, Any]]] = None
-    citations: Optional[List[SearchCitation]] = None
+    output: Optional["DeepSearchOutput"] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
     search_time: Optional[float] = None
@@ -1242,10 +1218,8 @@ class SearchResponse(Generic[T]):
         output = "\n\n".join(str(result) for result in self.results)
         if self.context:
             output += f"\nContext: {self.context}"
-        if self.answer is not None:
-            output += f"\nAnswer: {self.answer}"
-        if self.citations:
-            output += f"\nCitations: {self.citations}"
+        if self.output is not None:
+            output += f"\nOutput: {self.output}"
         if self.resolved_search_type:
             output += f"\nResolved Search Type: {self.resolved_search_type}"
         if self.search_time is not None:
@@ -1259,6 +1233,60 @@ class SearchResponse(Generic[T]):
         if self.statuses:
             output += f"\nStatuses: {self.statuses}"
         return output
+
+
+@dataclass
+class DeepSearchOutputCitation:
+    """Citation metadata for deep-search synthesized output."""
+
+    url: str
+    title: str
+
+
+@dataclass
+class DeepSearchOutput:
+    """Deep-search synthesized output payload."""
+
+    content: Union[str, dict[str, Any]]
+    citations: List[DeepSearchOutputCitation]
+
+
+def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
+    """Parse deep-search output into a typed object.
+
+    Args:
+        raw: Raw `output` field from API response.
+
+    Returns:
+        Parsed DeepSearchOutput when the payload is an object, otherwise None.
+    """
+
+    if not isinstance(raw, dict):
+        return None
+
+    raw_content = raw.get("content")
+    if isinstance(raw_content, str):
+        content: Union[str, dict[str, Any]] = raw_content
+    elif isinstance(raw_content, dict):
+        content = raw_content
+    else:
+        content = ""
+
+    citations: List[DeepSearchOutputCitation] = []
+    raw_citations = raw.get("citations")
+    if isinstance(raw_citations, list):
+        for citation in raw_citations:
+            if not isinstance(citation, dict):
+                continue
+            url = citation.get("url")
+            title = citation.get("title")
+            if not isinstance(url, str):
+                continue
+            citations.append(
+                DeepSearchOutputCitation(url=url, title=title if isinstance(title, str) else "")
+            )
+
+    return DeepSearchOutput(content=content, citations=citations)
 
 
 def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
@@ -1420,9 +1448,7 @@ class Exa:
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
-        answer: Optional[bool] = None,
         output_schema: Optional[Dict[str, Any]] = None,
-        effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1434,8 +1460,7 @@ class Exa:
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
                 Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
-            num_results (int, optional): Number of search results to return (default 10). 
-                For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
+            num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
@@ -1444,21 +1469,18 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
-                automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
+                automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
-                Only applicable when type='deep'.
-            output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
-                When provided, the response answer follows this schema. Only applicable when type='deep'.
-            effort (Literal["lite", "base", "max"], optional): Deep search effort budget. "lite" is default behavior;
-                "base" enables more search/reasoning rounds, and "max" requests the highest compute budget.
-                Only applicable when type='deep'.
+            output_schema (dict[str, Any], optional): JSON schema for deep search structured output.
+                When provided, the response output follows this schema. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -1495,7 +1517,6 @@ class Exa:
         options = to_camel_case(options, skip_keys=["output_schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        citations = parse_search_citations(data.get("citations"))
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
@@ -1523,8 +1544,7 @@ class Exa:
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
             context=data.get("context"),
-            answer=data.get("answer"),
-            citations=citations,
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -1610,6 +1630,7 @@ class Exa:
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2458,9 +2479,7 @@ class AsyncExa(Exa):
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
-        answer: Optional[bool] = None,
         output_schema: Optional[Dict[str, Any]] = None,
-        effort: Optional[DeepSearchEffort] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2472,8 +2491,7 @@ class AsyncExa(Exa):
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
                 Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
-            num_results (int, optional): Number of search results to return (default 10). 
-                For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
+            num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
@@ -2482,21 +2500,18 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
-                automatic LLM-based query expansion. Max 5 queries. Only applicable when type='deep'.
+                automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
-                Only applicable when type='deep'.
-            output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
-                When provided, the response answer follows this schema. Only applicable when type='deep'.
-            effort (Literal["lite", "base", "max"], optional): Deep search effort budget. "lite" is default behavior;
-                "base" enables more search/reasoning rounds, and "max" requests the highest compute budget.
-                Only applicable when type='deep'.
+            output_schema (dict[str, Any], optional): JSON schema for deep search structured output.
+                When provided, the response output follows this schema. Only applicable when type is
+                'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2531,7 +2546,6 @@ class AsyncExa(Exa):
         options = to_camel_case(options, skip_keys=["output_schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        citations = parse_search_citations(data.get("citations"))
         results = []
         for result in data["results"]:
             snake_result = to_snake_case(result)
@@ -2559,8 +2573,7 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            answer=data.get("answer"),
-            citations=citations,
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
