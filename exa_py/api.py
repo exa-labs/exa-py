@@ -1630,6 +1630,7 @@ class Exa:
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2109,7 +2110,6 @@ class Exa:
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
