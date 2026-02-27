@@ -60,7 +60,7 @@ results = exa.search(
 ```python
 results = exa.search(
     "What are the latest battery breakthroughs?",
-    type="deep-reasoning",
+    type="deep",
     output_schema={
         "type": "object",
         "properties": {
@@ -70,7 +70,7 @@ results = exa.search(
         "required": ["summary", "key_companies"],
     },
 )
-print(results.answer)
+print(results.output)
 ```
 
 Deep search variants:

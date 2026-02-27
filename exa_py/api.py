@@ -301,7 +301,7 @@ SEARCH_OPTIONS_TYPES = {
     "additional_queries": [
         list
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning/deep-max.
-    "output_schema": [dict],  # JSON schema for deep search structured answer output.
+    "output_schema": [dict],  # JSON schema for deep search structured output.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1199,7 +1199,7 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        answer (str | dict, optional): Deep search synthesized answer text/object when structured output is requested.
+        output (str | dict, optional): Deep search synthesized output text/object when structured output is requested.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1209,7 +1209,7 @@ class SearchResponse(Generic[T]):
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
     context: Optional[str] = None
-    answer: Optional[Union[str, dict[str, Any]]] = None
+    output: Optional[Union[str, dict[str, Any]]] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
     search_time: Optional[float] = None
@@ -1218,8 +1218,8 @@ class SearchResponse(Generic[T]):
         output = "\n\n".join(str(result) for result in self.results)
         if self.context:
             output += f"\nContext: {self.context}"
-        if self.answer is not None:
-            output += f"\nAnswer: {self.answer}"
+        if self.output is not None:
+            output += f"\nOutput: {self.output}"
         if self.resolved_search_type:
             output += f"\nResolved Search Type: {self.resolved_search_type}"
         if self.search_time is not None:
@@ -1425,8 +1425,8 @@ class Exa:
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
-                When provided, the response answer follows this schema. Only applicable when type is
+            output_schema (dict[str, Any], optional): JSON schema for deep search structured output.
+                When provided, the response output follows this schema. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
@@ -1491,7 +1491,7 @@ class Exa:
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
             context=data.get("context"),
-            answer=data.get("answer"),
+            output=data.get("output"),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2456,8 +2456,8 @@ class AsyncExa(Exa):
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
-                When provided, the response answer follows this schema. Only applicable when type is
+            output_schema (dict[str, Any], optional): JSON schema for deep search structured output.
+                When provided, the response output follows this schema. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
@@ -2520,7 +2520,7 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            answer=data.get("answer"),
+            output=data.get("output"),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
