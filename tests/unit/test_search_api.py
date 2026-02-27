@@ -109,7 +109,7 @@ def test_search_accepts_instant_type_offline():
 
 
 def test_search_accepts_deep_reasoning_params_offline():
-    """Test deep-reasoning search accepts answer and output_schema params."""
+    """Test deep-reasoning search accepts output_schema params."""
     exa = Exa(API_KEY)
     mock_response = {
         "results": [
@@ -132,7 +132,6 @@ def test_search_accepts_deep_reasoning_params_offline():
         resp = exa.search(
             "machine learning",
             type="deep-reasoning",
-            answer=True,
             output_schema=output_schema,
             num_results=5,
         )
@@ -147,7 +146,6 @@ def test_search_accepts_deep_reasoning_params_offline():
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
         assert options["type"] == "deep-reasoning"
-        assert options["answer"] is True
         assert "outputSchema" in options
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
@@ -170,7 +168,7 @@ def test_search_accepts_deep_max_type_offline():
 
 @pytest.mark.asyncio
 async def test_async_search_accepts_deepv3_params_offline():
-    """Test async deep-max search accepts answer and output_schema params."""
+    """Test async deep-max search accepts output_schema params."""
     ax = AsyncExa(API_KEY)
     mock_response = {
         "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
@@ -190,7 +188,6 @@ async def test_async_search_accepts_deepv3_params_offline():
         resp = await ax.search(
             "async deep query",
             type="deep-max",
-            answer=True,
             output_schema=output_schema,
         )
         assert isinstance(resp, exa_api.SearchResponse)
@@ -199,7 +196,6 @@ async def test_async_search_accepts_deepv3_params_offline():
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
         assert options["type"] == "deep-max"
-        assert options["answer"] is True
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
 

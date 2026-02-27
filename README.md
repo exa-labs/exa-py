@@ -61,7 +61,6 @@ results = exa.search(
 results = exa.search(
     "What are the latest battery breakthroughs?",
     type="deep-reasoning",
-    answer=True,
     output_schema={
         "type": "object",
         "properties": {

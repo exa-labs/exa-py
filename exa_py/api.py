@@ -301,9 +301,6 @@ SEARCH_OPTIONS_TYPES = {
     "additional_queries": [
         list
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning/deep-max.
-    "answer": [
-        bool
-    ],  # Deep search answer mode. Returns answer and citations when true.
     "output_schema": [dict],  # JSON schema for deep search structured answer output.
 }
 
@@ -1215,7 +1212,7 @@ class ContentStatus:
 
 @dataclass
 class SearchCitation:
-    """Citation metadata returned by deep-search answer mode."""
+    """Citation metadata returned by deep-search structured outputs."""
 
     index: Optional[int] = None
     url: str = ""
@@ -1231,8 +1228,8 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        answer (str | dict, optional): Deep search synthesized answer text/object when answer mode is enabled.
-        citations (List[SearchCitation], optional): Citation metadata for deep-search answer mode.
+        answer (str | dict, optional): Deep search synthesized answer text/object when structured output is requested.
+        citations (List[SearchCitation], optional): Citation metadata for deep-search responses.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1430,7 +1427,6 @@ class Exa:
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
-        answer: Optional[bool] = None,
         output_schema: Optional[Dict[str, Any]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
@@ -1462,8 +1458,6 @@ class Exa:
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
-                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
             output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
                 When provided, the response answer follows this schema. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
@@ -2466,7 +2460,6 @@ class AsyncExa(Exa):
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
-        answer: Optional[bool] = None,
         output_schema: Optional[Dict[str, Any]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
@@ -2498,8 +2491,6 @@ class AsyncExa(Exa):
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            answer (bool, optional): Deep search answer mode. When True, includes a synthesized answer and citations.
-                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
             output_schema (dict[str, Any], optional): JSON schema for deep search structured answer output.
                 When provided, the response answer follows this schema. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
