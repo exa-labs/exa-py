@@ -2506,7 +2506,7 @@ class AsyncExa(Exa):
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
-        output_schema: Optional[Dict[str, Any]] = None,
+        output_schema: Optional[DeepOutputSchema] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2536,9 +2536,11 @@ class AsyncExa(Exa):
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            output_schema (dict[str, Any], optional): JSON schema for deep search structured output.
-                When provided, the response output follows this schema. Only applicable when type is
-                'deep', 'deep-reasoning', or 'deep-max'.
+            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+                Use ``{"type": "text", "description": ...}`` for plain text output or
+                ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
+                For object schemas, max nesting depth is 2 and max total properties is 10.
+                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
