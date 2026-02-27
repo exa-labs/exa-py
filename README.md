@@ -70,7 +70,7 @@ results = exa.search(
         "required": ["summary", "key_companies"],
     },
 )
-print(results.output)
+print(results.output.content if results.output else None)
 ```
 
 Deep search variants:

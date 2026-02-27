@@ -1199,7 +1199,7 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        output (str | dict, optional): Deep search synthesized output text/object when structured output is requested.
+        output (DeepSearchOutput, optional): Deep search synthesized output object containing content and citations.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1209,7 +1209,7 @@ class SearchResponse(Generic[T]):
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
     context: Optional[str] = None
-    output: Optional[Union[str, dict[str, Any]]] = None
+    output: Optional["DeepSearchOutput"] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
     search_time: Optional[float] = None
@@ -1233,6 +1233,60 @@ class SearchResponse(Generic[T]):
         if self.statuses:
             output += f"\nStatuses: {self.statuses}"
         return output
+
+
+@dataclass
+class DeepSearchOutputCitation:
+    """Citation metadata for deep-search synthesized output."""
+
+    url: str
+    title: str
+
+
+@dataclass
+class DeepSearchOutput:
+    """Deep-search synthesized output payload."""
+
+    content: Union[str, dict[str, Any]]
+    citations: List[DeepSearchOutputCitation]
+
+
+def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
+    """Parse deep-search output into a typed object.
+
+    Args:
+        raw: Raw `output` field from API response.
+
+    Returns:
+        Parsed DeepSearchOutput when the payload is an object, otherwise None.
+    """
+
+    if not isinstance(raw, dict):
+        return None
+
+    raw_content = raw.get("content")
+    if isinstance(raw_content, str):
+        content: Union[str, dict[str, Any]] = raw_content
+    elif isinstance(raw_content, dict):
+        content = raw_content
+    else:
+        content = ""
+
+    citations: List[DeepSearchOutputCitation] = []
+    raw_citations = raw.get("citations")
+    if isinstance(raw_citations, list):
+        for citation in raw_citations:
+            if not isinstance(citation, dict):
+                continue
+            url = citation.get("url")
+            title = citation.get("title")
+            if not isinstance(url, str):
+                continue
+            citations.append(
+                DeepSearchOutputCitation(url=url, title=title if isinstance(title, str) else "")
+            )
+
+    return DeepSearchOutput(content=content, citations=citations)
 
 
 def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
@@ -1406,8 +1460,7 @@ class Exa:
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
                 Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
-            num_results (int, optional): Number of search results to return (default 10). 
-                For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
+            num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
@@ -1491,7 +1544,7 @@ class Exa:
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
             context=data.get("context"),
-            output=data.get("output"),
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -1577,6 +1630,7 @@ class Exa:
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2056,6 +2110,7 @@ class Exa:
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2437,8 +2492,7 @@ class AsyncExa(Exa):
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
                 Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
-            num_results (int, optional): Number of search results to return (default 10). 
-                For deep search, recommend leaving blank - number of results will be determined dynamically for your query.
+            num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
             start_crawl_date (str, optional): Only links crawled after this date.
@@ -2520,7 +2574,7 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            output=data.get("output"),
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
