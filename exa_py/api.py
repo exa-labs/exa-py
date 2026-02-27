@@ -269,6 +269,31 @@ SearchType = Literal[
 ]
 """Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'deep-max' is the highest-effort deep search variant, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
+
+class DeepTextOutputSchema(TypedDict, total=False):
+    """Deep search output schema for plain-text output."""
+
+    type: Literal["text"]
+    description: str
+
+
+class DeepObjectOutputSchema(TypedDict, total=False):
+    """Deep search output schema for structured JSON object output."""
+
+    type: Literal["object"]
+    properties: Dict[str, Any]
+    required: List[str]
+
+
+DeepOutputSchema = Union[DeepTextOutputSchema, DeepObjectOutputSchema]
+"""Deep search output schema.
+
+- ``{"type": "text", "description": ...}`` returns plain text in ``output.content``.
+- ``{"type": "object", ...}`` returns structured JSON in ``output.content``.
+
+For object schemas, the API enforces max nesting depth 2 and max 10 total properties.
+"""
+
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
@@ -301,7 +326,7 @@ SEARCH_OPTIONS_TYPES = {
     "additional_queries": [
         list
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning/deep-max.
-    "output_schema": [dict],  # JSON schema for deep search structured output.
+    "output_schema": [dict],  # Deep output schema: {"type":"text"} or {"type":"object", ...}
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1448,7 +1473,7 @@ class Exa:
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
-        output_schema: Optional[Dict[str, Any]] = None,
+        output_schema: Optional[DeepOutputSchema] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1478,9 +1503,11 @@ class Exa:
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            output_schema (dict[str, Any], optional): JSON schema for deep search structured output.
-                When provided, the response output follows this schema. Only applicable when type is
-                'deep', 'deep-reasoning', or 'deep-max'.
+            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+                Use ``{"type": "text", "description": ...}`` for plain text output or
+                ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
+                For object schemas, max nesting depth is 2 and max total properties is 10.
+                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
