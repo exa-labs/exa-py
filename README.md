@@ -73,6 +73,14 @@ results = exa.search(
 print(results.output.content if results.output else None)
 ```
 
+Deep `output_schema` modes:
+- `{"type": "text", "description": "..."}`: return plain text in `output.content`
+- `{"type": "object", ...}`: return structured JSON in `output.content`
+
+For `type: "object"`, deep search currently enforces:
+- max nesting depth: `2`
+- max total properties: `10`
+
 Deep search variants:
 - `deep`: light mode
 - `deep-reasoning`: base reasoning mode
