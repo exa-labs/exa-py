@@ -22,6 +22,27 @@ def test_contentstatus_parsing_offline():
     payload_status = {"id": "u", "status": "success", "source": "cached"}
     cs = exa_api.ContentStatus(**payload_status)
     assert cs.id == "u" and cs.status == "success" and cs.source == "cached"
+    assert cs.error is None
+
+
+def test_contentstatus_with_error_parsing_offline():
+    payload_status = {
+        "id": "u",
+        "status": "error",
+        "error": {"httpStatusCode": 404, "tag": "NOT_FOUND"},
+    }
+    cs = exa_api.ContentStatus(
+        id=payload_status["id"],
+        status=payload_status["status"],
+        error=exa_api.ContentStatusError(
+            http_status_code=payload_status["error"]["httpStatusCode"],
+            tag=payload_status["error"]["tag"],
+        ),
+    )
+    assert cs.id == "u" and cs.status == "error"
+    assert cs.error is not None
+    assert cs.error.http_status_code == 404
+    assert cs.error.tag == "NOT_FOUND"
 
 
 def test_answerresponse_accepts_dict():
