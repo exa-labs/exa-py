@@ -116,7 +116,6 @@ def test_search_accepts_deep_reasoning_params_offline():
             {"url": "http://example.com", "id": "1", "title": "Deep Search Result"}
         ],
         "answer": {"answer_text": "Deep search synthesis"},
-        "citations": [{"index": 1, "url": "http://example.com", "title": "Example"}],
         "costDollars": {"total": 0.002},
     }
 
@@ -137,10 +136,6 @@ def test_search_accepts_deep_reasoning_params_offline():
         )
         assert isinstance(resp, exa_api.SearchResponse)
         assert resp.answer == {"answer_text": "Deep search synthesis"}
-        assert resp.citations is not None
-        assert resp.citations[0].index == 1
-        assert resp.citations[0].url == "http://example.com"
-        assert resp.citations[0].title == "Example"
 
         call_args = mock_request.call_args
         assert call_args[0][0] == "/search"
