@@ -299,8 +299,8 @@ SEARCH_OPTIONS_TYPES = {
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
     "include_domains": [
         list
-    ],  # Domains to search from; exclusive with 'exclude_domains'.
-    "exclude_domains": [list],  # Domains to omit; exclusive with 'include_domains'.
+    ],  # Domains to search from; can be combined with 'exclude_domains'.
+    "exclude_domains": [list],  # Domains to omit; can be combined with 'include_domains'.
     "start_crawl_date": [str],  # Results after this crawl date. ISO 8601 format.
     "end_crawl_date": [str],  # Results before this crawl date. ISO 8601 format.
     "start_published_date": [
