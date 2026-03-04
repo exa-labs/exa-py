@@ -48,7 +48,7 @@ from .research import ResearchClient, AsyncResearchClient
 is_beta = os.getenv("IS_BETA") == "True"
 
 # Default max characters for text contents
-DEFAULT_MAX_CHARACTERS = 10_000
+DEFAULT_MAX_CHARACTERS = 20_000
 
 
 def snake_to_camel(snake_str: str) -> str:
