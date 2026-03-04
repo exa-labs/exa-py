@@ -1224,7 +1224,7 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        output (DeepSearchOutput, optional): Deep search synthesized output object containing content and citations.
+        output (DeepSearchOutput, optional): Deep search synthesized output object containing content and field-level grounding.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1261,11 +1261,24 @@ class SearchResponse(Generic[T]):
 
 
 @dataclass
-class DeepSearchOutputCitation:
-    """Citation metadata for deep-search synthesized output."""
+class DeepSearchOutputGroundingCitation:
+    """Citation metadata for one grounded output field."""
 
     url: str
     title: str
+
+
+DeepSearchOutputGroundingConfidence = Literal["low", "medium", "high"]
+"""Confidence levels for a grounded output field."""
+
+
+@dataclass
+class DeepSearchOutputGrounding:
+    """Grounding metadata for one field in deep-search synthesized output."""
+
+    field: str
+    citations: List[DeepSearchOutputGroundingCitation]
+    confidence: DeepSearchOutputGroundingConfidence
 
 
 @dataclass
@@ -1273,7 +1286,7 @@ class DeepSearchOutput:
     """Deep-search synthesized output payload."""
 
     content: Union[str, dict[str, Any]]
-    citations: List[DeepSearchOutputCitation]
+    grounding: List[DeepSearchOutputGrounding]
 
 
 def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
@@ -1297,21 +1310,47 @@ def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
     else:
         content = ""
 
-    citations: List[DeepSearchOutputCitation] = []
-    raw_citations = raw.get("citations")
-    if isinstance(raw_citations, list):
-        for citation in raw_citations:
-            if not isinstance(citation, dict):
+    grounding: List[DeepSearchOutputGrounding] = []
+    raw_grounding = raw.get("grounding")
+    if isinstance(raw_grounding, list):
+        for grounding_row in raw_grounding:
+            if not isinstance(grounding_row, dict):
                 continue
-            url = citation.get("url")
-            title = citation.get("title")
-            if not isinstance(url, str):
+
+            field = grounding_row.get("field")
+            if not isinstance(field, str):
                 continue
-            citations.append(
-                DeepSearchOutputCitation(url=url, title=title if isinstance(title, str) else "")
+
+            citations: List[DeepSearchOutputGroundingCitation] = []
+            raw_citations = grounding_row.get("citations")
+            if isinstance(raw_citations, list):
+                for citation in raw_citations:
+                    if not isinstance(citation, dict):
+                        continue
+                    url = citation.get("url")
+                    title = citation.get("title")
+                    if not isinstance(url, str):
+                        continue
+                    citations.append(
+                        DeepSearchOutputGroundingCitation(
+                            url=url,
+                            title=title if isinstance(title, str) else "",
+                        )
+                    )
+
+            confidence = grounding_row.get("confidence")
+            if confidence not in ("low", "medium", "high"):
+                confidence = "medium"
+
+            grounding.append(
+                DeepSearchOutputGrounding(
+                    field=field,
+                    citations=citations,
+                    confidence=confidence,
+                )
             )
 
-    return DeepSearchOutput(content=content, citations=citations)
+    return DeepSearchOutput(content=content, grounding=grounding)
 
 
 def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
