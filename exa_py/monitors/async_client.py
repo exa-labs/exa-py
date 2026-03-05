@@ -58,6 +58,24 @@ class AsyncSearchMonitorRunsClient(SearchMonitorsAsyncBaseClient):
         )
         return SearchMonitorRun.model_validate(response)
 
+    async def list_all(self, monitor_id: str, *, limit: Optional[int] = None) -> AsyncIterator[SearchMonitorRun]:
+        """Iterate through all runs for a Search Monitor, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = await self.list(monitor_id, cursor=cursor, limit=limit)
+            for run in response.data:
+                yield run
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    async def get_all(self, monitor_id: str, *, limit: Optional[int] = None) -> List[SearchMonitorRun]:
+        """Collect all runs for a Search Monitor into a list."""
+        items = []
+        async for run in self.list_all(monitor_id, limit=limit):
+            items.append(run)
+        return items
+
 
 class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
     """Asynchronous client for managing Search Monitors."""

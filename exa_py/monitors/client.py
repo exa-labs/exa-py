@@ -58,6 +58,37 @@ class SearchMonitorRunsClient(SearchMonitorsBaseClient):
         )
         return SearchMonitorRun.model_validate(response)
 
+    def list_all(self, monitor_id: str, *, limit: Optional[int] = None) -> Iterator[SearchMonitorRun]:
+        """Iterate through all runs for a Search Monitor, handling pagination automatically.
+
+        Args:
+            monitor_id: The ID of the Search Monitor.
+            limit: Maximum number of results to return per page.
+
+        Yields:
+            SearchMonitorRun: Each run.
+        """
+        cursor = None
+        while True:
+            response = self.list(monitor_id, cursor=cursor, limit=limit)
+            for run in response.data:
+                yield run
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    def get_all(self, monitor_id: str, *, limit: Optional[int] = None) -> List[SearchMonitorRun]:
+        """Collect all runs for a Search Monitor into a list.
+
+        Args:
+            monitor_id: The ID of the Search Monitor.
+            limit: Maximum number of results to return per page.
+
+        Returns:
+            List of all Search Monitor runs.
+        """
+        return list(self.list_all(monitor_id, limit=limit))
+
 
 class SearchMonitorsClient(SearchMonitorsBaseClient):
     """Synchronous client for managing Search Monitors."""

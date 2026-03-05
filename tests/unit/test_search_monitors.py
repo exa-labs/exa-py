@@ -142,3 +142,51 @@ class TestAsyncSearchMonitorsListAll:
         results = asyncio.get_event_loop().run_until_complete(_run())
         assert isinstance(results, list)
         assert len(results) == 1
+
+
+def _make_run(id: str) -> dict:
+    return {
+        "id": id,
+        "monitorId": "sm_123",
+        "status": "completed",
+        "output": None,
+        "failReason": None,
+        "startedAt": "2026-01-01T00:00:00Z",
+        "completedAt": "2026-01-01T00:05:00Z",
+        "failedAt": None,
+        "cancelledAt": None,
+        "durationMs": 300000,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:05:00Z",
+    }
+
+
+class TestSearchMonitorRunsListAll:
+    def test_list_all_single_page(self, monitors_client, mock_client):
+        mock_client.request.return_value = {
+            "data": [_make_run("run_1"), _make_run("run_2")],
+            "hasMore": False,
+            "nextCursor": None,
+        }
+        results = list(monitors_client.runs.list_all("sm_123"))
+        assert len(results) == 2
+        assert results[0].id == "run_1"
+
+    def test_list_all_multiple_pages(self, monitors_client, mock_client):
+        mock_client.request.side_effect = [
+            {"data": [_make_run("run_1")], "hasMore": True, "nextCursor": "cursor_1"},
+            {"data": [_make_run("run_2")], "hasMore": False, "nextCursor": None},
+        ]
+        results = list(monitors_client.runs.list_all("sm_123"))
+        assert len(results) == 2
+        assert mock_client.request.call_count == 2
+
+    def test_get_all_returns_list(self, monitors_client, mock_client):
+        mock_client.request.return_value = {
+            "data": [_make_run("run_1")],
+            "hasMore": False,
+            "nextCursor": None,
+        }
+        results = monitors_client.runs.get_all("sm_123")
+        assert isinstance(results, list)
+        assert len(results) == 1
