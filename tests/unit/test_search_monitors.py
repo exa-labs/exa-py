@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from exa_py.monitors.client import SearchMonitorsClient, SearchMonitorRunsClient
 from exa_py.monitors.types import (
@@ -83,3 +83,62 @@ class TestSearchMonitorsListAll:
         results = monitors_client.get_all()
         assert isinstance(results, list)
         assert len(results) == 2
+
+
+import asyncio
+from exa_py.monitors.async_client import AsyncSearchMonitorsClient
+
+
+@pytest.fixture
+def async_mock_client():
+    client = MagicMock()
+    client.async_request = AsyncMock()
+    return client
+
+
+@pytest.fixture
+def async_monitors_client(async_mock_client):
+    return AsyncSearchMonitorsClient(async_mock_client)
+
+
+class TestAsyncSearchMonitorsListAll:
+    def test_list_all_single_page(self, async_monitors_client, async_mock_client):
+        async def _run():
+            async_mock_client.async_request.return_value = {
+                "data": [_make_monitor("sm_1"), _make_monitor("sm_2")],
+                "hasMore": False,
+                "nextCursor": None,
+            }
+            results = []
+            async for monitor in async_monitors_client.list_all():
+                results.append(monitor)
+            return results
+        results = asyncio.get_event_loop().run_until_complete(_run())
+        assert len(results) == 2
+        assert results[0].id == "sm_1"
+
+    def test_list_all_multiple_pages(self, async_monitors_client, async_mock_client):
+        async def _run():
+            async_mock_client.async_request.side_effect = [
+                {"data": [_make_monitor("sm_1")], "hasMore": True, "nextCursor": "cursor_1"},
+                {"data": [_make_monitor("sm_2")], "hasMore": False, "nextCursor": None},
+            ]
+            results = []
+            async for monitor in async_monitors_client.list_all():
+                results.append(monitor)
+            return results
+        results = asyncio.get_event_loop().run_until_complete(_run())
+        assert len(results) == 2
+        assert async_mock_client.async_request.call_count == 2
+
+    def test_get_all_returns_list(self, async_monitors_client, async_mock_client):
+        async def _run():
+            async_mock_client.async_request.return_value = {
+                "data": [_make_monitor("sm_1")],
+                "hasMore": False,
+                "nextCursor": None,
+            }
+            return await async_monitors_client.get_all()
+        results = asyncio.get_event_loop().run_until_complete(_run())
+        assert isinstance(results, list)
+        assert len(results) == 1
