@@ -190,3 +190,14 @@ class TestSearchMonitorRunsListAll:
         results = monitors_client.runs.get_all("sm_123")
         assert isinstance(results, list)
         assert len(results) == 1
+
+
+from exa_py.monitors.types import TriggerSearchMonitorResponse
+
+
+class TestTriggerResponse:
+    def test_trigger_returns_typed_response(self, monitors_client, mock_client):
+        mock_client.request.return_value = {"triggered": True}
+        result = monitors_client.trigger("sm_123")
+        assert isinstance(result, TriggerSearchMonitorResponse)
+        assert result.triggered is True

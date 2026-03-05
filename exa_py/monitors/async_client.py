@@ -13,6 +13,7 @@ from .types import (
     SearchMonitor,
     SearchMonitorRun,
     SearchMonitorStatus,
+    TriggerSearchMonitorResponse,
     UpdateSearchMonitorParams,
 )
 
@@ -184,15 +185,16 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
             items.append(monitor)
         return items
 
-    async def trigger(self, monitor_id: str) -> Dict[str, Any]:
+    async def trigger(self, monitor_id: str) -> TriggerSearchMonitorResponse:
         """Trigger a Search Monitor run immediately.
 
         Args:
             monitor_id: The ID of the Search Monitor.
 
         Returns:
-            Dict with 'triggered' boolean.
+            TriggerSearchMonitorResponse with 'triggered' boolean.
         """
-        return await self.request(
+        response = await self.request(
             f"/{monitor_id}/trigger", method="POST"
         )
+        return TriggerSearchMonitorResponse.model_validate(response)

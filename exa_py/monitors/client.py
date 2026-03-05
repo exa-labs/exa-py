@@ -13,6 +13,7 @@ from .types import (
     SearchMonitor,
     SearchMonitorRun,
     SearchMonitorStatus,
+    TriggerSearchMonitorResponse,
     UpdateSearchMonitorParams,
 )
 
@@ -208,13 +209,14 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
         """
         return list(self.list_all(status=status, limit=limit))
 
-    def trigger(self, monitor_id: str) -> Dict[str, Any]:
+    def trigger(self, monitor_id: str) -> TriggerSearchMonitorResponse:
         """Trigger a Search Monitor run immediately.
 
         Args:
             monitor_id: The ID of the Search Monitor.
 
         Returns:
-            Dict with 'triggered' boolean.
+            TriggerSearchMonitorResponse with 'triggered' boolean.
         """
-        return self.request(f"/{monitor_id}/trigger", method="POST")
+        response = self.request(f"/{monitor_id}/trigger", method="POST")
+        return TriggerSearchMonitorResponse.model_validate(response)
