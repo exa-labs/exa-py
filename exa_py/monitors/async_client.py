@@ -60,7 +60,15 @@ class AsyncSearchMonitorRunsClient(SearchMonitorsAsyncBaseClient):
         return SearchMonitorRun.model_validate(response)
 
     async def list_all(self, monitor_id: str, *, limit: Optional[int] = None) -> AsyncIterator[SearchMonitorRun]:
-        """Iterate through all runs for a Search Monitor, handling pagination automatically."""
+        """Iterate through all runs for a Search Monitor, handling pagination automatically.
+
+        Args:
+            monitor_id: The ID of the Search Monitor.
+            limit: Maximum number of results to return per page.
+
+        Yields:
+            SearchMonitorRun: Each run.
+        """
         cursor = None
         while True:
             response = await self.list(monitor_id, cursor=cursor, limit=limit)
@@ -71,7 +79,15 @@ class AsyncSearchMonitorRunsClient(SearchMonitorsAsyncBaseClient):
             cursor = response.next_cursor
 
     async def get_all(self, monitor_id: str, *, limit: Optional[int] = None) -> List[SearchMonitorRun]:
-        """Collect all runs for a Search Monitor into a list."""
+        """Collect all runs for a Search Monitor into a list.
+
+        Args:
+            monitor_id: The ID of the Search Monitor.
+            limit: Maximum number of results to return per page.
+
+        Returns:
+            List of all Search Monitor runs.
+        """
         items = []
         async for run in self.list_all(monitor_id, limit=limit):
             items.append(run)
@@ -168,7 +184,15 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
         return SearchMonitor.model_validate(response)
 
     async def list_all(self, *, status: Optional[SearchMonitorStatus] = None, limit: Optional[int] = None) -> AsyncIterator[SearchMonitor]:
-        """Iterate through all Search Monitors, handling pagination automatically."""
+        """Iterate through all Search Monitors, handling pagination automatically.
+
+        Args:
+            status: Filter by monitor status.
+            limit: Maximum number of results to return per page.
+
+        Yields:
+            SearchMonitor: Each monitor.
+        """
         cursor = None
         while True:
             response = await self.list(status=status, cursor=cursor, limit=limit)
@@ -179,7 +203,15 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
             cursor = response.next_cursor
 
     async def get_all(self, *, status: Optional[SearchMonitorStatus] = None, limit: Optional[int] = None) -> List[SearchMonitor]:
-        """Collect all Search Monitors into a list."""
+        """Collect all Search Monitors into a list.
+
+        Args:
+            status: Filter by monitor status.
+            limit: Maximum number of results to return per page.
+
+        Returns:
+            List of all Search Monitors.
+        """
         items = []
         async for monitor in self.list_all(status=status, limit=limit):
             items.append(monitor)
