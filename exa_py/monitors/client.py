@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 from .base import SearchMonitorsBaseClient
 from .types import (
@@ -101,7 +101,7 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
         self.runs = SearchMonitorRunsClient(client)
 
     def create(
-        self, params: CreateSearchMonitorParams
+        self, params: Union[Dict[str, Any], CreateSearchMonitorParams]
     ) -> CreateSearchMonitorResponse:
         """Create a Search Monitor.
 
@@ -111,7 +111,7 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
         Returns:
             The created Search Monitor with webhookSecret.
         """
-        data = params.model_dump(by_alias=True, exclude_none=True)
+        data = params if isinstance(params, dict) else params.model_dump(by_alias=True, exclude_none=True)
         response = self.request("", method="POST", data=data)
         return CreateSearchMonitorResponse.model_validate(response)
 
@@ -151,7 +151,7 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
         return ListSearchMonitorsResponse.model_validate(response)
 
     def update(
-        self, monitor_id: str, params: UpdateSearchMonitorParams
+        self, monitor_id: str, params: Union[Dict[str, Any], UpdateSearchMonitorParams]
     ) -> SearchMonitor:
         """Update a Search Monitor.
 
@@ -162,7 +162,7 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
         Returns:
             The updated Search Monitor.
         """
-        data = params.model_dump(by_alias=True, exclude_none=True)
+        data = params if isinstance(params, dict) else params.model_dump(by_alias=True, exclude_none=True)
         response = self.request(f"/{monitor_id}", method="PATCH", data=data)
         return SearchMonitor.model_validate(response)
 
