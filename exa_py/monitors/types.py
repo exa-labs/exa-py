@@ -18,10 +18,11 @@ SearchMonitorRunStatus = Literal[
 SearchMonitorRunFailReason = Literal[
     "api_key_invalid",
     "insufficient_credits",
-    "rate_limit_exceeded",
-    "internal_error",
-    "timeout",
+    "invalid_params",
+    "rate_limited",
+    "search_unavailable",
     "search_failed",
+    "internal_error",
 ]
 
 SearchMonitorWebhookEvent = Literal[
@@ -68,17 +69,15 @@ class SearchMonitorWebhook(BaseModel):
 
 class GroundingCitation(BaseModel):
     url: str
-    title: Optional[str] = None
-    start_index: Optional[int] = Field(default=None, alias="startIndex")
-    end_index: Optional[int] = Field(default=None, alias="endIndex")
+    title: str
 
     model_config = {"populate_by_name": True}
 
 
 class GroundingEntry(BaseModel):
-    url: str
-    title: Optional[str] = None
-    citations: Optional[List[GroundingCitation]] = None
+    field: str
+    citations: List[GroundingCitation]
+    confidence: Literal["low", "medium", "high"]
 
     model_config = {"populate_by_name": True}
 

@@ -178,7 +178,7 @@
     },
     "SearchMonitorRunFailReason": {
       "description": "Reason a Search Monitor run failed.",
-      "definition": "Literal['api_key_invalid', 'insufficient_credits', 'rate_limit_exceeded', 'internal_error', 'timeout', 'search_failed']"
+      "definition": "Literal['api_key_invalid', 'insufficient_credits', 'invalid_params', 'rate_limited', 'search_unavailable', 'search_failed', 'internal_error']"
     },
     "SearchMonitorWebhookEvent": {
       "description": "Webhook event types for Search Monitors.",
