@@ -325,7 +325,7 @@ SEARCH_OPTIONS_TYPES = {
     "additional_queries": [
         list
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning.
-    "system_prompt": [str],  # Deep-search-only synthesis instructions.
+    "system_prompt": [str],  # Deep-search-only instructions for search planning and final synthesis.
     "output_schema": [dict],  # Deep output schema: {"type":"text"} or {"type":"object", ...}
 }
 
@@ -1543,8 +1543,9 @@ class Exa:
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep' or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            system_prompt (str, optional): Deep-search-only synthesis instructions. Use this to
-                prefer certain sources, highlight disagreements, or constrain the response style.
+            system_prompt (str, optional): Deep-search-only instructions that guide both the
+                search process and the final returned result. Use this to prefer certain sources,
+                emphasize novelty, avoid duplicates, or constrain the response style.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
             output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
@@ -2580,8 +2581,9 @@ class AsyncExa(Exa):
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep' or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            system_prompt (str, optional): Deep-search-only synthesis instructions. Use this to
-                prefer certain sources, highlight disagreements, or constrain the response style.
+            system_prompt (str, optional): Deep-search-only instructions that guide both the
+                search process and the final returned result. Use this to prefer certain sources,
+                emphasize novelty, avoid duplicates, or constrain the response style.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
             output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or

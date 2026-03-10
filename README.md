@@ -78,7 +78,7 @@ Deep `output_schema` modes:
 - `{"type": "text", "description": "..."}`: return plain text in `output.content`
 - `{"type": "object", ...}`: return structured JSON in `output.content`
 
-Deep search also supports `system_prompt` for synthesis instructions such as preferred sources, tone, or conflict handling.
+Deep search also supports `system_prompt` to guide both the search process and the final returned result, for example by preferring certain sources, emphasizing novel findings, avoiding duplicates, or constraining output style.
 
 For `type: "object"`, deep search currently enforces:
 - max nesting depth: `2`
