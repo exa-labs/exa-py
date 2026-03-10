@@ -42,6 +42,7 @@ def sample_webset_data():
         "object": "webset",
         "status": "idle",
         "dashboardUrl": "https://websets.exa.ai/websets/ws_123",
+        "title": "Test Webset",
         "externalId": None,
         "searches": [],
         "enrichments": [],
