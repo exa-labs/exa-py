@@ -1537,7 +1537,7 @@ class WebsetItemCompanyPropertiesFields(ExaBaseModel):
     """
     The main location of the company
     """
-    employees: Optional[float] = None
+    employees: Optional[int] = None
     """
     The number of employees of the company
     """
