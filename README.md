@@ -61,6 +61,7 @@ results = exa.search(
 results = exa.search(
     "What are the latest battery breakthroughs?",
     type="deep",
+    system_prompt="Prefer official company and lab sources, and call out disagreements.",
     output_schema={
         "type": "object",
         "properties": {
@@ -76,6 +77,8 @@ print(results.output.content if results.output else None)
 Deep `output_schema` modes:
 - `{"type": "text", "description": "..."}`: return plain text in `output.content`
 - `{"type": "object", ...}`: return structured JSON in `output.content`
+
+Deep search also supports `system_prompt` for synthesis instructions such as preferred sources, tone, or conflict handling.
 
 For `type: "object"`, deep search currently enforces:
 - max nesting depth: `2`

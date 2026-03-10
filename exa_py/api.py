@@ -326,6 +326,7 @@ SEARCH_OPTIONS_TYPES = {
     "additional_queries": [
         list
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning/deep-max.
+    "system_prompt": [str],  # Deep-search-only synthesis instructions.
     "output_schema": [dict],  # Deep output schema: {"type":"text"} or {"type":"object", ...}
 }
 
@@ -1512,6 +1513,7 @@ class Exa:
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
+        system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
@@ -1542,6 +1544,9 @@ class Exa:
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
+            system_prompt (str, optional): Deep-search-only synthesis instructions. Use this to
+                prefer certain sources, highlight disagreements, or constrain the response style.
+                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
             output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
@@ -2545,6 +2550,7 @@ class AsyncExa(Exa):
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
+        system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
@@ -2575,6 +2581,9 @@ class AsyncExa(Exa):
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
+            system_prompt (str, optional): Deep-search-only synthesis instructions. Use this to
+                prefer certain sources, highlight disagreements, or constrain the response style.
+                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
             output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
