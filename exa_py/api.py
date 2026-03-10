@@ -263,11 +263,10 @@ SearchType = Literal[
     "fast",
     "deep",
     "deep-reasoning",
-    "deep-max",
     "neural",
     "instant",
 ]
-"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'deep-max' is the highest-effort deep search variant, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
+"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
 
 class DeepTextOutputSchema(TypedDict, total=False):
@@ -318,14 +317,14 @@ SEARCH_OPTIONS_TYPES = {
     ],  # Must not be present in webpage text. (One string, up to 5 words)
     "type": [
         SearchType
-    ],  # Search type: 'auto', 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant' (Default: auto)
+    ],  # Search type: 'auto', 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
     "additional_queries": [
         list
-    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning/deep-max.
+    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning.
     "system_prompt": [str],  # Deep-search-only synthesis instructions.
     "output_schema": [dict],  # Deep output schema: {"type":"text"} or {"type":"object", ...}
 }
@@ -1535,23 +1534,23 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep', 'deep-reasoning', or 'deep-max'.
+                'deep' or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             system_prompt (str, optional): Deep-search-only synthesis instructions. Use this to
                 prefer certain sources, highlight disagreements, or constrain the response style.
-                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
+                Only applicable when type is 'deep' or 'deep-reasoning'.
             output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
+                Only applicable when type is 'deep' or 'deep-reasoning'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2572,23 +2571,23 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep', 'deep-reasoning', or 'deep-max'.
+                'deep' or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             system_prompt (str, optional): Deep-search-only synthesis instructions. Use this to
                 prefer certain sources, highlight disagreements, or constrain the response style.
-                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
+                Only applicable when type is 'deep' or 'deep-reasoning'.
             output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep', 'deep-reasoning', or 'deep-max'.
+                Only applicable when type is 'deep' or 'deep-reasoning'.
 
         Returns:
             SearchResponse: The response containing search results, etc.

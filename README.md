@@ -61,7 +61,7 @@ results = exa.search(
 results = exa.search(
     "What are the latest battery breakthroughs?",
     type="deep",
-    system_prompt="Prefer official company and lab sources, and call out disagreements.",
+    system_prompt="Prefer official sources and avoid duplicate results",
     output_schema={
         "type": "object",
         "properties": {
@@ -87,7 +87,6 @@ For `type: "object"`, deep search currently enforces:
 Deep search variants:
 - `deep`: light mode
 - `deep-reasoning`: base reasoning mode
-- `deep-max`: max-effort mode
 
 ## Contents
 
