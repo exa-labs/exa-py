@@ -166,6 +166,113 @@ def test_search_accepts_deep_reasoning_params_offline():
         assert "answerText" not in options["outputSchema"]["properties"]
 
 
+def test_search_accepts_output_schema_for_auto_search_offline():
+    """Test non-deep search accepts output_schema params."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {"url": "http://example.com", "id": "1", "title": "Search Result"}
+        ],
+        "output": {
+            "content": {"answer_text": "Search synthesis"},
+            "grounding": [
+                {
+                    "field": "answer_text",
+                    "citations": [
+                        {"url": "http://example.com", "title": "Search Result"}
+                    ],
+                    "confidence": "high",
+                }
+            ],
+        },
+        "costDollars": {"total": 0.002},
+    }
+
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "answer_text": {"type": "string"},
+        },
+        "required": ["answer_text"],
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "machine learning",
+            type="auto",
+            output_schema=output_schema,
+            num_results=5,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.output is not None
+        assert resp.output.content == {"answer_text": "Search synthesis"}
+        assert len(resp.output.grounding) == 1
+        assert resp.output.grounding[0].field == "answer_text"
+        assert resp.output.grounding[0].confidence == "high"
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "auto"
+        assert "outputSchema" in options
+        assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
+        assert "answerText" not in options["outputSchema"]["properties"]
+
+
+def test_search_and_contents_accepts_output_schema_offline():
+    """Test deprecated search_and_contents preserves output_schema field names."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Search Result",
+                "text": "Sample text",
+            }
+        ],
+        "output": {
+            "content": {"answer_text": "Search synthesis"},
+            "grounding": [
+                {
+                    "field": "answer_text",
+                    "citations": [
+                        {"url": "http://example.com", "title": "Search Result"}
+                    ],
+                    "confidence": "high",
+                }
+            ],
+        },
+        "costDollars": {"total": 0.002},
+    }
+
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "answer_text": {"type": "string"},
+        },
+        "required": ["answer_text"],
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search_and_contents(
+            "machine learning",
+            type="auto",
+            output_schema=output_schema,
+            num_results=5,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.output is not None
+        assert resp.output.content == {"answer_text": "Search synthesis"}
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert "outputSchema" in options
+        assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
+        assert "answerText" not in options["outputSchema"]["properties"]
+
+
 def test_search_accepts_deep_system_prompt_offline():
     """Test deep search accepts system_prompt and forwards it as camelCase."""
     exa = Exa(API_KEY)
@@ -224,6 +331,55 @@ async def test_async_search_accepts_deepv3_params_offline():
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
         assert options["type"] == "deep-reasoning"
+        assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
+        assert "answerText" not in options["outputSchema"]["properties"]
+
+
+@pytest.mark.asyncio
+async def test_async_search_accepts_output_schema_for_auto_search_offline():
+    """Test async non-deep search accepts output_schema params."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
+        "output": {
+            "content": {"answer_text": "Async synthesis"},
+            "grounding": [
+                {
+                    "field": "answer_text",
+                    "citations": [
+                        {"url": "http://example.com", "title": "Async Result"}
+                    ],
+                    "confidence": "high",
+                }
+            ],
+        },
+        "costDollars": {"total": 0.001},
+    }
+
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "answer_text": {"type": "string"},
+        },
+        "required": ["answer_text"],
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_async_request:
+        resp = await ax.search(
+            "async query",
+            type="auto",
+            output_schema=output_schema,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.output is not None
+        assert resp.output.content == {"answer_text": "Async synthesis"}
+
+        call_args = mock_async_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "auto"
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
 
