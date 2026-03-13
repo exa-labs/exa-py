@@ -1561,7 +1561,8 @@ class Exa:
             # Basic search
             result = exa.search(
               "hottest AI startups",
-              num_results=2
+              num_results=2,
+              contents={"highlights": True}
             )
 
             # Deep search with query variations

@@ -9,14 +9,18 @@ if not EXA_API_KEY:
 exa = AsyncExa(EXA_API_KEY)
 
 async def main():
-    response = await exa.search_and_contents(
+    response = await exa.search(
         "top cryptocurrency prices today",
         num_results=1,
-        livecrawl="always"
+        contents={"text": True, "livecrawl": "always"},
     )
     print(response)
 
-    norm_response = await exa.search_and_contents("top cryptocurrency prices today", num_results=1)
+    norm_response = await exa.search(
+        "top cryptocurrency prices today",
+        num_results=1,
+        contents={"text": True},
+    )
     print(norm_response)
 
     # assert(response.results[0].text != norm_response.results[0].text)

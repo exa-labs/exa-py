@@ -8,13 +8,17 @@ if not EXA_API_KEY:
 
 exa = Exa(EXA_API_KEY)
 
-response = exa.search_and_contents("upcoming marvel movies release dates",
+response = exa.search("upcoming marvel movies release dates",
     num_results=1,
-    livecrawl="always"
+    contents={"text": True, "livecrawl": "always"}
 )
 print(response)
 
-norm_response = exa.search_and_contents("upcoming marvel movies release dates", num_results=1)
+norm_response = exa.search(
+    "upcoming marvel movies release dates",
+    num_results=1,
+    contents={"text": True},
+)
 print(norm_response)
 
 # assert(response.results[0].text != norm_response.results[0].text)

@@ -13,28 +13,18 @@ async def main():
         urls=["firecrawl.dev"],
         # subpage_target= // specific subpage targets if you have any
         subpages=2,
-        livecrawl="always"
+        livecrawl="always",
+        highlights=True,
     )
 
     print(response)
 
-    print("SEARCH AND CONTENTS SUBPAGES")
+    print("SEARCH SUBPAGES")
 
-    response = await exa.search_and_contents(
+    response = await exa.search(
         "canonical url of tesla motors",
-        subpages=2,
         num_results=1,
-    )
-
-    print(response)
-
-    print("FIND SIMILAR AND CONTENTS SUBPAGES")
-
-    response = await exa.find_similar_and_contents(
-        "tesla.com",
-        subpages=2,
-        text=True,
-        num_results=1,
+        contents={"subpages": 2, "highlights": True},
     )
 
     print(response)
