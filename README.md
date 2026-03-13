@@ -55,7 +55,6 @@ results = exa.search(
 results = exa.search(
     "What are the latest battery breakthroughs?",
     type="deep",
-    contents=False,
     system_prompt="Prefer official sources and avoid duplicate results",
     output_schema={
         "type": "object",

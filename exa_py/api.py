@@ -1569,7 +1569,6 @@ class Exa:
             deep_result = exa.search(
               "blog post about AI",
               type="deep",
-              contents=False,
               additional_queries=["AI blogpost", "machine learning blogs"],
               num_results=5
             )
