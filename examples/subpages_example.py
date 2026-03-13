@@ -12,7 +12,8 @@ response = exa.get_contents(
     urls=["firecrawl.dev"],
     # subpage_target= // specific subpage targets if you have any
     subpages=2,
-    livecrawl="always"
+    livecrawl="always",
+    highlights=True,
 )
 
 print(response)
@@ -24,17 +25,7 @@ response = exa.search_and_contents(
     "canonical url of tesla motors",
     subpages=2,
     num_results=1,
-)
-
-print(response)
-
-print("FIND SIMILAR AND CONTENTS SUBPAGES")
-
-response = exa.find_similar_and_contents(
-    "tesla.com",
-    subpages=2,
-    text=True,
-    num_results=1,
+    highlights=True,
 )
 
 print(response)
