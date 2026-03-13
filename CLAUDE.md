@@ -1,5 +1,12 @@
 # Claude Code Guidelines for exa-py
 
+## Version Bumping
+Every branch must bump all version references. Version is defined in 3 places:
+- `pyproject.toml` (2 occurrences: `[tool.poetry]` and `[project]`)
+- `setup.py`
+
+After bumping, run `uv lock` to sync `uv.lock`.
+
 ## SDK Documentation Auto-Generation
 
 This SDK uses auto-generated documentation from code. When making modifications, ensure the documentation stays up to date:

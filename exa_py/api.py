@@ -316,7 +316,8 @@ SEARCH_OPTIONS_TYPES = {
         list
     ],  # Must not be present in webpage text. (One string, up to 5 words)
     "type": [
-        SearchType
+        SearchType,
+        str,
     ],  # Search type: 'auto', 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
