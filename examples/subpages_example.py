@@ -19,13 +19,12 @@ response = exa.get_contents(
 print(response)
 
 
-print("SEARCH AND CONTENTS SUBPAGES")
+print("SEARCH SUBPAGES")
 
-response = exa.search_and_contents(
+response = exa.search(
     "canonical url of tesla motors",
-    subpages=2,
     num_results=1,
-    highlights=True,
+    contents={"subpages": 2, "highlights": True},
 )
 
 print(response)
