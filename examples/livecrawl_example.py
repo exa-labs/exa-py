@@ -14,7 +14,11 @@ response = exa.search("upcoming marvel movies release dates",
 )
 print(response)
 
-norm_response = exa.search("upcoming marvel movies release dates", num_results=1)
+norm_response = exa.search(
+    "upcoming marvel movies release dates",
+    num_results=1,
+    contents={"text": True},
+)
 print(norm_response)
 
 # assert(response.results[0].text != norm_response.results[0].text)

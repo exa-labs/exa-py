@@ -55,6 +55,7 @@ results = exa.search(
 results = exa.search(
     "What are the latest battery breakthroughs?",
     type="deep",
+    contents=False,
     system_prompt="Prefer official sources and avoid duplicate results",
     output_schema={
         "type": "object",
@@ -124,7 +125,7 @@ from exa_py import AsyncExa
 
 exa = AsyncExa(api_key="your-api-key")
 
-results = await exa.search("async search example")
+results = await exa.search("async search example", contents={"highlights": True})
 ```
 
 ## More

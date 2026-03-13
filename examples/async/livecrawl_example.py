@@ -16,7 +16,11 @@ async def main():
     )
     print(response)
 
-    norm_response = await exa.search("top cryptocurrency prices today", num_results=1)
+    norm_response = await exa.search(
+        "top cryptocurrency prices today",
+        num_results=1,
+        contents={"text": True},
+    )
     print(norm_response)
 
     # assert(response.results[0].text != norm_response.results[0].text)

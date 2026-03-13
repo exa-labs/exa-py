@@ -1561,13 +1561,15 @@ class Exa:
             # Basic search
             result = exa.search(
               "hottest AI startups",
-              num_results=2
+              num_results=2,
+              contents={"highlights": True}
             )
 
             # Deep search with query variations
             deep_result = exa.search(
               "blog post about AI",
               type="deep",
+              contents=False,
               additional_queries=["AI blogpost", "machine learning blogs"],
               num_results=5
             )

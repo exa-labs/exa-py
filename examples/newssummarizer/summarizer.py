@@ -28,7 +28,11 @@ print(search_query)
 one_week_ago = datetime.now() - timedelta(days=7)
 date_cutoff = one_week_ago.strftime("%Y-%m-%d")
 
-search_response = exa.search(search_query, start_published_date=date_cutoff)
+search_response = exa.search(
+    search_query,
+    start_published_date=date_cutoff,
+    contents={"text": True},
+)
 
 urls = [result.url for result in search_response.results]
 print("URLs:")
