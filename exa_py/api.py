@@ -1208,12 +1208,21 @@ T = TypeVar("T")
 
 
 @dataclass
+class ContentStatusError:
+    """Error details for a failed content retrieval."""
+
+    http_status_code: Optional[int] = None
+    tag: Optional[str] = None
+
+
+@dataclass
 class ContentStatus:
     """A class representing the status of a content retrieval operation."""
 
     id: str
     status: str
-    source: str
+    source: Optional[str] = None
+    error: Optional[ContentStatusError] = None
 
 
 @dataclass
@@ -1835,11 +1844,19 @@ class Exa:
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []
         for status in data.get("statuses", []):
+            error_data = status.get("error")
+            error = None
+            if error_data is not None:
+                error = ContentStatusError(
+                    http_status_code=error_data.get("httpStatusCode"),
+                    tag=error_data.get("tag"),
+                )
             statuses.append(
                 ContentStatus(
                     id=status.get("id"),
                     status=status.get("status"),
                     source=status.get("source"),
+                    error=error,
                 )
             )
         results = []
@@ -2807,11 +2824,19 @@ class AsyncExa(Exa):
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []
         for status in data.get("statuses", []):
+            error_data = status.get("error")
+            error = None
+            if error_data is not None:
+                error = ContentStatusError(
+                    http_status_code=error_data.get("httpStatusCode"),
+                    tag=error_data.get("tag"),
+                )
             statuses.append(
                 ContentStatus(
                     id=status.get("id"),
                     status=status.get("status"),
                     source=status.get("source"),
+                    error=error,
                 )
             )
         results = []
