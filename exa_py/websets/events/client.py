@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Iterator, AsyncIterator
 
 from ..types import (
     EventType,
@@ -127,6 +127,21 @@ class EventsClient(WebsetsBaseClient):
             
             raise ValueError(f"Unknown event type: {event_type}")
 
+    def list_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> Iterator[Event]:
+        """Iterate through all Events, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit, types=types)
+            for event in response.data:
+                yield event
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    def get_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> List[Event]:
+        """Collect all Events into a list."""
+        return list(self.list_all(limit=limit, types=types))
+
 
 class AsyncEventsClient(WebsetsAsyncBaseClient):
     """Async client for managing Events."""
@@ -207,3 +222,21 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
                     continue
             
             raise ValueError(f"Unknown event type: {event_type}")
+
+    async def list_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> AsyncIterator[Event]:
+        """Iterate through all Events, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit, types=types)
+            for event in response.data:
+                yield event
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    async def get_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None) -> List[Event]:
+        """Collect all Events into a list."""
+        events = []
+        async for event in self.list_all(limit=limit, types=types):
+            events.append(event)
+        return events
