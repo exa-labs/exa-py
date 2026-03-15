@@ -8,15 +8,15 @@ class TestSearchContentsOptions:
 
     TEST_QUERY = "invasive ant species California"
 
-    def test_defaults_to_text_contents_with_10k_max_characters(self, exa):
-        """Verify search() returns text contents with 10,000 max chars by default."""
+    def test_defaults_to_text_contents_with_20k_max_characters(self, exa):
+        """Verify search() returns text contents with 20,000 max chars by default."""
         response = exa.search(self.TEST_QUERY, num_results=2)
 
         assert len(response.results) > 0
         sample_result = response.results[0]
         assert sample_result.text is not None
         assert len(sample_result.text) > 1000
-        assert len(sample_result.text) <= 10_000
+        assert len(sample_result.text) <= 20_000
 
     def test_returns_no_contents_when_explicitly_false(self, exa):
         """Verify search() returns no contents when contents=False."""
@@ -104,7 +104,7 @@ class TestAsyncSearchContentsOptions:
         sample_result = response.results[0]
         assert sample_result.text is not None
         assert len(sample_result.text) > 1000
-        assert len(sample_result.text) <= 10_000
+        assert len(sample_result.text) <= 20_000
 
     async def test_async_returns_no_contents_when_false(self, async_exa):
         """Verify async search() returns no contents when contents=False."""
