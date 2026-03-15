@@ -269,29 +269,34 @@ SearchType = Literal[
 """Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
 
 
-class DeepTextOutputSchema(TypedDict, total=False):
-    """Deep search output schema for plain-text output."""
+class SearchTextOutputSchema(TypedDict, total=False):
+    """Search output schema for plain-text synthesized output."""
 
     type: Literal["text"]
     description: str
 
 
-class DeepObjectOutputSchema(TypedDict, total=False):
-    """Deep search output schema for structured JSON object output."""
+class SearchObjectOutputSchema(TypedDict, total=False):
+    """Search output schema for structured JSON object output."""
 
     type: Literal["object"]
     properties: Dict[str, Any]
     required: List[str]
 
 
-DeepOutputSchema = Union[DeepTextOutputSchema, DeepObjectOutputSchema]
-"""Deep search output schema.
+SearchOutputSchema = Union[SearchTextOutputSchema, SearchObjectOutputSchema]
+"""Search output schema.
 
 - ``{"type": "text", "description": ...}`` returns plain text in ``output.content``.
 - ``{"type": "object", ...}`` returns structured JSON in ``output.content``.
 
 For object schemas, the API enforces max nesting depth 2 and max 10 total properties.
 """
+
+# Backwards-compatible aliases for older deep-search naming.
+DeepTextOutputSchema = SearchTextOutputSchema
+DeepObjectOutputSchema = SearchObjectOutputSchema
+DeepOutputSchema = SearchOutputSchema
 
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
@@ -327,7 +332,7 @@ SEARCH_OPTIONS_TYPES = {
         list
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning.
     "system_prompt": [str],  # Deep-search-only instructions for search planning and final synthesis.
-    "output_schema": [dict],  # Deep output schema: {"type":"text"} or {"type":"object", ...}
+    "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1225,7 +1230,7 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        output (DeepSearchOutput, optional): Deep search synthesized output object containing content and field-level grounding.
+        output (SearchOutput, optional): Synthesized search output object containing content and field-level grounding.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1235,7 +1240,7 @@ class SearchResponse(Generic[T]):
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
     context: Optional[str] = None
-    output: Optional["DeepSearchOutput"] = None
+    output: Optional["SearchOutput"] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
     search_time: Optional[float] = None
@@ -1262,42 +1267,42 @@ class SearchResponse(Generic[T]):
 
 
 @dataclass
-class DeepSearchOutputGroundingCitation:
+class SearchOutputGroundingCitation:
     """Citation metadata for one grounded output field."""
 
     url: str
     title: str
 
 
-DeepSearchOutputGroundingConfidence = Literal["low", "medium", "high"]
+SearchOutputGroundingConfidence = Literal["low", "medium", "high"]
 """Confidence levels for a grounded output field."""
 
 
 @dataclass
-class DeepSearchOutputGrounding:
-    """Grounding metadata for one field in deep-search synthesized output."""
+class SearchOutputGrounding:
+    """Grounding metadata for one field in synthesized search output."""
 
     field: str
-    citations: List[DeepSearchOutputGroundingCitation]
-    confidence: DeepSearchOutputGroundingConfidence
+    citations: List[SearchOutputGroundingCitation]
+    confidence: SearchOutputGroundingConfidence
 
 
 @dataclass
-class DeepSearchOutput:
-    """Deep-search synthesized output payload."""
+class SearchOutput:
+    """Synthesized output payload returned from `/search` when `output_schema` is provided."""
 
     content: Union[str, dict[str, Any]]
-    grounding: List[DeepSearchOutputGrounding]
+    grounding: List[SearchOutputGrounding]
 
 
-def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
-    """Parse deep-search output into a typed object.
+def parse_search_output(raw: Any) -> Optional[SearchOutput]:
+    """Parse synthesized search output into a typed object.
 
     Args:
         raw: Raw `output` field from API response.
 
     Returns:
-        Parsed DeepSearchOutput when the payload is an object, otherwise None.
+        Parsed SearchOutput when the payload is an object, otherwise None.
     """
 
     if not isinstance(raw, dict):
@@ -1311,7 +1316,7 @@ def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
     else:
         content = ""
 
-    grounding: List[DeepSearchOutputGrounding] = []
+    grounding: List[SearchOutputGrounding] = []
     raw_grounding = raw.get("grounding")
     if isinstance(raw_grounding, list):
         for grounding_row in raw_grounding:
@@ -1322,7 +1327,7 @@ def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
             if not isinstance(field, str):
                 continue
 
-            citations: List[DeepSearchOutputGroundingCitation] = []
+            citations: List[SearchOutputGroundingCitation] = []
             raw_citations = grounding_row.get("citations")
             if isinstance(raw_citations, list):
                 for citation in raw_citations:
@@ -1333,7 +1338,7 @@ def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
                     if not isinstance(url, str):
                         continue
                     citations.append(
-                        DeepSearchOutputGroundingCitation(
+                        SearchOutputGroundingCitation(
                             url=url,
                             title=title if isinstance(title, str) else "",
                         )
@@ -1344,14 +1349,22 @@ def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
                 confidence = "medium"
 
             grounding.append(
-                DeepSearchOutputGrounding(
+                SearchOutputGrounding(
                     field=field,
                     citations=citations,
                     confidence=confidence,
                 )
             )
 
-    return DeepSearchOutput(content=content, grounding=grounding)
+    return SearchOutput(content=content, grounding=grounding)
+
+
+# Backwards-compatible aliases for older deep-search naming.
+DeepSearchOutputGroundingCitation = SearchOutputGroundingCitation
+DeepSearchOutputGroundingConfidence = SearchOutputGroundingConfidence
+DeepSearchOutputGrounding = SearchOutputGrounding
+DeepSearchOutput = SearchOutput
+parse_deep_search_output = parse_search_output
 
 
 def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
@@ -1514,7 +1527,7 @@ class Exa:
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
-        output_schema: Optional[DeepOutputSchema] = None,
+        output_schema: Optional[SearchOutputSchema] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1548,11 +1561,10 @@ class Exa:
                 search process and the final returned result. Use this to prefer certain sources,
                 emphasize novelty, avoid duplicates, or constrain the response style.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            output_schema (SearchOutputSchema, optional): Output schema for synthesized `/search` output across all search types.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -1571,6 +1583,17 @@ class Exa:
               type="deep",
               additional_queries=["AI blogpost", "machine learning blogs"],
               num_results=5
+            )
+
+            # Structured output is supported across all search types
+            structured_result = exa.search(
+              "recent battery breakthroughs",
+              type="auto",
+              output_schema={
+                  "type": "object",
+                  "properties": {"answer_text": {"type": "string"}},
+                  "required": ["answer_text"],
+              }
             )
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
@@ -1617,7 +1640,7 @@ class Exa:
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
             context=data.get("context"),
-            output=parse_deep_search_output(data.get("output")),
+            output=parse_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -1673,7 +1696,7 @@ class Exa:
             ],
             "contents",
         )
-        options = to_camel_case(options, skip_keys=["schema"])
+        options = to_camel_case(options, skip_keys=["schema", "output_schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -1703,7 +1726,7 @@ class Exa:
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            output=parse_deep_search_output(data.get("output")),
+            output=parse_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2553,7 +2576,7 @@ class AsyncExa(Exa):
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
-        output_schema: Optional[DeepOutputSchema] = None,
+        output_schema: Optional[SearchOutputSchema] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2587,11 +2610,10 @@ class AsyncExa(Exa):
                 search process and the final returned result. Use this to prefer certain sources,
                 emphasize novelty, avoid duplicates, or constrain the response style.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            output_schema (SearchOutputSchema, optional): Output schema for synthesized `/search` output across all search types.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2607,6 +2629,17 @@ class AsyncExa(Exa):
             ...     "climate change research",
             ...     include_domains=["nature.com", "science.org"],
             ...     start_published_date="2024-01-01"
+            ... )
+
+            Structured async output:
+            >>> results = await async_exa.search(
+            ...     "recent battery breakthroughs",
+            ...     type="auto",
+            ...     output_schema={
+            ...         "type": "object",
+            ...         "properties": {"answer_text": {"type": "string"}},
+            ...         "required": ["answer_text"],
+            ...     },
             ... )
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
@@ -2653,7 +2686,7 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            output=parse_deep_search_output(data.get("output")),
+            output=parse_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2709,7 +2742,7 @@ class AsyncExa(Exa):
             ],
             "contents",
         )
-        options = to_camel_case(options, skip_keys=["schema"])
+        options = to_camel_case(options, skip_keys=["schema", "output_schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -2739,6 +2772,7 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
+            output=parse_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )

@@ -54,27 +54,28 @@ results = exa.search(
 ```python
 results = exa.search(
     "What are the latest battery breakthroughs?",
-    type="deep",
-    system_prompt="Prefer official sources and avoid duplicate results",
+    type="auto",
     output_schema={
         "type": "object",
         "properties": {
-            "summary": {"type": "string"},
+            "answer_text": {"type": "string"},
             "key_companies": {"type": "array", "items": {"type": "string"}},
         },
-        "required": ["summary", "key_companies"],
+        "required": ["answer_text", "key_companies"],
     },
 )
 print(results.output.content if results.output else None)
 ```
 
-Deep `output_schema` modes:
+`output_schema` modes:
 - `{"type": "text", "description": "..."}`: return plain text in `output.content`
 - `{"type": "object", ...}`: return structured JSON in `output.content`
 
+All `/search` types support `output_schema`.
+
 Deep search also supports `system_prompt` to guide both the search process and the final returned result, for example by preferring certain sources, emphasizing novel findings, avoiding duplicates, or constraining output style.
 
-For `type: "object"`, deep search currently enforces:
+For `type: "object"`, `/search` currently enforces:
 - max nesting depth: `2`
 - max total properties: `10`
 
