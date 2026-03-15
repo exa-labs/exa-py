@@ -11,7 +11,15 @@ setup(
     package_data={"exa_py": ["py.typed"]},
     url="https://github.com/exa-labs/exa-py",
     packages=find_packages(),
-    install_requires=["requests", "typing-extensions", "openai>=1.10.0"],
+    install_requires=[
+        "requests>=2.32.3",
+        "typing-extensions>=4.12.2",
+        "openai>=1.48",
+        "pydantic>=2.10.6",
+        "httpx>=0.28.1",
+        "httpcore>=1.0.9",
+        "python-dotenv>=1.0.1",
+    ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
