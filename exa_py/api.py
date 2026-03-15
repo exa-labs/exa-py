@@ -42,6 +42,7 @@ from exa_py.utils import (
 )
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
+from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
 
 
@@ -1409,6 +1410,8 @@ class Exa:
         self.websets = WebsetsClient(self)
         # Research tasks client (new, mirrors Websets design)
         self.research = ResearchClient(self)
+        # Search Monitors client
+        self.monitors = SearchMonitorsClient(self)
 
     def request(
         self,
@@ -2456,6 +2459,8 @@ class AsyncExa(Exa):
         self.research = AsyncResearchClient(self)
         # Override the synchronous WebsetsClient with its async counterpart.
         self.websets = AsyncWebsetsClient(self)
+        # Override the synchronous SearchMonitorsClient with its async counterpart.
+        self.monitors = AsyncSearchMonitorsClient(self)
         self._client = None
 
     @property

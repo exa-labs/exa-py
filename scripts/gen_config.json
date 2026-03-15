@@ -167,6 +167,22 @@
     "ResearchDto": {
       "description": "Union of all research status types. The actual type depends on the task status.",
       "definition": "Union[ResearchPendingDto, ResearchRunningDto, ResearchCompletedDto, ResearchCanceledDto, ResearchFailedDto]"
+    },
+    "SearchMonitorStatus": {
+      "description": "Status of a Search Monitor.",
+      "definition": "Literal['active', 'paused', 'disabled']"
+    },
+    "SearchMonitorRunStatus": {
+      "description": "Status of a Search Monitor run.",
+      "definition": "Literal['pending', 'running', 'completed', 'failed', 'cancelled']"
+    },
+    "SearchMonitorRunFailReason": {
+      "description": "Reason a Search Monitor run failed.",
+      "definition": "Literal['api_key_invalid', 'insufficient_credits', 'invalid_params', 'rate_limited', 'search_unavailable', 'search_failed', 'internal_error']"
+    },
+    "SearchMonitorWebhookEvent": {
+      "description": "Webhook event types for Search Monitors.",
+      "definition": "Literal['monitor.created', 'monitor.updated', 'monitor.deleted', 'monitor.run.created', 'monitor.run.completed']"
     }
   },
   "exclude_type_aliases": ["LIVECRAWL_OPTIONS"],
