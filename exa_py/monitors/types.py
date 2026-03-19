@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -34,6 +34,89 @@ SearchMonitorWebhookEvent = Literal[
 ]
 
 
+# --- Contents types ---
+
+VERBOSITY_OPTION = Literal["compact", "standard", "full"]
+
+SECTION_TAG = Literal[
+    "unspecified", "header", "navigation", "banner",
+    "body", "sidebar", "footer", "metadata",
+]
+
+LIVECRAWL_OPTION = Literal["never", "always", "fallback", "auto", "preferred"]
+
+
+class SearchMonitorTextContents(BaseModel):
+    """Options for text extraction in monitor results."""
+
+    max_characters: Optional[int] = Field(default=None, alias="maxCharacters")
+    include_html_tags: Optional[bool] = Field(default=None, alias="includeHtmlTags")
+    verbosity: Optional[VERBOSITY_OPTION] = None
+    include_sections: Optional[List[SECTION_TAG]] = Field(
+        default=None, alias="includeSections"
+    )
+    exclude_sections: Optional[List[SECTION_TAG]] = Field(
+        default=None, alias="excludeSections"
+    )
+
+    model_config = {"populate_by_name": True}
+
+
+class SearchMonitorHighlightsContents(BaseModel):
+    """Options for highlights extraction in monitor results."""
+
+    query: Optional[str] = None
+    max_characters: Optional[int] = Field(default=None, alias="maxCharacters")
+    num_sentences: Optional[int] = Field(default=None, alias="numSentences")
+    highlights_per_url: Optional[int] = Field(default=None, alias="highlightsPerUrl")
+
+    model_config = {"populate_by_name": True}
+
+
+class SearchMonitorSummaryContents(BaseModel):
+    """Options for summary generation in monitor results."""
+
+    query: Optional[str] = None
+    schema_: Optional[Dict[str, Any]] = Field(default=None, alias="schema")
+
+    model_config = {"populate_by_name": True}
+
+
+class SearchMonitorExtrasContents(BaseModel):
+    """Options for additional data extraction in monitor results."""
+
+    links: Optional[int] = None
+    image_links: Optional[int] = Field(default=None, alias="imageLinks")
+
+    model_config = {"populate_by_name": True}
+
+
+class SearchMonitorContents(BaseModel):
+    """Options for retrieving page contents in monitor results.
+
+    Mirrors the main search ContentsOptions. Text, highlights, and summary
+    accept either True (for defaults) or an options object.
+    """
+
+    text: Optional[Union[bool, SearchMonitorTextContents]] = None
+    highlights: Optional[Union[bool, SearchMonitorHighlightsContents]] = None
+    summary: Optional[Union[bool, SearchMonitorSummaryContents]] = None
+    extras: Optional[SearchMonitorExtrasContents] = None
+    context: Optional[Union[bool, Dict[str, Any]]] = None
+    livecrawl: Optional[LIVECRAWL_OPTION] = None
+    livecrawl_timeout: Optional[int] = Field(default=None, alias="livecrawlTimeout")
+    max_age_hours: Optional[int] = Field(default=None, alias="maxAgeHours")
+    filter_empty_results: Optional[bool] = Field(
+        default=None, alias="filterEmptyResults"
+    )
+    subpages: Optional[int] = None
+    subpage_target: Optional[Union[str, List[str]]] = Field(
+        default=None, alias="subpageTarget"
+    )
+
+    model_config = {"populate_by_name": True}
+
+
 # --- Nested types ---
 
 
@@ -46,8 +129,7 @@ class SearchMonitorSearch(BaseModel):
     exclude_domains: Optional[List[str]] = Field(
         default=None, alias="excludeDomains"
     )
-    include_text: Optional[List[str]] = Field(default=None, alias="includeText")
-    exclude_text: Optional[List[str]] = Field(default=None, alias="excludeText")
+    contents: Optional[SearchMonitorContents] = None
 
     model_config = {"populate_by_name": True}
 
