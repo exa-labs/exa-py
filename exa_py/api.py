@@ -1214,6 +1214,7 @@ class ContentStatus:
     id: str
     status: str
     source: str
+    error: Optional[str] = None
 
 
 @dataclass
