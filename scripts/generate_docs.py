@@ -69,6 +69,7 @@ class DocGenerator:
 
         self.export_methods = self.config["export"]["methods"]
         self.export_research_methods = self.config["export"]["research_methods"]
+        self.export_monitors_methods = self.config["export"].get("monitors_methods", {})
         self.export_typeddicts = self.config["export"].get("typeddicts", [])
         # dataclasses list is now optional - if empty, we auto-discover all classes
         self.export_dataclasses = self.config["export"].get("dataclasses", [])
@@ -444,7 +445,18 @@ class DocGenerator:
                 # 1. Explicitly listed in typeddicts or dataclasses config
                 # 2. Auto-discovered (not client classes, not private unless explicitly listed)
                 is_explicitly_listed = class_name in self.export_typeddicts or class_name in self.export_dataclasses
-                is_client_class = class_name in (list(export_methods.keys()) + ["ResearchBaseClient", "AsyncExa", "AsyncResearchClient"])
+                is_client_class = class_name in (
+                    list(export_methods.keys())
+                    + [
+                        "ResearchBaseClient",
+                        "AsyncExa",
+                        "AsyncResearchClient",
+                        "SearchMonitorsBaseClient",
+                        "SearchMonitorsAsyncBaseClient",
+                        "AsyncSearchMonitorRunsClient",
+                        "AsyncSearchMonitorsClient",
+                    ]
+                )
 
                 if is_explicitly_listed or (not is_client_class and not class_name.startswith('_')):
                     parsed_class = self.parse_class_def(node, all_class_nodes)
@@ -504,6 +516,12 @@ exa = Exa()  # Reads EXA_API_KEY from environment
         if class_name == "ResearchClient":
             config_key = f"research.{method.name}"
             header_name = f"research.{display_name}"
+        elif class_name == "SearchMonitorsClient":
+            config_key = f"monitors.{method.name}"
+            header_name = f"monitors.{display_name}"
+        elif class_name == "SearchMonitorRunsClient":
+            config_key = f"monitors.runs.{method.name}"
+            header_name = f"monitors.runs.{display_name}"
         else:
             config_key = method.name
             header_name = display_name
@@ -529,6 +547,10 @@ exa = Exa()  # Reads EXA_API_KEY from environment
             # Fallback: generate basic example
             if class_name == "ResearchClient":
                 lines.append(f"result = exa.research.{method.name}(")
+            elif class_name == "SearchMonitorsClient":
+                lines.append(f"result = exa.monitors.{method.name}(")
+            elif class_name == "SearchMonitorRunsClient":
+                lines.append(f"result = exa.monitors.runs.{method.name}(")
             else:
                 lines.append(f"result = exa.{method.name}(")
 
@@ -702,15 +724,29 @@ exa = Exa()  # Reads EXA_API_KEY from environment
 
         return "\n".join(lines)
 
-    def generate_full_documentation(self, api_filepath: Path, research_filepath: Path, research_models_filepath: Path) -> str:
+    def generate_full_documentation(
+        self,
+        api_filepath: Path,
+        research_filepath: Path,
+        research_models_filepath: Path,
+        monitors_filepath: Path,
+        monitors_types_filepath: Path,
+    ) -> str:
         """Generate the full markdown documentation."""
         methods_by_class, classes, type_aliases = self.parse_sdk_file(api_filepath)
         research_methods, _, research_type_aliases = self.parse_sdk_file(research_filepath, self.export_research_methods)
+        monitors_methods, _, monitors_type_aliases = self.parse_sdk_file(
+            monitors_filepath, self.export_monitors_methods
+        )
         # Parse research models for Pydantic DTOs
         _, research_classes, research_model_aliases = self.parse_sdk_file(research_models_filepath)
+        _, monitor_classes, monitor_model_aliases = self.parse_sdk_file(monitors_types_filepath)
         classes.extend(research_classes)
+        classes.extend(monitor_classes)
         type_aliases.extend(research_type_aliases)
         type_aliases.extend(research_model_aliases)
+        type_aliases.extend(monitors_type_aliases)
+        type_aliases.extend(monitor_model_aliases)
 
         # Store parsed classes for lookup by generate_method_markdown
         for cls in classes:
@@ -738,6 +774,15 @@ exa = Exa()  # Reads EXA_API_KEY from environment
             for method in research_methods["ResearchClient"]:
                 lines.append(self.generate_method_markdown(method, "ResearchClient"))
 
+        # Search Monitors client methods
+        if "SearchMonitorsClient" in monitors_methods:
+            for method in monitors_methods["SearchMonitorsClient"]:
+                lines.append(self.generate_method_markdown(method, "SearchMonitorsClient"))
+
+        if "SearchMonitorRunsClient" in monitors_methods:
+            for method in monitors_methods["SearchMonitorRunsClient"]:
+                lines.append(self.generate_method_markdown(method, "SearchMonitorRunsClient"))
+
         # Types Reference section
         if classes or type_aliases:
             lines.append(self.generate_type_reference_section(classes, type_aliases))
@@ -752,6 +797,8 @@ def main():
     api_file = script_dir.parent / "exa_py" / "api.py"
     research_file = script_dir.parent / "exa_py" / "research" / "sync_client.py"
     research_models_file = script_dir.parent / "exa_py" / "research" / "models.py"
+    monitors_file = script_dir.parent / "exa_py" / "monitors" / "client.py"
+    monitors_types_file = script_dir.parent / "exa_py" / "monitors" / "types.py"
 
     if not config_file.exists():
         print(f"Error: Config file not found at {config_file}", file=sys.stderr)
@@ -769,8 +816,22 @@ def main():
         print(f"Error: Research models file not found at {research_models_file}", file=sys.stderr)
         sys.exit(1)
 
+    if not monitors_file.exists():
+        print(f"Error: Search Monitors client file not found at {monitors_file}", file=sys.stderr)
+        sys.exit(1)
+
+    if not monitors_types_file.exists():
+        print(f"Error: Search Monitors types file not found at {monitors_types_file}", file=sys.stderr)
+        sys.exit(1)
+
     generator = DocGenerator(config_file)
-    docs = generator.generate_full_documentation(api_file, research_file, research_models_file)
+    docs = generator.generate_full_documentation(
+        api_file,
+        research_file,
+        research_models_file,
+        monitors_file,
+        monitors_types_file,
+    )
     print(docs)
 
 
