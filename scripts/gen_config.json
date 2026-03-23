@@ -6,6 +6,10 @@
     "research_methods": {
       "ResearchClient": ["create", "get", "poll_until_finished", "list"]
     },
+    "monitors_methods": {
+      "SearchMonitorsClient": ["create", "get", "list", "update", "delete", "trigger"],
+      "SearchMonitorRunsClient": ["list", "get"]
+    },
     "typeddicts": [
       "TextContentsOptions",
       "SummaryContentsOptions",
@@ -131,6 +135,147 @@
       ],
       "hasMore": true,
       "nextCursor": "eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTE1VDE4OjMwOjAwWiIsImlkIjoidGFzay0yIn0="
+    },
+    "monitors.create": {
+      "id": "sm_1234567890",
+      "name": "AI startup funding monitor",
+      "status": "active",
+      "search": {
+        "query": "New AI startup funding rounds",
+        "numResults": 5,
+        "contents": {
+          "highlights": true
+        }
+      },
+      "trigger": {
+        "type": "cron",
+        "expression": "0 * * * *",
+        "timezone": "UTC"
+      },
+      "webhook": {
+        "url": "https://example.com/webhooks/search-monitors",
+        "events": ["monitor.run.completed"]
+      },
+      "nextRunAt": "2026-03-23T20:00:00Z",
+      "createdAt": "2026-03-23T19:00:00Z",
+      "updatedAt": "2026-03-23T19:00:00Z",
+      "webhookSecret": "whsec_example"
+    },
+    "monitors.get": {
+      "id": "sm_1234567890",
+      "name": "AI startup funding monitor",
+      "status": "active",
+      "search": {
+        "query": "New AI startup funding rounds",
+        "numResults": 5,
+        "contents": {
+          "highlights": true
+        }
+      },
+      "trigger": {
+        "type": "cron",
+        "expression": "0 * * * *",
+        "timezone": "UTC"
+      },
+      "webhook": {
+        "url": "https://example.com/webhooks/search-monitors",
+        "events": ["monitor.run.completed"]
+      },
+      "nextRunAt": "2026-03-23T20:00:00Z",
+      "createdAt": "2026-03-23T19:00:00Z",
+      "updatedAt": "2026-03-23T19:30:00Z"
+    },
+    "monitors.list": {
+      "data": [
+        {
+          "id": "sm_1234567890",
+          "name": "AI startup funding monitor",
+          "status": "active",
+          "search": {
+            "query": "New AI startup funding rounds"
+          },
+          "webhook": {
+            "url": "https://example.com/webhooks/search-monitors"
+          },
+          "createdAt": "2026-03-23T19:00:00Z",
+          "updatedAt": "2026-03-23T19:30:00Z"
+        }
+      ],
+      "hasMore": false,
+      "nextCursor": null
+    },
+    "monitors.update": {
+      "id": "sm_1234567890",
+      "name": "AI startup funding monitor",
+      "status": "paused",
+      "search": {
+        "query": "New AI startup funding rounds",
+        "numResults": 5
+      },
+      "webhook": {
+        "url": "https://example.com/webhooks/search-monitors",
+        "events": ["monitor.run.completed"]
+      },
+      "createdAt": "2026-03-23T19:00:00Z",
+      "updatedAt": "2026-03-23T20:15:00Z"
+    },
+    "monitors.delete": {
+      "id": "sm_1234567890",
+      "name": "AI startup funding monitor",
+      "status": "disabled",
+      "search": {
+        "query": "New AI startup funding rounds"
+      },
+      "webhook": {
+        "url": "https://example.com/webhooks/search-monitors"
+      },
+      "createdAt": "2026-03-23T19:00:00Z",
+      "updatedAt": "2026-03-23T20:20:00Z"
+    },
+    "monitors.trigger": {
+      "triggered": true
+    },
+    "monitors.runs.list": {
+      "data": [
+        {
+          "id": "run_1234567890",
+          "monitorId": "sm_1234567890",
+          "status": "completed",
+          "output": {
+            "results": [
+              {
+                "title": "Example result",
+                "url": "https://example.com/article"
+              }
+            ]
+          },
+          "startedAt": "2026-03-23T20:00:00Z",
+          "completedAt": "2026-03-23T20:00:03Z",
+          "durationMs": 3000,
+          "createdAt": "2026-03-23T20:00:00Z",
+          "updatedAt": "2026-03-23T20:00:03Z"
+        }
+      ],
+      "hasMore": false,
+      "nextCursor": null
+    },
+    "monitors.runs.get": {
+      "id": "run_1234567890",
+      "monitorId": "sm_1234567890",
+      "status": "completed",
+      "output": {
+        "results": [
+          {
+            "title": "Example result",
+            "url": "https://example.com/article"
+          }
+        ]
+      },
+      "startedAt": "2026-03-23T20:00:00Z",
+      "completedAt": "2026-03-23T20:00:03Z",
+      "durationMs": 3000,
+      "createdAt": "2026-03-23T20:00:00Z",
+      "updatedAt": "2026-03-23T20:00:03Z"
     }
   },
   "method_result_objects": {
@@ -142,7 +287,15 @@
     "research.create": "ResearchCompletedDto",
     "research.get": "ResearchCompletedDto",
     "research.poll_until_finished": "ResearchCompletedDto",
-    "research.list": "ListResearchResponseDto"
+    "research.list": "ListResearchResponseDto",
+    "monitors.create": "CreateSearchMonitorResponse",
+    "monitors.get": "SearchMonitor",
+    "monitors.list": "ListSearchMonitorsResponse",
+    "monitors.update": "SearchMonitor",
+    "monitors.delete": "SearchMonitor",
+    "monitors.trigger": "TriggerSearchMonitorResponse",
+    "monitors.runs.list": "ListSearchMonitorRunsResponse",
+    "monitors.runs.get": "SearchMonitorRun"
   },
   "external_type_links": {
     "BaseModel": "https://docs.pydantic.dev/latest/api/base_model/#BaseModel"
@@ -167,6 +320,22 @@
     "ResearchDto": {
       "description": "Union of all research status types. The actual type depends on the task status.",
       "definition": "Union[ResearchPendingDto, ResearchRunningDto, ResearchCompletedDto, ResearchCanceledDto, ResearchFailedDto]"
+    },
+    "SearchMonitorStatus": {
+      "description": "Status of a Search Monitor.",
+      "definition": "Literal['active', 'paused', 'disabled']"
+    },
+    "SearchMonitorRunStatus": {
+      "description": "Status of a Search Monitor run.",
+      "definition": "Literal['pending', 'running', 'completed', 'failed', 'cancelled']"
+    },
+    "SearchMonitorRunFailReason": {
+      "description": "Reason a Search Monitor run failed.",
+      "definition": "Literal['api_key_invalid', 'insufficient_credits', 'invalid_params', 'rate_limited', 'search_unavailable', 'search_failed', 'internal_error']"
+    },
+    "SearchMonitorWebhookEvent": {
+      "description": "Webhook event types for Search Monitors.",
+      "definition": "Literal['monitor.created', 'monitor.updated', 'monitor.deleted', 'monitor.run.created', 'monitor.run.completed']"
     }
   },
   "exclude_type_aliases": ["LIVECRAWL_OPTIONS"],
