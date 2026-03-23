@@ -12,6 +12,7 @@ response = exa.search("funny article about tech culture",
     num_results=5,
     include_domains=["nytimes.com", "wsj.com"],
     start_published_date="2023-06-12",
+    contents={"highlights": True},
 )
 
 print(response)

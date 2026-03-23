@@ -1261,6 +1261,14 @@ class Webset(ExaBaseModel):
     """
     The status of the webset
     """
+    dashboard_url: Annotated[str, Field(alias='dashboardUrl')]
+    """
+    The URL to view the webset in the Exa dashboard
+    """
+    title: Optional[str] = None
+    """
+    The title of the webset
+    """
     external_id: Annotated[Optional[str], Field(alias='externalId')] = None
     """
     The external identifier for the webset
@@ -1537,7 +1545,7 @@ class WebsetItemCompanyPropertiesFields(ExaBaseModel):
     """
     The main location of the company
     """
-    employees: Optional[float] = None
+    employees: Optional[int] = None
     """
     The number of employees of the company
     """

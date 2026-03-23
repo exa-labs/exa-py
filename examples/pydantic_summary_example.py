@@ -105,9 +105,9 @@ def extract_company_data():
     print("Example 1: Company Information Extraction")
     print("=" * 40)
 
-    response = exa.search_and_contents(
+    response = exa.search(
         "news articles about AI companies",
-        summary={"schema": CompanyInformation},
+        contents={"summary": {"schema": CompanyInformation}},
         category="company",
         num_results=10,
     )
@@ -145,9 +145,9 @@ def extract_research_papers():
     print("\n\nExample 2: Research Paper Analysis")
     print("=" * 40)
 
-    response = exa.search_and_contents(
+    response = exa.search(
         "transformer architecture attention mechanism research paper",
-        summary={"schema": ResearchPaper},
+        contents={"summary": {"schema": ResearchPaper}},
         category="research paper",
         num_results=10,
     )
@@ -192,9 +192,9 @@ def extract_product_info():
     print("\n\nExample 3: Product Information Extraction")
     print("=" * 40)
 
-    response = exa.search_and_contents(
+    response = exa.search(
         "mechanical keyboards",
-        summary={"schema": ProductInformation},
+        contents={"summary": {"schema": ProductInformation}},
         num_results=10,
     )
 
@@ -232,9 +232,9 @@ def extract_news_events():
     print("\n\nExample 4: News Event Extraction")
     print("=" * 40)
 
-    response = exa.search_and_contents(
+    response = exa.search(
         "recent AI breakthrough news 2024",
-        summary={"schema": NewsEvent},
+        contents={"summary": {"schema": NewsEvent}},
         category="news",
         num_results=10,
     )

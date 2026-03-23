@@ -166,24 +166,37 @@ def test_search_accepts_deep_reasoning_params_offline():
         assert "answerText" not in options["outputSchema"]["properties"]
 
 
-def test_search_accepts_deep_max_type_offline():
-    """Test deep search max variant is forwarded as-is."""
+def test_search_accepts_deep_system_prompt_offline():
+    """Test deep search accepts system_prompt and forwards it as camelCase."""
     exa = Exa(API_KEY)
     mock_response = {
-        "results": [{"url": "http://example.com", "id": "1", "title": "Deep Result"}],
-        "costDollars": {"total": 0.001},
+        "results": [
+            {"url": "http://example.com", "id": "1", "title": "Deep Search Result"}
+        ],
+        "costDollars": {"total": 0.002},
     }
 
     with patch.object(exa, "request", return_value=mock_response) as mock_request:
-        resp = exa.search("quick deep query", type="deep-max")
+        resp = exa.search(
+            "compare recent model launches",
+            type="deep-reasoning",
+            system_prompt="Prefer official sources and avoid duplicate results",
+        )
         assert isinstance(resp, exa_api.SearchResponse)
-        options = mock_request.call_args[0][1]
-        assert options["type"] == "deep-max"
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "deep-reasoning"
+        assert (
+            options["systemPrompt"]
+            == "Prefer official sources and avoid duplicate results"
+        )
 
 
 @pytest.mark.asyncio
 async def test_async_search_accepts_deepv3_params_offline():
-    """Test async deep-max search accepts output_schema params."""
+    """Test async deep-reasoning search accepts output_schema params."""
     ax = AsyncExa(API_KEY)
     mock_response = {
         "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
@@ -202,7 +215,7 @@ async def test_async_search_accepts_deepv3_params_offline():
     ) as mock_async_request:
         resp = await ax.search(
             "async deep query",
-            type="deep-max",
+            type="deep-reasoning",
             output_schema=output_schema,
         )
         assert isinstance(resp, exa_api.SearchResponse)
@@ -210,9 +223,38 @@ async def test_async_search_accepts_deepv3_params_offline():
         call_args = mock_async_request.call_args
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
-        assert options["type"] == "deep-max"
+        assert options["type"] == "deep-reasoning"
         assert options["outputSchema"]["properties"]["answer_text"]["type"] == "string"
         assert "answerText" not in options["outputSchema"]["properties"]
+
+
+@pytest.mark.asyncio
+async def test_async_search_accepts_deep_system_prompt_offline():
+    """Test async deep search accepts system_prompt and forwards it as camelCase."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_async_request:
+        resp = await ax.search(
+            "async deep query",
+            type="deep",
+            system_prompt="Prefer official sources and avoid duplicate results",
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+
+        call_args = mock_async_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "deep"
+        assert (
+            options["systemPrompt"]
+            == "Prefer official sources and avoid duplicate results"
+        )
 
 
 @pytest.mark.asyncio
