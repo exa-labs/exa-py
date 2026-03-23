@@ -139,7 +139,7 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
                 {
                     "name": "AI startup funding monitor",
                     "search": {
-                        "query": "site:techcrunch.com AI startup funding round",
+                        "query": "New AI startup funding rounds",
                         "numResults": 5,
                     },
                     "trigger": {

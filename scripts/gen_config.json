@@ -141,7 +141,7 @@
       "name": "AI startup funding monitor",
       "status": "active",
       "search": {
-        "query": "site:techcrunch.com AI startup funding round",
+        "query": "New AI startup funding rounds",
         "numResults": 5,
         "contents": {
           "highlights": true
@@ -166,7 +166,7 @@
       "name": "AI startup funding monitor",
       "status": "active",
       "search": {
-        "query": "site:techcrunch.com AI startup funding round",
+        "query": "New AI startup funding rounds",
         "numResults": 5,
         "contents": {
           "highlights": true
@@ -192,7 +192,7 @@
           "name": "AI startup funding monitor",
           "status": "active",
           "search": {
-            "query": "site:techcrunch.com AI startup funding round"
+            "query": "New AI startup funding rounds"
           },
           "webhook": {
             "url": "https://example.com/webhooks/search-monitors"
@@ -209,7 +209,7 @@
       "name": "AI startup funding monitor",
       "status": "paused",
       "search": {
-        "query": "site:techcrunch.com AI startup funding round",
+        "query": "New AI startup funding rounds",
         "numResults": 5
       },
       "webhook": {
@@ -224,7 +224,7 @@
       "name": "AI startup funding monitor",
       "status": "disabled",
       "search": {
-        "query": "site:techcrunch.com AI startup funding round"
+        "query": "New AI startup funding rounds"
       },
       "webhook": {
         "url": "https://example.com/webhooks/search-monitors"

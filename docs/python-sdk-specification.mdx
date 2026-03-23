@@ -622,7 +622,7 @@ monitor = exa.monitors.create(
     {
         "name": "AI startup funding monitor",
         "search": {
-            "query": "site:techcrunch.com AI startup funding round",
+            "query": "New AI startup funding rounds",
             "numResults": 5,
         },
         "trigger": {
@@ -654,7 +654,7 @@ print(monitor.id)
   "name": "AI startup funding monitor",
   "status": "active",
   "search": {
-    "query": "site:techcrunch.com AI startup funding round",
+    "query": "New AI startup funding rounds",
     "numResults": 5,
     "contents": {
       "highlights": true
@@ -725,7 +725,7 @@ print(monitor.status)
   "name": "AI startup funding monitor",
   "status": "active",
   "search": {
-    "query": "site:techcrunch.com AI startup funding round",
+    "query": "New AI startup funding rounds",
     "numResults": 5,
     "contents": {
       "highlights": true
@@ -798,7 +798,7 @@ print([monitor.name for monitor in monitors.data])
       "name": "AI startup funding monitor",
       "status": "active",
       "search": {
-        "query": "site:techcrunch.com AI startup funding round"
+        "query": "New AI startup funding rounds"
       },
       "webhook": {
         "url": "https://example.com/webhooks/search-monitors"
@@ -858,7 +858,7 @@ print(monitor.updated_at)
   "name": "AI startup funding monitor",
   "status": "paused",
   "search": {
-    "query": "site:techcrunch.com AI startup funding round",
+    "query": "New AI startup funding rounds",
     "numResults": 5
   },
   "webhook": {
@@ -918,7 +918,7 @@ print(deleted_monitor.status)
   "name": "AI startup funding monitor",
   "status": "disabled",
   "search": {
-    "query": "site:techcrunch.com AI startup funding round"
+    "query": "New AI startup funding rounds"
   },
   "webhook": {
     "url": "https://example.com/webhooks/search-monitors"
