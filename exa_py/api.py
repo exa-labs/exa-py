@@ -2531,6 +2531,16 @@ class AsyncExa(Exa):
                 res = await self.client.post(
                     self.base_url + endpoint, json=data, headers=request_headers
                 )
+        elif method.upper() == "PATCH":
+            res = await self.client.patch(
+                self.base_url + endpoint, json=data, headers=request_headers
+            )
+        elif method.upper() == "DELETE":
+            res = await self.client.delete(
+                self.base_url + endpoint, headers=request_headers
+            )
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
         if res.status_code != 200 and res.status_code != 201:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"

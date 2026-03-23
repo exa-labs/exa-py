@@ -269,6 +269,38 @@ async def test_async_request_accepts_201():
     assert data == {"ok": True}
 
 
+@pytest.mark.asyncio
+async def test_async_request_supports_patch():
+    ax = AsyncExa(API_KEY)
+
+    async def _fake_patch(url, json, headers):
+        return httpx.Response(200, json={"updated": True})
+
+    with patch.object(ax.client, "patch", new=AsyncMock(side_effect=_fake_patch)):
+        data = await ax.async_request("/dummy", {"name": "updated"}, method="PATCH")
+    assert data == {"updated": True}
+
+
+@pytest.mark.asyncio
+async def test_async_request_supports_delete():
+    ax = AsyncExa(API_KEY)
+
+    async def _fake_delete(url, headers):
+        return httpx.Response(200, json={"deleted": True})
+
+    with patch.object(ax.client, "delete", new=AsyncMock(side_effect=_fake_delete)):
+        data = await ax.async_request("/dummy", method="DELETE")
+    assert data == {"deleted": True}
+
+
+@pytest.mark.asyncio
+async def test_async_request_rejects_unsupported_method():
+    ax = AsyncExa(API_KEY)
+
+    with pytest.raises(ValueError, match="Unsupported HTTP method: PUT"):
+        await ax.async_request("/dummy", method="PUT")
+
+
 def test_result_with_highlights_parsing_offline():
     """Test that Result properly parses highlights and highlight_scores."""
     result = exa_api.Result(
