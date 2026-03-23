@@ -613,9 +613,31 @@ Create a Search Monitor.
 ### Input Example
 
 ```python
-result = exa.monitors.create(
-    params="example"
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+monitor = exa.monitors.create(
+    {
+        "name": "AI startup funding monitor",
+        "search": {
+            "query": "site:techcrunch.com AI startup funding round",
+            "numResults": 5,
+        },
+        "trigger": {
+            "type": "cron",
+            "expression": "0 * * * *",
+            "timezone": "UTC",
+        },
+        "webhook": {
+            "url": "https://example.com/webhooks/search-monitors",
+            "events": ["monitor.run.completed"],
+        },
+    }
 )
+
+print(monitor.id)
 ```
 
 ### Input Parameters
@@ -680,9 +702,13 @@ Get a Search Monitor by ID.
 ### Input Example
 
 ```python
-result = exa.monitors.get(
-    monitor_id="example"
-)
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+monitor = exa.monitors.get("sm_123")
+print(monitor.status)
 ```
 
 ### Input Parameters
@@ -745,8 +771,13 @@ List Search Monitors.
 ### Input Example
 
 ```python
-result = exa.monitors.list(
-)
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+monitors = exa.monitors.list(status="active", limit=20)
+print([monitor.name for monitor in monitors.data])
 ```
 
 ### Input Parameters
@@ -796,10 +827,20 @@ Update a Search Monitor.
 ### Input Example
 
 ```python
-result = exa.monitors.update(
-    monitor_id="example",
-    params="example"
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+monitor = exa.monitors.update(
+    "sm_123",
+    {
+        "status": "paused",
+        "name": "Paused funding monitor",
+    },
 )
+
+print(monitor.updated_at)
 ```
 
 ### Input Parameters
@@ -854,9 +895,13 @@ Delete a Search Monitor.
 ### Input Example
 
 ```python
-result = exa.monitors.delete(
-    monitor_id="example"
-)
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+deleted_monitor = exa.monitors.delete("sm_123")
+print(deleted_monitor.status)
 ```
 
 ### Input Parameters
@@ -906,9 +951,13 @@ Trigger a Search Monitor run immediately.
 ### Input Example
 
 ```python
-result = exa.monitors.trigger(
-    monitor_id="example"
-)
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+response = exa.monitors.trigger("sm_123")
+print(response.triggered)
 ```
 
 ### Input Parameters
@@ -938,9 +987,13 @@ List all runs for a Search Monitor.
 ### Input Example
 
 ```python
-result = exa.monitors.runs.list(
-    monitor_id="example"
-)
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+runs = exa.monitors.runs.list("sm_123", limit=10)
+print(runs.data[0].status if runs.data else "no runs yet")
 ```
 
 ### Input Parameters
@@ -995,10 +1048,13 @@ Get a specific Search Monitor run.
 ### Input Example
 
 ```python
-result = exa.monitors.runs.get(
-    monitor_id="example",
-    run_id="example"
-)
+from exa_py import Exa
+import os
+
+exa = Exa(os.environ["EXA_API_KEY"])
+
+run = exa.monitors.runs.get("sm_123", "run_456")
+print(run.status)
 ```
 
 ### Input Parameters

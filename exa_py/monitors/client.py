@@ -37,6 +37,15 @@ class SearchMonitorRunsClient(SearchMonitorsBaseClient):
 
         Returns:
             List of Search Monitor runs with pagination info.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            runs = exa.monitors.runs.list("sm_123", limit=10)
+            print(runs.data[0].status if runs.data else "no runs yet")
         """
         params = self.build_pagination_params(cursor, limit)
         response = self.request(
@@ -53,6 +62,15 @@ class SearchMonitorRunsClient(SearchMonitorsBaseClient):
 
         Returns:
             The Search Monitor run.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            run = exa.monitors.runs.get("sm_123", "run_456")
+            print(run.status)
         """
         response = self.request(
             f"/{monitor_id}/runs/{run_id}", method="GET"
@@ -110,6 +128,33 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
 
         Returns:
             The created Search Monitor with webhookSecret.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            monitor = exa.monitors.create(
+                {
+                    "name": "AI startup funding monitor",
+                    "search": {
+                        "query": "site:techcrunch.com AI startup funding round",
+                        "numResults": 5,
+                    },
+                    "trigger": {
+                        "type": "cron",
+                        "expression": "0 * * * *",
+                        "timezone": "UTC",
+                    },
+                    "webhook": {
+                        "url": "https://example.com/webhooks/search-monitors",
+                        "events": ["monitor.run.completed"],
+                    },
+                }
+            )
+
+            print(monitor.id)
         """
         data = params if isinstance(params, dict) else params.model_dump(by_alias=True, exclude_none=True)
         response = self.request("", method="POST", data=data)
@@ -123,6 +168,15 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
 
         Returns:
             The Search Monitor.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            monitor = exa.monitors.get("sm_123")
+            print(monitor.status)
         """
         response = self.request(f"/{monitor_id}", method="GET")
         return SearchMonitor.model_validate(response)
@@ -143,6 +197,15 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
 
         Returns:
             List of Search Monitors with pagination info.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            monitors = exa.monitors.list(status="active", limit=20)
+            print([monitor.name for monitor in monitors.data])
         """
         params = self.build_pagination_params(cursor, limit)
         if status is not None:
@@ -161,6 +224,22 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
 
         Returns:
             The updated Search Monitor.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            monitor = exa.monitors.update(
+                "sm_123",
+                {
+                    "status": "paused",
+                    "name": "Paused funding monitor",
+                },
+            )
+
+            print(monitor.updated_at)
         """
         data = params if isinstance(params, dict) else params.model_dump(by_alias=True, exclude_none=True)
         response = self.request(f"/{monitor_id}", method="PATCH", data=data)
@@ -174,6 +253,15 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
 
         Returns:
             The deleted Search Monitor.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            deleted_monitor = exa.monitors.delete("sm_123")
+            print(deleted_monitor.status)
         """
         response = self.request(f"/{monitor_id}", method="DELETE")
         return SearchMonitor.model_validate(response)
@@ -217,6 +305,15 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
 
         Returns:
             TriggerSearchMonitorResponse with 'triggered' boolean.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+
+            response = exa.monitors.trigger("sm_123")
+            print(response.triggered)
         """
         response = self.request(f"/{monitor_id}/trigger", method="POST")
         return TriggerSearchMonitorResponse.model_validate(response)
