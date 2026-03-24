@@ -251,7 +251,6 @@ Category = Literal[
     "research paper",
     "news",
     "pdf",
-    "tweet",
     "personal site",
     "financial report",
     "people",
