@@ -208,7 +208,7 @@ wheels = [
 
 [[package]]
 name = "exa-py"
-version = "2.10.1"
+version = "2.10.2"
 source = { editable = "." }
 dependencies = [
     { name = "httpcore" },
