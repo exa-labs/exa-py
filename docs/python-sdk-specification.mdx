@@ -626,9 +626,8 @@ monitor = exa.monitors.create(
             "numResults": 5,
         },
         "trigger": {
-            "type": "cron",
-            "expression": "0 * * * *",
-            "timezone": "UTC",
+            "type": "interval",
+            "period": "1h",
         },
         "webhook": {
             "url": "https://example.com/webhooks/search-monitors",
@@ -661,9 +660,8 @@ print(monitor.id)
     }
   },
   "trigger": {
-    "type": "cron",
-    "expression": "0 * * * *",
-    "timezone": "UTC"
+    "type": "interval",
+    "period": "1h"
   },
   "webhook": {
     "url": "https://example.com/webhooks/search-monitors",
@@ -732,9 +730,8 @@ print(monitor.status)
     }
   },
   "trigger": {
-    "type": "cron",
-    "expression": "0 * * * *",
-    "timezone": "UTC"
+    "type": "interval",
+    "period": "1h"
   },
   "webhook": {
     "url": "https://example.com/webhooks/search-monitors",
@@ -1792,9 +1789,8 @@ accept either True (for defaults) or an options object.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| type | Literal['cron'] | - |
-| expression | str | - |
-| timezone | Optional[str] | - |
+| type | Literal['interval'] | - |
+| period | str | - |
 
 #### `SearchMonitorWebhook`
 
@@ -1935,7 +1931,7 @@ Input type for JSON schema parameters. Can be either a Pydantic model class (aut
 
 Data category to focus on when searching. Each category returns results specialized for that content type.
 
-**Type:** Literal['company', 'research paper', 'news', 'pdf', 'tweet', 'personal site', 'financial report', 'people']
+**Type:** Literal['company', 'research paper', 'news', 'pdf', 'personal site', 'financial report', 'people']
 
 #### `SearchType`
 

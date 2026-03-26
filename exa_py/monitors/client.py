@@ -143,9 +143,8 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
                         "numResults": 5,
                     },
                     "trigger": {
-                        "type": "cron",
-                        "expression": "0 * * * *",
-                        "timezone": "UTC",
+                        "type": "interval",
+                        "period": "1h",
                     },
                     "webhook": {
                         "url": "https://example.com/webhooks/search-monitors",
