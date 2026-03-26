@@ -26,7 +26,7 @@ def _make_monitor(id: str) -> dict:
         "name": f"Monitor {id}",
         "status": "active",
         "search": {"query": "test"},
-        "trigger": {"type": "cron", "expression": "0 9 * * *", "timezone": "Etc/UTC"},
+        "trigger": {"type": "interval", "period": "1d"},
         "outputSchema": None,
         "metadata": None,
         "webhook": {"url": "https://example.com/hook"},

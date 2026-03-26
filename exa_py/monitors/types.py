@@ -135,9 +135,8 @@ class SearchMonitorSearch(BaseModel):
 
 
 class SearchMonitorTrigger(BaseModel):
-    type: Literal["cron"]
-    expression: str
-    timezone: Optional[str] = None
+    type: Literal["interval"]
+    period: str
 
     model_config = {"populate_by_name": True}
 
