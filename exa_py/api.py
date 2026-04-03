@@ -44,6 +44,7 @@ from exa_py.utils import (
 )
 from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
+from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
 
 
@@ -252,7 +253,6 @@ Category = Literal[
     "research paper",
     "news",
     "pdf",
-    "tweet",
     "personal site",
     "financial report",
     "people",
@@ -1507,6 +1507,8 @@ class Exa:
         self.websets = WebsetsClient(self)
         # Research tasks client (new, mirrors Websets design)
         self.research = ResearchClient(self)
+        # Search Monitors client
+        self.monitors = SearchMonitorsClient(self)
 
     def request(
         self,
@@ -2467,6 +2469,8 @@ class AsyncExa(Exa):
         self.research = AsyncResearchClient(self)
         # Override the synchronous WebsetsClient with its async counterpart.
         self.websets = AsyncWebsetsClient(self)
+        # Override the synchronous SearchMonitorsClient with its async counterpart.
+        self.monitors = AsyncSearchMonitorsClient(self)
         self._client = None
 
     @property
@@ -2537,6 +2541,16 @@ class AsyncExa(Exa):
                 res = await self.client.post(
                     self.base_url + endpoint, json=data, headers=request_headers
                 )
+        elif method.upper() == "PATCH":
+            res = await self.client.patch(
+                self.base_url + endpoint, json=data, headers=request_headers
+            )
+        elif method.upper() == "DELETE":
+            res = await self.client.delete(
+                self.base_url + endpoint, headers=request_headers
+            )
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
         if res.status_code != 200 and res.status_code != 201:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
