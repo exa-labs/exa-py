@@ -151,34 +151,33 @@ def compare_technologies():
         model="exa",
     )
 
-    # Check if we got structured output
-    if isinstance(response.answer, str):
+    comparison = response.parsed_output
+    if comparison is None:
         print("ERROR: Expected structured output but received plain text:")
         print(f"'{response.answer}'")
         return
 
-    comparison = response.answer
-    print("Title:", comparison["title"])
+    print("Title:", comparison.title)
     print("\nExecutive Summary:")
-    print(comparison["executive_summary"])
+    print(comparison.executive_summary)
 
-    print("\nItems Compared:", ", ".join(comparison["items_compared"]))
+    print("\nItems Compared:", ", ".join(comparison.items_compared))
 
     print("\nKey Differences:")
-    for diff in comparison["key_differences"]:
+    for diff in comparison.key_differences:
         print(f"  • {diff}")
 
-    if comparison.get("similarities"):
+    if comparison.similarities:
         print("\nSimilarities:")
-        for sim in comparison["similarities"]:
+        for sim in comparison.similarities:
             print(f"  • {sim}")
 
-    if comparison.get("winner"):
-        print(f"\nRecommended Choice: {comparison['winner']}")
-        print(f"Reasoning: {comparison['reasoning']}")
+    if comparison.winner:
+        print(f"\nRecommended Choice: {comparison.winner}")
+        print(f"Reasoning: {comparison.reasoning}")
 
     print("\nFinal Recommendation:")
-    print(comparison["recommendation"])
+    print(comparison.recommendation)
 
     print(f"\nSources: {len(response.citations)} citations")
 
@@ -194,28 +193,27 @@ def explain_technical_concept():
         model="exa",
     )
 
-    # Check if we got structured output
-    if isinstance(response.answer, str):
+    explanation = response.parsed_output
+    if explanation is None:
         print("ERROR: Expected structured output but received plain text:")
         print(f"'{response.answer}'")
         return
 
-    explanation = response.answer
-    print("Topic:", explanation["topic"])
+    print("Topic:", explanation.topic)
 
     print("\nSimple Explanation:")
-    print(explanation["simple_explanation"])
+    print(explanation.simple_explanation)
 
     print("\nTechnical Details:")
-    print(explanation["technical_details"])
+    print(explanation.technical_details)
 
     print("\nKey Concepts:")
-    for concept in explanation["key_concepts"]:
+    for concept in explanation.key_concepts:
         print(f"  • {concept}")
 
-    if explanation.get("real_world_applications"):
+    if explanation.real_world_applications:
         print("\nReal-World Applications:")
-        for app in explanation["real_world_applications"]:
+        for app in explanation.real_world_applications:
             print(f"  • {app}")
 
 
@@ -230,38 +228,37 @@ def research_market():
         model="exa",
     )
 
-    # Check if we got structured output
-    if isinstance(response.answer, str):
+    research = response.parsed_output
+    if research is None:
         print("ERROR: Expected structured output but received plain text:")
         print(f"'{response.answer}'")
         return
 
-    research = response.answer
-    print("Market:", research["market_name"])
+    print("Market:", research.market_name)
 
-    if research.get("market_size"):
-        print("Size:", research["market_size"])
-    if research.get("growth_rate"):
-        print("Growth Rate:", research["growth_rate"])
+    if research.market_size:
+        print("Size:", research.market_size)
+    if research.growth_rate:
+        print("Growth Rate:", research.growth_rate)
 
     print("\nKey Players:")
-    for player in research["key_players"]:
+    for player in research.key_players:
         print(f"  • {player}")
 
     print("\nMarket Trends:")
-    for trend in research["market_trends"]:
+    for trend in research.market_trends:
         print(f"  • {trend}")
 
     print("\nOpportunities:")
-    for opp in research["opportunities"]:
+    for opp in research.opportunities:
         print(f"  • {opp}")
 
     print("\nChallenges:")
-    for challenge in research["challenges"]:
+    for challenge in research.challenges:
         print(f"  • {challenge}")
 
     print("\nOutlook:")
-    print(research["outlook"])
+    print(research.outlook)
 
 
 def simple_structured_output():
@@ -275,21 +272,20 @@ def simple_structured_output():
         model="exa",
     )
 
-    # Check if we got structured output
-    if isinstance(response.answer, str):
+    result = response.parsed_output
+    if result is None:
         print("ERROR: Expected structured output but received plain text:")
         print(f"'{response.answer}'")
         return
 
-    result = response.answer
-    print("Summary:", result["summary"])
+    print("Summary:", result.summary)
 
     print("\nAdvantages:")
-    for pro in result["pros"]:
+    for pro in result.pros:
         print(f"  • {pro}")
 
     print("\nDisadvantages:")
-    for con in result["cons"]:
+    for con in result.cons:
         print(f"  • {con}")
 
 

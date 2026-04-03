@@ -167,6 +167,40 @@ def _convert_schema_input(schema_input: "JSONSchemaInput") -> dict[str, Any]:
         )
 
 
+def _parse_structured_output(
+    raw_output: Any, schema_input: Optional["JSONSchemaInput"]
+) -> Optional[Any]:
+    """Parse a structured output payload into a native Python or Pydantic object.
+
+    Args:
+        raw_output: Raw output returned by the API.
+        schema_input: Original schema input supplied by the caller.
+
+    Returns:
+        Parsed output object if parsing succeeds, otherwise ``None``.
+    """
+    if raw_output is None or schema_input is None:
+        return None
+
+    try:
+        if isinstance(schema_input, type) and issubclass(schema_input, BaseModel):
+            if isinstance(raw_output, str):
+                return schema_input.model_validate_json(raw_output)
+            return schema_input.model_validate(raw_output)
+    except Exception:
+        return None
+
+    if isinstance(schema_input, dict):
+        if isinstance(raw_output, str):
+            try:
+                return json.loads(raw_output)
+            except json.JSONDecodeError:
+                return None
+        return raw_output
+
+    return None
+
+
 def _get_package_version() -> str:
     """Get the package version from pyproject.toml."""
     try:

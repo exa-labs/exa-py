@@ -29,11 +29,13 @@ import requests
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from exa_py.utils import (
     ExaOpenAICompletion,
     _convert_schema_input,
+    _parse_structured_output,
     _get_package_version,
     add_message_to_messages,
     format_exa_result,
@@ -792,6 +794,7 @@ class Result(_Result):
     Attributes:
         text (str, optional): The text content of the page.
         summary (str, optional): A summary of the page content.
+        parsed_summary (Any, optional): Parsed structured summary when a summary schema is provided.
         highlights (List[str], optional): Relevant sentences from the page.
         highlight_scores (List[float], optional): Scores for each highlight.
     """
@@ -800,6 +803,7 @@ class Result(_Result):
     summary: Optional[str] = None
     highlights: Optional[List[str]] = None
     highlight_scores: Optional[List[float]] = None
+    parsed_summary: Optional[Any] = None
 
     def __init__(
         self,
@@ -818,6 +822,7 @@ class Result(_Result):
         summary=None,
         highlights=None,
         highlight_scores=None,
+        parsed_summary=None,
     ):
         super().__init__(
             url,
@@ -836,10 +841,13 @@ class Result(_Result):
         self.summary = summary
         self.highlights = highlights
         self.highlight_scores = highlight_scores
+        self.parsed_summary = parsed_summary
 
     def __str__(self):
         base_str = super().__str__()
         result = base_str + f"Text: {self.text}\nSummary: {self.summary}\n"
+        if self.parsed_summary is not None:
+            result += f"Parsed Summary: {self.parsed_summary}\n"
         if self.highlights:
             result += f"Highlights: {self.highlights}\n"
         if self.highlight_scores:
@@ -1066,14 +1074,18 @@ class AnswerResponse:
         answer (str): The generated answer.
         citations (List[AnswerResult]): A list of citations used to generate the answer.
         cost_dollars (CostDollars, optional): The cost breakdown for this request.
+        parsed_output (Any, optional): Parsed structured output when an output schema is provided.
     """
 
     answer: Union[str, dict[str, Any]]
     citations: List[AnswerResult]
     cost_dollars: Optional[CostDollars] = None
+    parsed_output: Optional[Any] = None
 
     def __str__(self):
         output = f"Answer: {self.answer}\n\nCitations:"
+        if self.parsed_output is not None:
+            output = f"Answer: {self.answer}\nParsed Output: {self.parsed_output}\n\nCitations:"
         for source in self.citations:
             output += f"\nTitle: {source.title}"
             output += f"\nID: {source.id}"
@@ -1288,13 +1300,95 @@ class DeepSearchOutput:
 
     content: Union[str, dict[str, Any]]
     grounding: List[DeepSearchOutputGrounding]
+    parsed_content: Optional[Any] = None
 
 
-def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
+def _extract_summary_schema(summary_option: Any) -> Optional[JSONSchemaInput]:
+    """Extract original summary schema input from contents options."""
+    if not isinstance(summary_option, dict):
+        return None
+    schema = summary_option.get("schema")
+    if isinstance(schema, dict):
+        return schema
+    if isinstance(schema, type):
+        try:
+            if issubclass(schema, BaseModel):  # type: ignore[name-defined]
+                return schema
+        except TypeError:
+            return None
+    return None
+
+
+def _extract_contents_summary_schema(contents_option: Any) -> Optional[JSONSchemaInput]:
+    """Extract the original summary schema from a contents option payload."""
+    if not isinstance(contents_option, dict):
+        return None
+    return _extract_summary_schema(contents_option.get("summary"))
+
+
+def _convert_summary_schema(summary_option: Any) -> None:
+    """Convert summary schema inputs in-place for request serialization."""
+    if not isinstance(summary_option, dict):
+        return
+    if "schema" not in summary_option:
+        return
+    summary_option["schema"] = _convert_schema_input(summary_option["schema"])
+
+
+def _convert_contents_summary_schema(contents_option: Any) -> None:
+    """Convert nested contents summary schemas in-place for request serialization."""
+    if not isinstance(contents_option, dict):
+        return
+    _convert_summary_schema(contents_option.get("summary"))
+
+
+def _convert_output_schema(
+    output_schema: Optional[JSONSchemaInput],
+) -> Optional[dict[str, Any]]:
+    """Convert output schema inputs to JSON Schema dictionaries."""
+    if output_schema is None:
+        return None
+    return _convert_schema_input(output_schema)
+
+
+def _parse_summary_value(
+    summary: Optional[str], summary_schema: Optional[JSONSchemaInput]
+) -> Optional[Any]:
+    """Parse summary strings into structured outputs when a schema is provided."""
+    return _parse_structured_output(summary, summary_schema)
+
+
+def build_result(raw_result: dict, summary_schema: Optional[JSONSchemaInput] = None) -> Result:
+    """Build a Result object from raw API payload."""
+    snake_result = to_snake_case(raw_result)
+    return Result(
+        url=snake_result.get("url"),
+        id=snake_result.get("id"),
+        title=snake_result.get("title"),
+        score=snake_result.get("score"),
+        published_date=snake_result.get("published_date"),
+        author=snake_result.get("author"),
+        image=snake_result.get("image"),
+        favicon=snake_result.get("favicon"),
+        subpages=snake_result.get("subpages"),
+        extras=snake_result.get("extras"),
+        text=snake_result.get("text"),
+        summary=snake_result.get("summary"),
+        parsed_summary=_parse_summary_value(snake_result.get("summary"), summary_schema),
+        highlights=snake_result.get("highlights"),
+        highlight_scores=snake_result.get("highlight_scores"),
+        entities=_parse_entities(raw_result.get("entities")),
+    )
+
+
+def parse_deep_search_output(
+    raw: Any, output_schema: Optional[JSONSchemaInput] = None
+) -> Optional[DeepSearchOutput]:
     """Parse deep-search output into a typed object.
 
     Args:
         raw: Raw `output` field from API response.
+        output_schema: Original output schema supplied by the caller.
 
     Returns:
         Parsed DeepSearchOutput when the payload is an object, otherwise None.
@@ -1351,7 +1445,11 @@ def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
                 )
             )
 
-    return DeepSearchOutput(content=content, grounding=grounding)
+    return DeepSearchOutput(
+        content=content,
+        grounding=grounding,
+        parsed_content=_parse_structured_output(content, output_schema),
+    )
 
 
 def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
@@ -1516,7 +1614,7 @@ class Exa:
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
-        output_schema: Optional[DeepOutputSchema] = None,
+        output_schema: Optional[JSONSchemaInput] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1550,9 +1648,10 @@ class Exa:
                 search process and the final returned result. Use this to prefer certain sources,
                 emphasize novelty, avoid duplicates, or constrain the response style.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            output_schema (dict[str, Any] | type[BaseModel], optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
+                You can also pass a Pydantic model for structured object output.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
 
@@ -1588,38 +1687,26 @@ class Exa:
             # User provided contents - use as-is
             options["contents"] = contents
 
+        summary_schema = _extract_contents_summary_schema(options.get("contents"))
+        _convert_contents_summary_schema(options.get("contents"))
+        output_schema_input = options.get("output_schema")
+        converted_output_schema = _convert_output_schema(output_schema_input)
+        if converted_output_schema is not None:
+            options["output_schema"] = converted_output_schema
+
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["schema", "output_schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
             context=data.get("context"),
-            output=parse_deep_search_output(data.get("output")),
+            output=parse_deep_search_output(
+                data.get("output"), output_schema=output_schema_input
+            ),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -1650,13 +1737,14 @@ class Exa:
         merged_options.update(SEARCH_OPTIONS_TYPES)
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
-        validate_search_options(options, merged_options)
+        output_schema_input = options.get("output_schema")
+        converted_output_schema = _convert_output_schema(output_schema_input)
+        if converted_output_schema is not None:
+            options["output_schema"] = converted_output_schema
+        summary_schema = _extract_summary_schema(options.get("summary"))
+        _convert_summary_schema(options.get("summary"))
 
-        # Convert schema if present in summary options
-        if "summary" in options and isinstance(options["summary"], dict):
-            summary_opts = options["summary"]
-            if "schema" in summary_opts:
-                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+        validate_search_options(options, merged_options)
 
         # Nest the appropriate fields under "contents"
         options = nest_fields(
@@ -1675,37 +1763,18 @@ class Exa:
             ],
             "contents",
         )
-        options = to_camel_case(options, skip_keys=["schema"])
+        options = to_camel_case(options, skip_keys=["schema", "output_schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            output=parse_deep_search_output(data.get("output")),
+            output=parse_deep_search_output(
+                data.get("output"), output_schema=output_schema_input
+            ),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -1826,11 +1895,8 @@ class Exa:
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
 
-        # Convert schema if present in summary options
-        if "summary" in options and isinstance(options["summary"], dict):
-            summary_opts = options["summary"]
-            if "schema" in summary_opts:
-                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+        summary_schema = _extract_summary_schema(options.get("summary"))
+        _convert_summary_schema(options.get("summary"))
 
         options = to_camel_case(options, ["schema"])
         data = self.request("/contents", options)
@@ -1844,28 +1910,7 @@ class Exa:
                     source=status.get("source"),
                 )
             )
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
@@ -1939,32 +1984,13 @@ class Exa:
             # User provided contents - use as-is
             options["contents"] = contents
 
+        summary_schema = _extract_contents_summary_schema(options.get("contents"))
+        _convert_contents_summary_schema(options.get("contents"))
         validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["schema"])
         data = self.request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
@@ -2130,13 +2156,9 @@ class Exa:
         merged_options.update(FIND_SIMILAR_OPTIONS_TYPES)
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        summary_schema = _extract_summary_schema(options.get("summary"))
+        _convert_summary_schema(options.get("summary"))
         validate_search_options(options, merged_options)
-
-        # Convert schema if present in summary options
-        if "summary" in options and isinstance(options["summary"], dict):
-            summary_opts = options["summary"]
-            if "schema" in summary_opts:
-                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
         # We nest the content fields
         options = nest_fields(
@@ -2158,28 +2180,7 @@ class Exa:
         options = to_camel_case(options, skip_keys=["schema"])
         data = self.request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
@@ -2354,7 +2355,8 @@ class Exa:
             text (bool, optional): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Defaults to None.
-            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
+            output_schema (dict[str, Any] | type[BaseModel], optional): JSON schema or Pydantic
+                model describing the desired answer structure.
 
         Returns:
             AnswerResponse: An object containing the answer and citations.
@@ -2383,9 +2385,10 @@ class Exa:
 
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
 
-        # Convert output_schema if present
-        if "output_schema" in options and options["output_schema"] is not None:
-            options["output_schema"] = _convert_schema_input(options["output_schema"])
+        output_schema_input = options.get("output_schema")
+        converted_output_schema = _convert_output_schema(output_schema_input)
+        if converted_output_schema is not None:
+            options["output_schema"] = converted_output_schema
 
         options = to_camel_case(options, ["output_schema"])
         response = self.request("/answer", options)
@@ -2404,7 +2407,14 @@ class Exa:
                 )
             )
         cost_dollars = parse_cost_dollars(response.get("costDollars"))
-        return AnswerResponse(response["answer"], citations, cost_dollars)
+        return AnswerResponse(
+            answer=response["answer"],
+            citations=citations,
+            cost_dollars=cost_dollars,
+            parsed_output=_parse_structured_output(
+                response["answer"], output_schema_input
+            ),
+        )
 
     def stream_answer(
         self,
@@ -2423,7 +2433,8 @@ class Exa:
             text (bool): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Defaults to None.
-            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
+            output_schema (dict[str, Any] | type[BaseModel], optional): JSON schema or Pydantic
+                model describing the desired answer structure.
 
         Returns:
             StreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
@@ -2567,7 +2578,7 @@ class AsyncExa(Exa):
         user_location: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
-        output_schema: Optional[DeepOutputSchema] = None,
+        output_schema: Optional[JSONSchemaInput] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2601,9 +2612,10 @@ class AsyncExa(Exa):
                 search process and the final returned result. Use this to prefer certain sources,
                 emphasize novelty, avoid duplicates, or constrain the response style.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            output_schema (dict[str, Any] | type[BaseModel], optional): Deep output schema for deep search.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
+                You can also pass a Pydantic model for structured object output.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Only applicable when type is 'deep' or 'deep-reasoning'.
 
@@ -2636,38 +2648,26 @@ class AsyncExa(Exa):
             # User provided contents - use as-is
             options["contents"] = contents
 
+        summary_schema = _extract_contents_summary_schema(options.get("contents"))
+        _convert_contents_summary_schema(options.get("contents"))
+        output_schema_input = options.get("output_schema")
+        converted_output_schema = _convert_output_schema(output_schema_input)
+        if converted_output_schema is not None:
+            options["output_schema"] = converted_output_schema
+
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["schema", "output_schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
-            output=parse_deep_search_output(data.get("output")),
+            output=parse_deep_search_output(
+                data.get("output"), output_schema=output_schema_input
+            ),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2698,13 +2698,13 @@ class AsyncExa(Exa):
         merged_options.update(SEARCH_OPTIONS_TYPES)
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        output_schema_input = options.get("output_schema")
+        converted_output_schema = _convert_output_schema(output_schema_input)
+        if converted_output_schema is not None:
+            options["output_schema"] = converted_output_schema
+        summary_schema = _extract_summary_schema(options.get("summary"))
+        _convert_summary_schema(options.get("summary"))
         validate_search_options(options, merged_options)
-
-        # Convert schema if present in summary options
-        if "summary" in options and isinstance(options["summary"], dict):
-            summary_opts = options["summary"]
-            if "schema" in summary_opts:
-                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
         # Nest the appropriate fields under "contents"
         options = nest_fields(
@@ -2723,36 +2723,18 @@ class AsyncExa(Exa):
             ],
             "contents",
         )
-        options = to_camel_case(options, skip_keys=["schema"])
+        options = to_camel_case(options, skip_keys=["schema", "output_schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),
+            output=parse_deep_search_output(
+                data.get("output"), output_schema=output_schema_input
+            ),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2810,11 +2792,8 @@ class AsyncExa(Exa):
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
         validate_search_options(options, merged_options)
 
-        # Convert schema if present in summary options
-        if "summary" in options and isinstance(options["summary"], dict):
-            summary_opts = options["summary"]
-            if "schema" in summary_opts:
-                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+        summary_schema = _extract_summary_schema(options.get("summary"))
+        _convert_summary_schema(options.get("summary"))
 
         options = to_camel_case(options, ["schema"])
         data = await self.async_request("/contents", options)
@@ -2828,28 +2807,7 @@ class AsyncExa(Exa):
                     source=status.get("source"),
                 )
             )
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
@@ -2929,32 +2887,13 @@ class AsyncExa(Exa):
             # User provided contents - use as-is
             options["contents"] = contents
 
+        summary_schema = _extract_contents_summary_schema(options.get("contents"))
+        _convert_contents_summary_schema(options.get("contents"))
         validate_search_options(options, FIND_SIMILAR_OPTIONS_TYPES)
-        options = to_camel_case(options)
+        options = to_camel_case(options, skip_keys=["schema"])
         data = await self.async_request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
@@ -2984,13 +2923,9 @@ class AsyncExa(Exa):
         merged_options.update(FIND_SIMILAR_OPTIONS_TYPES)
         merged_options.update(CONTENTS_OPTIONS_TYPES)
         merged_options.update(CONTENTS_ENDPOINT_OPTIONS_TYPES)
+        summary_schema = _extract_summary_schema(options.get("summary"))
+        _convert_summary_schema(options.get("summary"))
         validate_search_options(options, merged_options)
-
-        # Convert schema if present in summary options
-        if "summary" in options and isinstance(options["summary"], dict):
-            summary_opts = options["summary"]
-            if "schema" in summary_opts:
-                summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
         # We nest the content fields
         options = nest_fields(
@@ -3012,28 +2947,7 @@ class AsyncExa(Exa):
         options = to_camel_case(options, skip_keys=["schema"])
         data = await self.async_request("/findSimilar", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
+        results = [build_result(result, summary_schema=summary_schema) for result in data["results"]]
         return SearchResponse(
             results,
             data.get("resolvedSearchType"),
@@ -3061,7 +2975,9 @@ class AsyncExa(Exa):
             text (bool, optional): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Defaults to None.
-            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
+            output_schema (dict[str, Any] | type[BaseModel], optional): JSON schema or Pydantic
+                model describing the desired answer structure. When provided,
+                ``response.parsed_output`` returns the validated structured object.
 
         Returns:
             AnswerResponse: An object containing the answer and citations.
@@ -3088,9 +3004,10 @@ class AsyncExa(Exa):
 
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
 
-        # Convert output_schema if present
-        if "output_schema" in options and options["output_schema"] is not None:
-            options["output_schema"] = _convert_schema_input(options["output_schema"])
+        output_schema_input = options.get("output_schema")
+        converted_output_schema = _convert_output_schema(output_schema_input)
+        if converted_output_schema is not None:
+            options["output_schema"] = converted_output_schema
 
         options = to_camel_case(options, skip_keys=["output_schema"])
         response = await self.async_request("/answer", options)
@@ -3109,7 +3026,14 @@ class AsyncExa(Exa):
                 )
             )
         cost_dollars = parse_cost_dollars(response.get("costDollars"))
-        return AnswerResponse(response["answer"], citations, cost_dollars)
+        return AnswerResponse(
+            answer=response["answer"],
+            citations=citations,
+            cost_dollars=cost_dollars,
+            parsed_output=_parse_structured_output(
+                response["answer"], output_schema_input
+            ),
+        )
 
     async def stream_answer(
         self,
@@ -3128,7 +3052,8 @@ class AsyncExa(Exa):
             text (bool): Whether to include full text in the results. Defaults to False.
             system_prompt (str, optional): A system prompt to guide the LLM's behavior when generating the answer.
             model (str, optional): The model to use for answering. Defaults to None.
-            output_schema (dict[str, Any], optional): JSON schema describing the desired answer structure.
+            output_schema (dict[str, Any] | type[BaseModel], optional): JSON schema or Pydantic
+                model describing the desired answer structure.
             user_location (str, optional): The user's location for location-aware answers.
 
         Returns:

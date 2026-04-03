@@ -65,7 +65,7 @@ results = exa.search(
         "required": ["summary", "key_companies"],
     },
 )
-print(results.output.content if results.output else None)
+print(results.output.parsed_content if results.output else None)
 ```
 
 Deep `output_schema` modes:
@@ -108,6 +108,35 @@ print(response.answer)
 ```python
 for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
+```
+
+## Structured Output
+
+```python
+from pydantic import BaseModel, Field
+
+
+class CompanyAnswer(BaseModel):
+    company_name: str = Field(description="Company being described")
+    core_focus: str = Field(description="Primary product or market focus")
+
+
+class DocsSummary(BaseModel):
+    page_topic: str = Field(description="Main topic of the page")
+    key_takeaways: list[str] = Field(description="Most useful takeaways")
+
+
+answer = exa.answer(
+    "Summarize what Exa does for AI teams.",
+    output_schema=CompanyAnswer,
+)
+print(answer.parsed_output.company_name if answer.parsed_output else None)
+
+contents = exa.get_contents(
+    ["https://docs.exa.ai"],
+    summary={"schema": DocsSummary},
+)
+print(contents.results[0].parsed_summary.page_topic if contents.results[0].parsed_summary else None)
 ```
 
 ## Async
