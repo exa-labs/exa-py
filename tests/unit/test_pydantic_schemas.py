@@ -7,6 +7,7 @@ with both Pydantic models and regular dictionaries (backward compatibility).
 
 import pytest
 from typing import List, Optional
+from unittest.mock import AsyncMock
 from pydantic import BaseModel, Field
 
 from exa_py.api import _convert_schema_input, JSONSchemaInput, JSONSchema
@@ -25,6 +26,13 @@ class NestedModel(BaseModel):
     title: str = Field(description="Title of the item")
     tags: List[str] = Field(description="List of tags")
     metadata: Optional[SimpleModel] = Field(default=None, description="Metadata object")
+
+
+class SnakeCaseModel(BaseModel):
+    """Model with snake_case fields to verify schema keys are preserved."""
+
+    company_name: str = Field(description="Company name")
+    founded_year: Optional[int] = Field(default=None, description="Founded year")
 
 
 class TestSchemaConversion:
@@ -245,3 +253,192 @@ class TestIntegrationMocking:
         converted_schema = payload["outputSchema"]
         assert isinstance(converted_schema, dict)
         assert converted_schema["type"] == "object"
+
+    def test_answer_returns_parsed_output_for_pydantic_model(self, mocker):
+        """Test that answer responses expose parsed_output for Pydantic schemas."""
+        from exa_py import Exa
+
+        mock_request = mocker.patch.object(Exa, "request")
+        mock_request.return_value = {
+            "answer": {"name": "Ada", "age": 37},
+            "citations": [],
+        }
+
+        exa = Exa("test_api_key")
+        response = exa.answer("test query", output_schema=SimpleModel)
+
+        assert response.answer == {"name": "Ada", "age": 37}
+        assert isinstance(response.parsed_output, SimpleModel)
+        assert response.parsed_output.name == "Ada"
+        assert response.parsed_output.age == 37
+
+    def test_get_contents_returns_parsed_summary_for_pydantic_model(self, mocker):
+        """Test that get_contents responses expose parsed_summary for Pydantic schemas."""
+        from exa_py import Exa
+
+        mock_request = mocker.patch.object(Exa, "request")
+        mock_request.return_value = {
+            "results": [
+                {
+                    "url": "https://example.com",
+                    "id": "1",
+                    "summary": '{"company_name":"Exa","founded_year":2021}',
+                }
+            ],
+            "statuses": [],
+        }
+
+        exa = Exa("test_api_key")
+        response = exa.get_contents(
+            "https://example.com",
+            summary={"schema": SnakeCaseModel},
+        )
+
+        parsed_summary = response.results[0].parsed_summary
+        assert isinstance(parsed_summary, SnakeCaseModel)
+        assert parsed_summary.company_name == "Exa"
+        assert parsed_summary.founded_year == 2021
+
+        payload = mock_request.call_args[0][1]
+        converted_schema = payload["summary"]["schema"]
+        assert "company_name" in converted_schema["properties"]
+        assert "companyName" not in converted_schema["properties"]
+
+    def test_search_returns_parsed_content_for_pydantic_output_schema(self, mocker):
+        """Test that deep search responses expose parsed_content for Pydantic schemas."""
+        from exa_py import Exa
+
+        mock_request = mocker.patch.object(Exa, "request")
+        mock_request.return_value = {
+            "results": [],
+            "output": {
+                "content": {"name": "Ada", "age": 37},
+                "grounding": [],
+            },
+        }
+
+        exa = Exa("test_api_key")
+        response = exa.search(
+            "test query",
+            type="deep",
+            contents=False,
+            output_schema=SimpleModel,
+        )
+
+        assert response.output is not None
+        assert isinstance(response.output.parsed_content, SimpleModel)
+        assert response.output.parsed_content.name == "Ada"
+        assert response.output.parsed_content.age == 37
+
+        payload = mock_request.call_args[0][1]
+        converted_schema = payload["outputSchema"]
+        assert converted_schema["properties"]["name"]["type"] == "string"
+
+    def test_search_contents_summary_preserves_schema_field_names(self, mocker):
+        """Test that modern search summary schemas keep snake_case property names."""
+        from exa_py import Exa
+
+        mock_request = mocker.patch.object(Exa, "request")
+        mock_request.return_value = {
+            "results": [
+                {
+                    "url": "https://example.com",
+                    "id": "1",
+                    "summary": '{"company_name":"Exa","founded_year":2021}',
+                }
+            ],
+        }
+
+        exa = Exa("test_api_key")
+        response = exa.search(
+            "test query",
+            contents={"summary": {"schema": SnakeCaseModel}},
+            num_results=1,
+        )
+
+        parsed_summary = response.results[0].parsed_summary
+        assert isinstance(parsed_summary, SnakeCaseModel)
+        assert parsed_summary.company_name == "Exa"
+
+        payload = mock_request.call_args[0][1]
+        converted_schema = payload["contents"]["summary"]["schema"]
+        assert "company_name" in converted_schema["properties"]
+        assert "companyName" not in converted_schema["properties"]
+
+    @pytest.mark.asyncio
+    async def test_async_answer_returns_parsed_output_for_pydantic_model(self, mocker):
+        """Test that async answer responses expose parsed_output for Pydantic schemas."""
+        from exa_py import AsyncExa
+
+        exa = AsyncExa("test_api_key")
+        mock_async_request = mocker.patch.object(exa, "async_request", new=AsyncMock())
+        mock_async_request.return_value = {
+            "answer": {"name": "Ada", "age": 37},
+            "citations": [],
+        }
+
+        response = await exa.answer("test query", output_schema=SimpleModel)
+
+        assert response.answer == {"name": "Ada", "age": 37}
+        assert isinstance(response.parsed_output, SimpleModel)
+        assert response.parsed_output.name == "Ada"
+        assert response.parsed_output.age == 37
+
+    @pytest.mark.asyncio
+    async def test_async_get_contents_returns_parsed_summary_for_pydantic_model(
+        self, mocker
+    ):
+        """Test that async get_contents responses expose parsed_summary for Pydantic schemas."""
+        from exa_py import AsyncExa
+
+        exa = AsyncExa("test_api_key")
+        mock_async_request = mocker.patch.object(exa, "async_request", new=AsyncMock())
+        mock_async_request.return_value = {
+            "results": [
+                {
+                    "url": "https://example.com",
+                    "id": "1",
+                    "summary": '{"company_name":"Exa","founded_year":2021}',
+                }
+            ],
+            "statuses": [],
+        }
+
+        response = await exa.get_contents(
+            "https://example.com",
+            summary={"schema": SnakeCaseModel},
+        )
+
+        parsed_summary = response.results[0].parsed_summary
+        assert isinstance(parsed_summary, SnakeCaseModel)
+        assert parsed_summary.company_name == "Exa"
+        assert parsed_summary.founded_year == 2021
+
+    @pytest.mark.asyncio
+    async def test_async_search_returns_parsed_content_for_pydantic_output_schema(
+        self, mocker
+    ):
+        """Test that async deep search responses expose parsed_content for Pydantic schemas."""
+        from exa_py import AsyncExa
+
+        exa = AsyncExa("test_api_key")
+        mock_async_request = mocker.patch.object(exa, "async_request", new=AsyncMock())
+        mock_async_request.return_value = {
+            "results": [],
+            "output": {
+                "content": {"name": "Ada", "age": 37},
+                "grounding": [],
+            },
+        }
+
+        response = await exa.search(
+            "test query",
+            type="deep",
+            contents=False,
+            output_schema=SimpleModel,
+        )
+
+        assert response.output is not None
+        assert isinstance(response.output.parsed_content, SimpleModel)
+        assert response.output.parsed_content.name == "Ada"
+        assert response.output.parsed_content.age == 37
