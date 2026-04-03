@@ -335,6 +335,7 @@ SEARCH_OPTIONS_TYPES = {
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep-lite/deep/deep-reasoning.
     "system_prompt": [str],  # Instructions for search planning and final synthesis across all search types.
     "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
+    "stream": [bool],  # If true, stream back OpenAI-style chat completion chunks.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1042,8 +1043,8 @@ class StreamChunk:
     """A class representing a single chunk of streaming data.
 
     Attributes:
-        content (Optional[str]): The partial text content of the answer
-        citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk
+        content (Optional[str]): The partial text content of the streamed response.
+        citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk.
     """
 
     content: Optional[str] = None
@@ -1209,6 +1210,14 @@ class AsyncStreamAnswerResponse:
     def close(self) -> None:
         """Close the underlying raw response to release the network socket."""
         self._raw_response.close()
+
+
+class StreamSearchResponse(StreamAnswerResponse):
+    """A class representing a streaming search response."""
+
+
+class AsyncStreamSearchResponse(AsyncStreamAnswerResponse):
+    """A class representing a streaming search response."""
 
 
 T = TypeVar("T")
@@ -1508,6 +1517,7 @@ class Exa:
         self,
         query: str,
         *,
+        stream: Optional[bool] = False,
         contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
@@ -1533,6 +1543,8 @@ class Exa:
 
         Args:
             query (str): The query string.
+            stream (bool, optional): If True, stream the synthesized search response.
+                Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
@@ -1569,6 +1581,9 @@ class Exa:
         Returns:
             SearchResponse: The response containing search results, etc.
 
+        Raises:
+            ValueError: If stream=True is provided. Use stream_search() instead.
+
         Examples:
             # Basic search
             result = exa.search(
@@ -1585,7 +1600,14 @@ class Exa:
               num_results=5
             )
         """
+        if stream:
+            raise ValueError(
+                "stream=True is not supported in `search()`. "
+                "Please use `stream_search(...)` for streaming."
+            )
+
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options.pop("stream", None)
 
         # Handle contents parameter with default behavior
         if contents is False:
@@ -1633,6 +1655,83 @@ class Exa:
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
+
+    def stream_search(
+        self,
+        query: str,
+        *,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        type: Optional[Union[SearchType, str]] = None,
+        category: Optional[Category] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
+        additional_queries: Optional[List[str]] = None,
+        system_prompt: Optional[str] = None,
+        output_schema: Optional[DeepOutputSchema] = None,
+    ) -> StreamSearchResponse:
+        """Generate a streaming search response.
+
+        Args:
+            query (str): The query string.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
+                Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+            num_results (int, optional): Number of search results to return. Default 10.
+            include_domains (List[str], optional): Domains to include in the search.
+            exclude_domains (List[str], optional): Domains to exclude from the search.
+            start_crawl_date (str, optional): Only links crawled after this date.
+            end_crawl_date (str, optional): Only links crawled before this date.
+            start_published_date (str, optional): Only links published after this date.
+            end_published_date (str, optional): Only links published before this date.
+            include_text (List[str], optional): Strings that must appear in the page text.
+            exclude_text (List[str], optional): Strings that must not appear in the page text.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            category (Category, optional): Data category to focus on.
+            flags (List[str], optional): Experimental flags for Exa usage.
+            moderation (bool, optional): If True, the search results will be moderated for safety.
+            user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            additional_queries (List[str], optional): Alternative query formulations for deep search.
+            system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
+
+        Returns:
+            StreamSearchResponse: An iterator yielding OpenAI-style streaming chunks with
+                partial ``content`` and optional ``citations``.
+
+        Examples:
+            stream = exa.stream_search(
+                "What are the latest battery breakthroughs?",
+                type="auto"
+            )
+
+            for chunk in stream:
+                if chunk.content:
+                    print(chunk.content, end="", flush=True)
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        if contents is False:
+            options.pop("contents", None)
+        elif contents is None and "contents" not in options:
+            options["contents"] = {"text": {"max_characters": DEFAULT_MAX_CHARACTERS}}
+        elif contents is not None:
+            options["contents"] = contents
+
+        validate_search_options(options, SEARCH_OPTIONS_TYPES)
+        options = to_camel_case(options, skip_keys=["output_schema"])
+        options["stream"] = True
+        raw_response = self.request("/search", options)
+        return StreamSearchResponse(raw_response)
 
     def search_and_contents(self, query: str, **kwargs):
         """
@@ -2560,6 +2659,7 @@ class AsyncExa(Exa):
         self,
         query: str,
         *,
+        stream: Optional[bool] = False,
         contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
@@ -2585,6 +2685,8 @@ class AsyncExa(Exa):
 
         Args:
             query (str): The query string.
+            stream (bool, optional): If True, stream the synthesized search response.
+                Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
@@ -2621,6 +2723,9 @@ class AsyncExa(Exa):
         Returns:
             SearchResponse: The response containing search results, etc.
 
+        Raises:
+            ValueError: If stream=True is provided. Use stream_search() instead.
+
         Examples:
             Basic async search:
             >>> async_exa = AsyncExa(api_key="your-api-key")
@@ -2634,7 +2739,14 @@ class AsyncExa(Exa):
             ...     start_published_date="2024-01-01"
             ... )
         """
+        if stream:
+            raise ValueError(
+                "stream=True is not supported in `search()`. "
+                "Please use `stream_search(...)` for streaming."
+            )
+
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options.pop("stream", None)
 
         # Handle contents parameter with default behavior
         if contents is False:
@@ -2682,6 +2794,82 @@ class AsyncExa(Exa):
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
+
+    async def stream_search(
+        self,
+        query: str,
+        *,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        type: Optional[Union[SearchType, str]] = None,
+        category: Optional[Category] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
+        additional_queries: Optional[List[str]] = None,
+        system_prompt: Optional[str] = None,
+        output_schema: Optional[DeepOutputSchema] = None,
+    ) -> AsyncStreamSearchResponse:
+        """Generate a streaming search response asynchronously.
+
+        Args:
+            query (str): The query string.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
+                Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+            num_results (int, optional): Number of search results to return. Default 10.
+            include_domains (List[str], optional): Domains to include in the search.
+            exclude_domains (List[str], optional): Domains to exclude from the search.
+            start_crawl_date (str, optional): Only links crawled after this date.
+            end_crawl_date (str, optional): Only links crawled before this date.
+            start_published_date (str, optional): Only links published after this date.
+            end_published_date (str, optional): Only links published before this date.
+            include_text (List[str], optional): Strings that must appear in the page text.
+            exclude_text (List[str], optional): Strings that must not appear in the page text.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            category (Category, optional): Data category to focus on.
+            flags (List[str], optional): Experimental flags for Exa usage.
+            moderation (bool, optional): If True, the search results will be moderated for safety.
+            user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            additional_queries (List[str], optional): Alternative query formulations for deep search.
+            system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
+
+        Returns:
+            AsyncStreamSearchResponse: An async iterator yielding OpenAI-style streaming chunks.
+
+        Examples:
+            >>> async_exa = AsyncExa(api_key="your-api-key")
+            >>> stream = await async_exa.stream_search(
+            ...     "What are the latest battery breakthroughs?",
+            ...     type="auto"
+            ... )
+            >>> async for chunk in stream:
+            ...     if chunk.content:
+            ...         print(chunk.content, end="", flush=True)
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        if contents is False:
+            options.pop("contents", None)
+        elif contents is None and "contents" not in options:
+            options["contents"] = {"text": {"max_characters": DEFAULT_MAX_CHARACTERS}}
+        elif contents is not None:
+            options["contents"] = contents
+
+        validate_search_options(options, SEARCH_OPTIONS_TYPES)
+        options = to_camel_case(options, skip_keys=["output_schema"])
+        options["stream"] = True
+        raw_response = await self.async_request("/search", options)
+        return AsyncStreamSearchResponse(raw_response)
 
     async def search_and_contents(self, query: str, **kwargs):
         """

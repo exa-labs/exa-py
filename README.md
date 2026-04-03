@@ -68,11 +68,21 @@ results = exa.search(
 print(results.output.content if results.output else None)
 ```
 
+```python
+for chunk in exa.stream_search(
+    "What are the latest battery breakthroughs?",
+    type="auto",
+):
+    if chunk.content:
+        print(chunk.content, end="", flush=True)
+```
+
 Search `output_schema` modes:
 - `{"type": "text", "description": "..."}`: return plain text in `output.content`
 - `{"type": "object", ...}`: return structured JSON in `output.content`
 
 `system_prompt` and `output_schema` are supported on every search type.
+Search streaming is available via `stream_search(...)`, which yields OpenAI-style chat completion chunks.
 
 For `type: "object"`, search currently enforces:
 - max nesting depth: `2`

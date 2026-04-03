@@ -69,6 +69,7 @@ deep_result = exa.search(
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | query | str | The query string. | Required |
+| stream | Optional[bool] | If True, stream the synthesized search response. Use ``stream_search(...)`` instead of ``search(..., stream=True)``. | `False` |
 | contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead. | None |
 | num_results | Optional[int] | Number of search results to return. Default 10. | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
@@ -369,8 +370,8 @@ for chunk in stream:
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| content | Optional[str] | The partial text content of the answer |
-| citations | Optional[List[[AnswerResult](#answerresult)]] | List of citations if provided in this chunk |
+| content | Optional[str] | The partial text content of the streamed response. |
+| citations | Optional[List[[AnswerResult](#answerresult)]] | List of citations if provided in this chunk. |
 
 ## `research.create` Method
 
@@ -1378,8 +1379,8 @@ A class representing a single chunk of streaming data.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| content | Optional[str] | The partial text content of the answer |
-| citations | Optional[List[[AnswerResult](#answerresult)]] | List of citations if provided in this chunk |
+| content | Optional[str] | The partial text content of the streamed response. |
+| citations | Optional[List[[AnswerResult](#answerresult)]] | List of citations if provided in this chunk. |
 
 #### `AnswerResponse`
 
@@ -1398,6 +1399,14 @@ A class representing a streaming answer response.
 #### `AsyncStreamAnswerResponse`
 
 A class representing a streaming answer response.
+
+#### `StreamSearchResponse`
+
+A class representing a streaming search response.
+
+#### `AsyncStreamSearchResponse`
+
+A class representing a streaming search response.
 
 #### `ContentStatus`
 

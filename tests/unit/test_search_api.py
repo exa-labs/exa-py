@@ -13,6 +13,34 @@ def _have_real_key() -> bool:
     return API_KEY != "test-key" and len(API_KEY) > 10
 
 
+class _FakeStreamResponse:
+    def __init__(self, lines: list[str], status_code: int = 200):
+        self._lines = lines
+        self.status_code = status_code
+        self.text = ""
+
+    def iter_lines(self):
+        for line in self._lines:
+            yield line.encode("utf-8")
+
+    def close(self):
+        return None
+
+
+class _FakeAsyncStreamResponse:
+    def __init__(self, lines: list[str], status_code: int = 200):
+        self._lines = lines
+        self.status_code = status_code
+        self.text = ""
+
+    async def aiter_lines(self):
+        for line in self._lines:
+            yield line
+
+    def close(self):
+        return None
+
+
 ########################################
 # Offline unit tests (no network)
 ########################################
@@ -274,6 +302,47 @@ def test_search_accepts_deep_lite_additional_queries_offline():
         ]
 
 
+def test_search_rejects_stream_flag_offline():
+    """Test search(stream=True) points callers to stream_search."""
+    exa = Exa(API_KEY)
+
+    with pytest.raises(ValueError, match="Please use `stream_search"):
+        exa.search("streaming query", stream=True)
+
+
+def test_stream_search_streams_openai_style_chunks_offline():
+    """Test stream_search forwards stream=true and yields parsed chunks."""
+    exa = Exa(API_KEY)
+    mock_stream_response = _FakeStreamResponse(
+        [
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}',
+            'data: {"citations":[{"id":"1","url":"http://example.com","title":"Example"}]}',
+        ]
+    )
+
+    with patch.object(exa, "request", return_value=mock_stream_response) as mock_request:
+        stream = exa.stream_search(
+            "streaming query",
+            type="auto",
+            system_prompt="Be concise",
+            output_schema={"type": "text", "description": "Short answer"},
+        )
+        chunks = list(stream)
+
+        assert len(chunks) == 2
+        assert chunks[0].content == "Hello"
+        assert chunks[1].citations is not None
+        assert chunks[1].citations[0].url == "http://example.com"
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["stream"] is True
+        assert options["type"] == "auto"
+        assert options["systemPrompt"] == "Be concise"
+        assert options["outputSchema"]["type"] == "text"
+
+
 @pytest.mark.asyncio
 async def test_async_search_accepts_deepv3_params_offline():
     """Test async deep-reasoning search accepts output_schema params."""
@@ -410,6 +479,51 @@ async def test_async_search_accepts_deep_lite_additional_queries_offline():
             "neural networks",
             "AI models",
         ]
+
+
+@pytest.mark.asyncio
+async def test_async_search_rejects_stream_flag_offline():
+    """Test async search(stream=True) points callers to stream_search."""
+    ax = AsyncExa(API_KEY)
+
+    with pytest.raises(ValueError, match="Please use `stream_search"):
+        await ax.search("streaming query", stream=True)
+
+
+@pytest.mark.asyncio
+async def test_async_stream_search_streams_openai_style_chunks_offline():
+    """Test async stream_search forwards stream=true and yields parsed chunks."""
+    ax = AsyncExa(API_KEY)
+    mock_stream_response = _FakeAsyncStreamResponse(
+        [
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}',
+            'data: {"citations":[{"id":"1","url":"http://example.com","title":"Example"}]}',
+        ]
+    )
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_stream_response)
+    ) as mock_async_request:
+        stream = await ax.stream_search(
+            "streaming query",
+            type="auto",
+            system_prompt="Be concise",
+            output_schema={"type": "text", "description": "Short answer"},
+        )
+        chunks = [chunk async for chunk in stream]
+
+        assert len(chunks) == 2
+        assert chunks[0].content == "Hello"
+        assert chunks[1].citations is not None
+        assert chunks[1].citations[0].url == "http://example.com"
+
+        call_args = mock_async_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["stream"] is True
+        assert options["type"] == "auto"
+        assert options["systemPrompt"] == "Be concise"
+        assert options["outputSchema"]["type"] == "text"
 
 
 @pytest.mark.asyncio
