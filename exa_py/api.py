@@ -261,12 +261,19 @@ Category = Literal[
 SearchType = Literal[
     "auto",
     "fast",
+    "deep-lite",
     "deep",
     "deep-reasoning",
     "neural",
     "instant",
 ]
-"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
+"""Search type that determines the search algorithm.
+
+'auto' (default) automatically selects the best approach, 'fast' prioritizes
+speed, 'deep-lite', 'deep', and 'deep-reasoning' are deep-search variants,
+'neural' uses embedding-based semantic search, and 'instant' uses low-latency
+neural search.
+"""
 
 
 class DeepTextOutputSchema(TypedDict, total=False):
@@ -285,7 +292,7 @@ class DeepObjectOutputSchema(TypedDict, total=False):
 
 
 DeepOutputSchema = Union[DeepTextOutputSchema, DeepObjectOutputSchema]
-"""Deep search output schema.
+"""Search output schema.
 
 - ``{"type": "text", "description": ...}`` returns plain text in ``output.content``.
 - ``{"type": "object", ...}`` returns structured JSON in ``output.content``.
@@ -318,16 +325,16 @@ SEARCH_OPTIONS_TYPES = {
     "type": [
         SearchType,
         str,
-    ],  # Search type: 'auto', 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
+    ],  # Search type: 'auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
     "additional_queries": [
         list
-    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning.
-    "system_prompt": [str],  # Deep-search-only instructions for search planning and final synthesis.
-    "output_schema": [dict],  # Deep output schema: {"type":"text"} or {"type":"object", ...}
+    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep-lite/deep/deep-reasoning.
+    "system_prompt": [str],  # Instructions for search planning and final synthesis across all search types.
+    "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1225,7 +1232,9 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        output (DeepSearchOutput, optional): Deep search synthesized output object containing content and field-level grounding.
+        output (DeepSearchOutput, optional): Search synthesized output object returned
+            when output_schema is provided, containing content and field-level
+            grounding.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1275,7 +1284,7 @@ DeepSearchOutputGroundingConfidence = Literal["low", "medium", "high"]
 
 @dataclass
 class DeepSearchOutputGrounding:
-    """Grounding metadata for one field in deep-search synthesized output."""
+    """Grounding metadata for one field in search synthesized output."""
 
     field: str
     citations: List[DeepSearchOutputGroundingCitation]
@@ -1284,14 +1293,14 @@ class DeepSearchOutputGrounding:
 
 @dataclass
 class DeepSearchOutput:
-    """Deep-search synthesized output payload."""
+    """Search synthesized output payload."""
 
     content: Union[str, dict[str, Any]]
     grounding: List[DeepSearchOutputGrounding]
 
 
 def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
-    """Parse deep-search output into a typed object.
+    """Parse search output into a typed object.
 
     Args:
         raw: Raw `output` field from API response.
@@ -1537,24 +1546,25 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep' or 'deep-reasoning'.
+                'deep-lite', 'deep', or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            system_prompt (str, optional): Deep-search-only instructions that guide both the
-                search process and the final returned result. Use this to prefer certain sources,
-                emphasize novelty, avoid duplicates, or constrain the response style.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            system_prompt (str, optional): Instructions that guide both the search process and
+                the final returned result. Use this to prefer certain sources, emphasize novelty,
+                avoid duplicates, or constrain the response style. Supported for all search types.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured
+                synthesis. When provided, the API returns synthesized output in ``output``.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
+                Supported for all search types.
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2588,24 +2598,25 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep' or 'deep-reasoning'.
+                'deep-lite', 'deep', or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            system_prompt (str, optional): Deep-search-only instructions that guide both the
-                search process and the final returned result. Use this to prefer certain sources,
-                emphasize novelty, avoid duplicates, or constrain the response style.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            system_prompt (str, optional): Instructions that guide both the search process and
+                the final returned result. Use this to prefer certain sources, emphasize novelty,
+                avoid duplicates, or constrain the response style. Supported for all search types.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured
+                synthesis. When provided, the API returns synthesized output in ``output``.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
+                Supported for all search types.
 
         Returns:
             SearchResponse: The response containing search results, etc.
