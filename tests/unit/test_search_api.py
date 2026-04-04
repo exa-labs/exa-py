@@ -13,6 +13,34 @@ def _have_real_key() -> bool:
     return API_KEY != "test-key" and len(API_KEY) > 10
 
 
+class _FakeStreamResponse:
+    def __init__(self, lines: list[str], status_code: int = 200):
+        self._lines = lines
+        self.status_code = status_code
+        self.text = ""
+
+    def iter_lines(self):
+        for line in self._lines:
+            yield line.encode("utf-8")
+
+    def close(self):
+        return None
+
+
+class _FakeAsyncStreamResponse:
+    def __init__(self, lines: list[str], status_code: int = 200):
+        self._lines = lines
+        self.status_code = status_code
+        self.text = ""
+
+    async def aiter_lines(self):
+        for line in self._lines:
+            yield line
+
+    def close(self):
+        return None
+
+
 ########################################
 # Offline unit tests (no network)
 ########################################
@@ -166,12 +194,61 @@ def test_search_accepts_deep_reasoning_params_offline():
         assert "answerText" not in options["outputSchema"]["properties"]
 
 
-def test_search_accepts_deep_system_prompt_offline():
-    """Test deep search accepts system_prompt and forwards it as camelCase."""
+def test_search_accepts_output_schema_on_fast_search_offline():
+    """Test non-deep search accepts output_schema and returns parsed output."""
     exa = Exa(API_KEY)
     mock_response = {
         "results": [
-            {"url": "http://example.com", "id": "1", "title": "Deep Search Result"}
+            {"url": "http://example.com", "id": "1", "title": "Fast Search Result"}
+        ],
+        "output": {
+            "content": {"summary": "Fast search synthesis"},
+            "grounding": [
+                {
+                    "field": "summary",
+                    "citations": [
+                        {"url": "http://example.com", "title": "Fast Search Result"}
+                    ],
+                    "confidence": "high",
+                }
+            ],
+        },
+        "costDollars": {"total": 0.002},
+    }
+
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+        },
+        "required": ["summary"],
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "machine learning",
+            type="fast",
+            output_schema=output_schema,
+            num_results=5,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.output is not None
+        assert resp.output.content == {"summary": "Fast search synthesis"}
+        assert resp.output.grounding[0].field == "summary"
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "fast"
+        assert options["outputSchema"]["properties"]["summary"]["type"] == "string"
+
+
+def test_search_accepts_system_prompt_on_auto_search_offline():
+    """Test non-deep search accepts system_prompt and forwards it as camelCase."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {"url": "http://example.com", "id": "1", "title": "Auto Search Result"}
         ],
         "costDollars": {"total": 0.002},
     }
@@ -179,7 +256,7 @@ def test_search_accepts_deep_system_prompt_offline():
     with patch.object(exa, "request", return_value=mock_response) as mock_request:
         resp = exa.search(
             "compare recent model launches",
-            type="deep-reasoning",
+            type="auto",
             system_prompt="Prefer official sources and avoid duplicate results",
         )
         assert isinstance(resp, exa_api.SearchResponse)
@@ -187,11 +264,83 @@ def test_search_accepts_deep_system_prompt_offline():
         call_args = mock_request.call_args
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
-        assert options["type"] == "deep-reasoning"
+        assert options["type"] == "auto"
         assert (
             options["systemPrompt"]
             == "Prefer official sources and avoid duplicate results"
         )
+
+
+def test_search_accepts_deep_lite_additional_queries_offline():
+    """Test deep-lite search accepts additional_queries and forwards them."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {"url": "http://example.com", "id": "1", "title": "Deep Lite Result"}
+        ],
+        "costDollars": {"total": 0.002},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "machine learning",
+            type="deep-lite",
+            additional_queries=["ML algorithms", "neural networks", "AI models"],
+            num_results=5,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "deep-lite"
+        assert "additionalQueries" in options
+        assert options["additionalQueries"] == [
+            "ML algorithms",
+            "neural networks",
+            "AI models",
+        ]
+
+
+def test_search_rejects_stream_flag_offline():
+    """Test search(stream=True) points callers to stream_search."""
+    exa = Exa(API_KEY)
+
+    with pytest.raises(ValueError, match="Please use `stream_search"):
+        exa.search("streaming query", stream=True)
+
+
+def test_stream_search_streams_openai_style_chunks_offline():
+    """Test stream_search forwards stream=true and yields parsed chunks."""
+    exa = Exa(API_KEY)
+    mock_stream_response = _FakeStreamResponse(
+        [
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}',
+            'data: {"citations":[{"id":"1","url":"http://example.com","title":"Example"}]}',
+        ]
+    )
+
+    with patch.object(exa, "request", return_value=mock_stream_response) as mock_request:
+        stream = exa.stream_search(
+            "streaming query",
+            type="auto",
+            system_prompt="Be concise",
+            output_schema={"type": "text", "description": "Short answer"},
+        )
+        chunks = list(stream)
+
+        assert len(chunks) == 2
+        assert chunks[0].content == "Hello"
+        assert chunks[1].citations is not None
+        assert chunks[1].citations[0].url == "http://example.com"
+
+        call_args = mock_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["stream"] is True
+        assert options["type"] == "auto"
+        assert options["systemPrompt"] == "Be concise"
+        assert options["outputSchema"]["type"] == "text"
 
 
 @pytest.mark.asyncio
@@ -229,8 +378,82 @@ async def test_async_search_accepts_deepv3_params_offline():
 
 
 @pytest.mark.asyncio
-async def test_async_search_accepts_deep_system_prompt_offline():
-    """Test async deep search accepts system_prompt and forwards it as camelCase."""
+async def test_async_search_accepts_output_schema_on_fast_search_offline():
+    """Test async non-deep search accepts output_schema and returns parsed output."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
+        "output": {
+            "content": {"summary": "Async fast synthesis"},
+            "grounding": [
+                {
+                    "field": "summary",
+                    "citations": [{"url": "http://example.com", "title": "Async Result"}],
+                    "confidence": "high",
+                }
+            ],
+        },
+        "costDollars": {"total": 0.001},
+    }
+
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+        },
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_async_request:
+        resp = await ax.search(
+            "async search query",
+            type="fast",
+            output_schema=output_schema,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.output is not None
+        assert resp.output.content == {"summary": "Async fast synthesis"}
+
+        call_args = mock_async_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "fast"
+        assert options["outputSchema"]["properties"]["summary"]["type"] == "string"
+
+
+@pytest.mark.asyncio
+async def test_async_search_accepts_system_prompt_on_auto_search_offline():
+    """Test async non-deep search accepts system_prompt and forwards it as camelCase."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_async_request:
+        resp = await ax.search(
+            "async search query",
+            type="auto",
+            system_prompt="Prefer official sources and avoid duplicate results",
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+
+        call_args = mock_async_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["type"] == "auto"
+        assert (
+            options["systemPrompt"]
+            == "Prefer official sources and avoid duplicate results"
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_search_accepts_deep_lite_additional_queries_offline():
+    """Test async deep-lite search accepts additional_queries."""
     ax = AsyncExa(API_KEY)
     mock_response = {
         "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
@@ -242,19 +465,65 @@ async def test_async_search_accepts_deep_system_prompt_offline():
     ) as mock_async_request:
         resp = await ax.search(
             "async deep query",
-            type="deep",
-            system_prompt="Prefer official sources and avoid duplicate results",
+            type="deep-lite",
+            additional_queries=["ML algorithms", "neural networks", "AI models"],
         )
         assert isinstance(resp, exa_api.SearchResponse)
 
         call_args = mock_async_request.call_args
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
-        assert options["type"] == "deep"
-        assert (
-            options["systemPrompt"]
-            == "Prefer official sources and avoid duplicate results"
+        assert options["type"] == "deep-lite"
+        assert options["additionalQueries"] == [
+            "ML algorithms",
+            "neural networks",
+            "AI models",
+        ]
+
+
+@pytest.mark.asyncio
+async def test_async_search_rejects_stream_flag_offline():
+    """Test async search(stream=True) points callers to stream_search."""
+    ax = AsyncExa(API_KEY)
+
+    with pytest.raises(ValueError, match="Please use `stream_search"):
+        await ax.search("streaming query", stream=True)
+
+
+@pytest.mark.asyncio
+async def test_async_stream_search_streams_openai_style_chunks_offline():
+    """Test async stream_search forwards stream=true and yields parsed chunks."""
+    ax = AsyncExa(API_KEY)
+    mock_stream_response = _FakeAsyncStreamResponse(
+        [
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}',
+            'data: {"citations":[{"id":"1","url":"http://example.com","title":"Example"}]}',
+        ]
+    )
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_stream_response)
+    ) as mock_async_request:
+        stream = await ax.stream_search(
+            "streaming query",
+            type="auto",
+            system_prompt="Be concise",
+            output_schema={"type": "text", "description": "Short answer"},
         )
+        chunks = [chunk async for chunk in stream]
+
+        assert len(chunks) == 2
+        assert chunks[0].content == "Hello"
+        assert chunks[1].citations is not None
+        assert chunks[1].citations[0].url == "http://example.com"
+
+        call_args = mock_async_request.call_args
+        assert call_args[0][0] == "/search"
+        options = call_args[0][1]
+        assert options["stream"] is True
+        assert options["type"] == "auto"
+        assert options["systemPrompt"] == "Be concise"
+        assert options["outputSchema"]["type"] == "text"
 
 
 @pytest.mark.asyncio

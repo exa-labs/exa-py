@@ -261,12 +261,19 @@ Category = Literal[
 SearchType = Literal[
     "auto",
     "fast",
+    "deep-lite",
     "deep",
     "deep-reasoning",
     "neural",
     "instant",
 ]
-"""Search type that determines the search algorithm. 'auto' (default) automatically selects the best approach, 'fast' prioritizes speed, 'deep' is light deep search, 'deep-reasoning' is base deep search, 'neural' uses embedding-based semantic search, and 'instant' uses low-latency neural search."""
+"""Search type that determines the search algorithm.
+
+'auto' (default) automatically selects the best approach, 'fast' prioritizes
+speed, 'deep-lite', 'deep', and 'deep-reasoning' are deep-search variants,
+'neural' uses embedding-based semantic search, and 'instant' uses low-latency
+neural search.
+"""
 
 
 class DeepTextOutputSchema(TypedDict, total=False):
@@ -285,7 +292,7 @@ class DeepObjectOutputSchema(TypedDict, total=False):
 
 
 DeepOutputSchema = Union[DeepTextOutputSchema, DeepObjectOutputSchema]
-"""Deep search output schema.
+"""Search output schema.
 
 - ``{"type": "text", "description": ...}`` returns plain text in ``output.content``.
 - ``{"type": "object", ...}`` returns structured JSON in ``output.content``.
@@ -318,16 +325,17 @@ SEARCH_OPTIONS_TYPES = {
     "type": [
         SearchType,
         str,
-    ],  # Search type: 'auto', 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
+    ],  # Search type: 'auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
     "additional_queries": [
         list
-    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep/deep-reasoning.
-    "system_prompt": [str],  # Deep-search-only instructions for search planning and final synthesis.
-    "output_schema": [dict],  # Deep output schema: {"type":"text"} or {"type":"object", ...}
+    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep-lite/deep/deep-reasoning.
+    "system_prompt": [str],  # Instructions for search planning and final synthesis across all search types.
+    "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
+    "stream": [bool],  # If true, stream back OpenAI-style chat completion chunks.
 }
 
 FIND_SIMILAR_OPTIONS_TYPES = {
@@ -1035,8 +1043,8 @@ class StreamChunk:
     """A class representing a single chunk of streaming data.
 
     Attributes:
-        content (Optional[str]): The partial text content of the answer
-        citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk
+        content (Optional[str]): The partial text content of the streamed response.
+        citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk.
     """
 
     content: Optional[str] = None
@@ -1204,6 +1212,14 @@ class AsyncStreamAnswerResponse:
         self._raw_response.close()
 
 
+class StreamSearchResponse(StreamAnswerResponse):
+    """A class representing a streaming search response."""
+
+
+class AsyncStreamSearchResponse(AsyncStreamAnswerResponse):
+    """A class representing a streaming search response."""
+
+
 T = TypeVar("T")
 
 
@@ -1225,7 +1241,9 @@ class SearchResponse(Generic[T]):
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
         context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
-        output (DeepSearchOutput, optional): Deep search synthesized output object containing content and field-level grounding.
+        output (DeepSearchOutput, optional): Search synthesized output object returned
+            when output_schema is provided, containing content and field-level
+            grounding.
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
@@ -1275,7 +1293,7 @@ DeepSearchOutputGroundingConfidence = Literal["low", "medium", "high"]
 
 @dataclass
 class DeepSearchOutputGrounding:
-    """Grounding metadata for one field in deep-search synthesized output."""
+    """Grounding metadata for one field in search synthesized output."""
 
     field: str
     citations: List[DeepSearchOutputGroundingCitation]
@@ -1284,14 +1302,14 @@ class DeepSearchOutputGrounding:
 
 @dataclass
 class DeepSearchOutput:
-    """Deep-search synthesized output payload."""
+    """Search synthesized output payload."""
 
     content: Union[str, dict[str, Any]]
     grounding: List[DeepSearchOutputGrounding]
 
 
 def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
-    """Parse deep-search output into a typed object.
+    """Parse search output into a typed object.
 
     Args:
         raw: Raw `output` field from API response.
@@ -1499,6 +1517,7 @@ class Exa:
         self,
         query: str,
         *,
+        stream: Optional[bool] = False,
         contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
@@ -1524,6 +1543,8 @@ class Exa:
 
         Args:
             query (str): The query string.
+            stream (bool, optional): If True, stream the synthesized search response.
+                Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
@@ -1537,27 +1558,31 @@ class Exa:
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep' or 'deep-reasoning'.
+                'deep-lite', 'deep', or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            system_prompt (str, optional): Deep-search-only instructions that guide both the
-                search process and the final returned result. Use this to prefer certain sources,
-                emphasize novelty, avoid duplicates, or constrain the response style.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            system_prompt (str, optional): Instructions that guide both the search process and
+                the final returned result. Use this to prefer certain sources, emphasize novelty,
+                avoid duplicates, or constrain the response style. Supported for all search types.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured
+                synthesis. When provided, the API returns synthesized output in ``output``.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
+                Supported for all search types.
 
         Returns:
             SearchResponse: The response containing search results, etc.
+
+        Raises:
+            ValueError: If stream=True is provided. Use stream_search() instead.
 
         Examples:
             # Basic search
@@ -1575,7 +1600,14 @@ class Exa:
               num_results=5
             )
         """
+        if stream:
+            raise ValueError(
+                "stream=True is not supported in `search()`. "
+                "Please use `stream_search(...)` for streaming."
+            )
+
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options.pop("stream", None)
 
         # Handle contents parameter with default behavior
         if contents is False:
@@ -1623,6 +1655,83 @@ class Exa:
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
+
+    def stream_search(
+        self,
+        query: str,
+        *,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        type: Optional[Union[SearchType, str]] = None,
+        category: Optional[Category] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
+        additional_queries: Optional[List[str]] = None,
+        system_prompt: Optional[str] = None,
+        output_schema: Optional[DeepOutputSchema] = None,
+    ) -> StreamSearchResponse:
+        """Generate a streaming search response.
+
+        Args:
+            query (str): The query string.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
+                Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+            num_results (int, optional): Number of search results to return. Default 10.
+            include_domains (List[str], optional): Domains to include in the search.
+            exclude_domains (List[str], optional): Domains to exclude from the search.
+            start_crawl_date (str, optional): Only links crawled after this date.
+            end_crawl_date (str, optional): Only links crawled before this date.
+            start_published_date (str, optional): Only links published after this date.
+            end_published_date (str, optional): Only links published before this date.
+            include_text (List[str], optional): Strings that must appear in the page text.
+            exclude_text (List[str], optional): Strings that must not appear in the page text.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            category (Category, optional): Data category to focus on.
+            flags (List[str], optional): Experimental flags for Exa usage.
+            moderation (bool, optional): If True, the search results will be moderated for safety.
+            user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            additional_queries (List[str], optional): Alternative query formulations for deep search.
+            system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
+
+        Returns:
+            StreamSearchResponse: An iterator yielding OpenAI-style streaming chunks with
+                partial ``content`` and optional ``citations``.
+
+        Examples:
+            stream = exa.stream_search(
+                "What are the latest battery breakthroughs?",
+                type="auto"
+            )
+
+            for chunk in stream:
+                if chunk.content:
+                    print(chunk.content, end="", flush=True)
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        if contents is False:
+            options.pop("contents", None)
+        elif contents is None and "contents" not in options:
+            options["contents"] = {"text": {"max_characters": DEFAULT_MAX_CHARACTERS}}
+        elif contents is not None:
+            options["contents"] = contents
+
+        validate_search_options(options, SEARCH_OPTIONS_TYPES)
+        options = to_camel_case(options, skip_keys=["output_schema"])
+        options["stream"] = True
+        raw_response = self.request("/search", options)
+        return StreamSearchResponse(raw_response)
 
     def search_and_contents(self, query: str, **kwargs):
         """
@@ -2550,6 +2659,7 @@ class AsyncExa(Exa):
         self,
         query: str,
         *,
+        stream: Optional[bool] = False,
         contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
         num_results: Optional[int] = None,
         include_domains: Optional[List[str]] = None,
@@ -2575,6 +2685,8 @@ class AsyncExa(Exa):
 
         Args:
             query (str): The query string.
+            stream (bool, optional): If True, stream the synthesized search response.
+                Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
@@ -2588,27 +2700,31 @@ class AsyncExa(Exa):
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
-            type (SearchType, optional): Search type - 'auto' (default), 'fast', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep' or 'deep-reasoning'.
+                'deep-lite', 'deep', or 'deep-reasoning'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
-            system_prompt (str, optional): Deep-search-only instructions that guide both the
-                search process and the final returned result. Use this to prefer certain sources,
-                emphasize novelty, avoid duplicates, or constrain the response style.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
-            output_schema (DeepOutputSchema, optional): Deep output schema for deep search.
+            system_prompt (str, optional): Instructions that guide both the search process and
+                the final returned result. Use this to prefer certain sources, emphasize novelty,
+                avoid duplicates, or constrain the response style. Supported for all search types.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured
+                synthesis. When provided, the API returns synthesized output in ``output``.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Only applicable when type is 'deep' or 'deep-reasoning'.
+                Supported for all search types.
 
         Returns:
             SearchResponse: The response containing search results, etc.
+
+        Raises:
+            ValueError: If stream=True is provided. Use stream_search() instead.
 
         Examples:
             Basic async search:
@@ -2623,7 +2739,14 @@ class AsyncExa(Exa):
             ...     start_published_date="2024-01-01"
             ... )
         """
+        if stream:
+            raise ValueError(
+                "stream=True is not supported in `search()`. "
+                "Please use `stream_search(...)` for streaming."
+            )
+
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+        options.pop("stream", None)
 
         # Handle contents parameter with default behavior
         if contents is False:
@@ -2671,6 +2794,82 @@ class AsyncExa(Exa):
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
+
+    async def stream_search(
+        self,
+        query: str,
+        *,
+        contents: Optional[Union[ContentsOptions, Literal[False]]] = None,
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        type: Optional[Union[SearchType, str]] = None,
+        category: Optional[Category] = None,
+        flags: Optional[List[str]] = None,
+        moderation: Optional[bool] = None,
+        user_location: Optional[str] = None,
+        additional_queries: Optional[List[str]] = None,
+        system_prompt: Optional[str] = None,
+        output_schema: Optional[DeepOutputSchema] = None,
+    ) -> AsyncStreamSearchResponse:
+        """Generate a streaming search response asynchronously.
+
+        Args:
+            query (str): The query string.
+            contents (ContentsOptions | False, optional): Options for retrieving page contents.
+                Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+            num_results (int, optional): Number of search results to return. Default 10.
+            include_domains (List[str], optional): Domains to include in the search.
+            exclude_domains (List[str], optional): Domains to exclude from the search.
+            start_crawl_date (str, optional): Only links crawled after this date.
+            end_crawl_date (str, optional): Only links crawled before this date.
+            start_published_date (str, optional): Only links published after this date.
+            end_published_date (str, optional): Only links published before this date.
+            include_text (List[str], optional): Strings that must appear in the page text.
+            exclude_text (List[str], optional): Strings that must not appear in the page text.
+            type (SearchType, optional): Search type - 'auto' (default), 'fast',
+                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+            category (Category, optional): Data category to focus on.
+            flags (List[str], optional): Experimental flags for Exa usage.
+            moderation (bool, optional): If True, the search results will be moderated for safety.
+            user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            additional_queries (List[str], optional): Alternative query formulations for deep search.
+            system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
+            output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
+
+        Returns:
+            AsyncStreamSearchResponse: An async iterator yielding OpenAI-style streaming chunks.
+
+        Examples:
+            >>> async_exa = AsyncExa(api_key="your-api-key")
+            >>> stream = await async_exa.stream_search(
+            ...     "What are the latest battery breakthroughs?",
+            ...     type="auto"
+            ... )
+            >>> async for chunk in stream:
+            ...     if chunk.content:
+            ...         print(chunk.content, end="", flush=True)
+        """
+        options = {k: v for k, v in locals().items() if k != "self" and v is not None}
+
+        if contents is False:
+            options.pop("contents", None)
+        elif contents is None and "contents" not in options:
+            options["contents"] = {"text": {"max_characters": DEFAULT_MAX_CHARACTERS}}
+        elif contents is not None:
+            options["contents"] = contents
+
+        validate_search_options(options, SEARCH_OPTIONS_TYPES)
+        options = to_camel_case(options, skip_keys=["output_schema"])
+        options["stream"] = True
+        raw_response = await self.async_request("/search", options)
+        return AsyncStreamSearchResponse(raw_response)
 
     async def search_and_contents(self, query: str, **kwargs):
         """

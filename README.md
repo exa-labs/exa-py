@@ -54,7 +54,7 @@ results = exa.search(
 ```python
 results = exa.search(
     "What are the latest battery breakthroughs?",
-    type="deep",
+    type="auto",
     system_prompt="Prefer official sources and avoid duplicate results",
     output_schema={
         "type": "object",
@@ -68,19 +68,30 @@ results = exa.search(
 print(results.output.content if results.output else None)
 ```
 
-Deep `output_schema` modes:
+```python
+for chunk in exa.stream_search(
+    "What are the latest battery breakthroughs?",
+    type="auto",
+):
+    if chunk.content:
+        print(chunk.content, end="", flush=True)
+```
+
+Search `output_schema` modes:
 - `{"type": "text", "description": "..."}`: return plain text in `output.content`
 - `{"type": "object", ...}`: return structured JSON in `output.content`
 
-Deep search also supports `system_prompt` to guide both the search process and the final returned result, for example by preferring certain sources, emphasizing novel findings, avoiding duplicates, or constraining output style.
+`system_prompt` and `output_schema` are supported on every search type.
+Search streaming is available via `stream_search(...)`, which yields OpenAI-style chat completion chunks.
 
-For `type: "object"`, deep search currently enforces:
+For `type: "object"`, search currently enforces:
 - max nesting depth: `2`
 - max total properties: `10`
 
-Deep search variants:
-- `deep`: light mode
-- `deep-reasoning`: base reasoning mode
+Deep search variants that also support `additional_queries`:
+- `deep-lite`
+- `deep`
+- `deep-reasoning`
 
 ## Contents
 
