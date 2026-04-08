@@ -264,15 +264,16 @@ SearchType = Literal[
     "deep-lite",
     "deep",
     "deep-reasoning",
+    "deep-max",
     "neural",
     "instant",
 ]
 """Search type that determines the search algorithm.
 
 'auto' (default) automatically selects the best approach, 'fast' prioritizes
-speed, 'deep-lite', 'deep', and 'deep-reasoning' are deep-search variants,
-'neural' uses embedding-based semantic search, and 'instant' uses low-latency
-neural search.
+speed, 'deep-lite', 'deep', 'deep-reasoning', and 'deep-max' are deep-search
+variants, 'neural' uses embedding-based semantic search, and 'instant' uses
+low-latency neural search.
 """
 
 
@@ -325,14 +326,14 @@ SEARCH_OPTIONS_TYPES = {
     "type": [
         SearchType,
         str,
-    ],  # Search type: 'auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
+    ],  # Search type: 'auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant' (Default: auto)
     "category": [Category],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
     "additional_queries": [
         list
-    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep-lite/deep/deep-reasoning.
+    ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep-lite/deep/deep-reasoning/deep-max.
     "system_prompt": [str],  # Instructions for search planning and final synthesis across all search types.
     "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
     "stream": [bool],  # If true, stream back OpenAI-style chat completion chunks.
@@ -1559,14 +1560,14 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
-                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+                'deep-lite', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep-lite', 'deep', or 'deep-reasoning'.
+                'deep-lite', 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             system_prompt (str, optional): Instructions that guide both the search process and
                 the final returned result. Use this to prefer certain sources, emphasize novelty,
@@ -1695,7 +1696,7 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
-                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+                'deep-lite', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on.
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
@@ -2701,14 +2702,14 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
-                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+                'deep-lite', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
-                'deep-lite', 'deep', or 'deep-reasoning'.
+                'deep-lite', 'deep', 'deep-reasoning', or 'deep-max'.
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             system_prompt (str, optional): Instructions that guide both the search process and
                 the final returned result. Use this to prefer certain sources, emphasize novelty,
@@ -2834,7 +2835,7 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
-                'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
+                'deep-lite', 'deep', 'deep-reasoning', 'deep-max', 'neural', or 'instant'.
             category (Category, optional): Data category to focus on.
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.

@@ -92,6 +92,7 @@ Deep search variants that also support `additional_queries`:
 - `deep-lite`
 - `deep`
 - `deep-reasoning`
+- `deep-max`
 
 ## Contents
 
