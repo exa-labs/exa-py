@@ -707,6 +707,90 @@ def test_search_accepts_highlights_with_max_characters_offline():
         assert highlights_opts["maxCharacters"] == 500
 
 
+def test_crawl_date_parsing_offline():
+    """Test that Result properly parses crawl_date from API response."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "text": "Sample text",
+                "crawlDate": "2026-04-14T12:31:28.000Z",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response):
+        resp = exa.search("test query", contents={"text": True}, num_results=1)
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].crawl_date == "2026-04-14T12:31:28.000Z"
+
+
+def test_crawl_date_defaults_to_none_offline():
+    """Test that crawl_date is None when not present in API response."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response):
+        resp = exa.search("test query", num_results=1)
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].crawl_date is None
+
+
+def test_crawl_date_on_result_dataclass_offline():
+    """Test that crawl_date can be set directly on Result objects."""
+    result = exa_api.Result(
+        url="http://example.com",
+        id="test-id",
+        title="Test Title",
+        crawl_date="2026-04-14T12:31:28.000Z",
+    )
+    assert result.crawl_date == "2026-04-14T12:31:28.000Z"
+
+    result_no_crawl = exa_api.Result(
+        url="http://example.com",
+        id="test-id",
+        title="Test Title",
+    )
+    assert result_no_crawl.crawl_date is None
+
+
+@pytest.mark.asyncio
+async def test_async_crawl_date_parsing_offline():
+    """Test that AsyncExa properly parses crawl_date from API response."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "crawlDate": "2026-04-14T12:31:28.000Z",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ):
+        resp = await ax.search("test query", num_results=1)
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].crawl_date == "2026-04-14T12:31:28.000Z"
+
+
 def test_search_and_contents_with_highlights_offline():
     """Test deprecated search_and_contents method with highlights."""
     exa = Exa(API_KEY)
