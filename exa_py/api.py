@@ -730,6 +730,7 @@ class _Result:
         subpages (List[_Result], optional): Subpages of main page
         extras (Dict, optional): Additional metadata; e.g. links, images.
         entities (List[Entity], optional): Structured entity data for company or person searches.
+        crawl_date (str, optional): The date the page was last crawled (if available).
     """
 
     url: str
@@ -743,6 +744,7 @@ class _Result:
     subpages: Optional[List[_Result]] = None
     extras: Optional[Dict] = None
     entities: Optional[List[Entity]] = None
+    crawl_date: Optional[str] = None
 
     def __init__(
         self,
@@ -757,6 +759,7 @@ class _Result:
         subpages=None,
         extras=None,
         entities=None,
+        crawl_date=None,
     ):
         self.url = url
         self.id = id
@@ -769,6 +772,7 @@ class _Result:
         self.subpages = subpages
         self.extras = extras
         self.entities = entities
+        self.crawl_date = crawl_date
 
     def __str__(self):
         result = (
@@ -782,6 +786,7 @@ class _Result:
             f"Favicon: {self.favicon}\n"
             f"Extras: {self.extras}\n"
             f"Subpages: {self.subpages}\n"
+            f"Crawl Date: {self.crawl_date}\n"
         )
         if self.entities:
             entities_str = "\n".join(
@@ -822,6 +827,7 @@ class Result(_Result):
         subpages=None,
         extras=None,
         entities=None,
+        crawl_date=None,
         text=None,
         summary=None,
         highlights=None,
@@ -839,6 +845,7 @@ class Result(_Result):
             subpages,
             extras,
             entities,
+            crawl_date,
         )
         self.text = text
         self.summary = summary
@@ -879,6 +886,7 @@ class ResultWithText(_Result):
         subpages=None,
         extras=None,
         entities=None,
+        crawl_date=None,
         text="",
     ):
         super().__init__(
@@ -893,6 +901,7 @@ class ResultWithText(_Result):
             subpages,
             extras,
             entities,
+            crawl_date,
         )
         self.text = text
 
@@ -925,6 +934,7 @@ class ResultWithSummary(_Result):
         subpages=None,
         extras=None,
         entities=None,
+        crawl_date=None,
         summary="",
     ):
         super().__init__(
@@ -939,6 +949,7 @@ class ResultWithSummary(_Result):
             subpages,
             extras,
             entities,
+            crawl_date,
         )
         self.summary = summary
 
@@ -973,6 +984,7 @@ class ResultWithTextAndSummary(_Result):
         subpages=None,
         extras=None,
         entities=None,
+        crawl_date=None,
         text="",
         summary="",
     ):
@@ -988,6 +1000,7 @@ class ResultWithTextAndSummary(_Result):
             subpages,
             extras,
             entities,
+            crawl_date,
         )
         self.text = text
         self.summary = summary
@@ -1639,6 +1652,7 @@ class Exa:
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -1802,6 +1816,7 @@ class Exa:
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -1968,6 +1983,7 @@ class Exa:
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -2067,6 +2083,7 @@ class Exa:
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -2282,6 +2299,7 @@ class Exa:
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -2778,6 +2796,7 @@ class AsyncExa(Exa):
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -2940,6 +2959,7 @@ class AsyncExa(Exa):
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -3042,6 +3062,7 @@ class AsyncExa(Exa):
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -3147,6 +3168,7 @@ class AsyncExa(Exa):
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -3226,6 +3248,7 @@ class AsyncExa(Exa):
                     favicon=snake_result.get("favicon"),
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
+                    crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
