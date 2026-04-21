@@ -15,6 +15,7 @@ from exa_py.websets.types import (
     UpdateWebsetRequest,
     CreateWebsetParameters,
     CreateWebsetParametersSearch,
+    CreateWebsetSearchParameters,
     CreateEnrichmentParameters,
     Format,
 )
@@ -215,7 +216,8 @@ def test_request_body_case_conversion(websets_client, parent_mock):
         external_id="test-id",
         search=CreateWebsetParametersSearch(
             query="test query",
-            count=10
+            count=10,
+            max_people_per_company=2
         ),
         metadata={"snake_case_key": "value"}
     )
@@ -226,7 +228,8 @@ def test_request_body_case_conversion(websets_client, parent_mock):
     assert actual_data == {
         "search": {
             "query": "test query",
-            "count": 10
+            "count": 10,
+            "maxPeoplePerCompany": 2
         },
         "externalId": "test-id",  # This should be camelCase in the request
         "metadata": {"snake_case_key": "value"}  # metadata preserved original case
@@ -887,22 +890,35 @@ async def test_async_searches_client_create(async_websets_client, async_parent_m
         "query": "test query",
         "criteria": [],
         "count": 10,
+        "maxPeoplePerCompany": 2,
         "progress": {"total": 100, "completed": 0, "found": 5, "completion": 0.0},
         "createdAt": "2023-01-01T00:00:00Z",
         "updatedAt": "2023-01-01T00:00:00Z"
     }
     async_parent_mock.async_request.return_value = search_response
     
-    params = {"query": "test query", "count": 10}
+    params = CreateWebsetSearchParameters(
+        query="test query",
+        count=10,
+        max_people_per_company=2,
+    )
     result = await async_websets_client.searches.create(webset_id="ws_123", params=params)
+
+    expected_data = {
+        "query": "test query",
+        "count": 10,
+        "maxPeoplePerCompany": 2,
+        "behavior": "override",
+    }
     
     async_parent_mock.async_request.assert_called_once_with(
         "/websets/v0/websets/ws_123/searches",
-        data=params,
+        data=expected_data,
         method="POST",
         params=None
     )
     assert result.id == "search_123"
+    assert result.max_people_per_company == 2
     assert result.query == "test query"
 
 @pytest.mark.asyncio
@@ -954,5 +970,3 @@ async def test_async_concurrent_requests(async_websets_client, async_parent_mock
     assert len(results) == 3
     assert all(result.id == "ws_123" for result in results)
     assert async_parent_mock.async_request.call_count == 3
-
- 

@@ -195,6 +195,10 @@ class CreateWebsetSearchParameters(ExaBaseModel):
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
     """
+    max_people_per_company: Annotated[Optional[PositiveInt], Field(alias='maxPeoplePerCompany')] = None
+    """
+    Optional soft cap for people searches. When set, the search will try to include at most this many matching people from the same current employer company.
+    """
     scope: Optional[List[ScopeItem]] = None
     """
     Limit the search to specific sources (existing imports or websets). Any results found within these sources matching the search criteria will be included in the Webset.
@@ -956,6 +960,10 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     exclude: Optional[List[ExcludeItem]] = None
     """
     Sources (existing imports or websets) to exclude from search results. Any results found within these sources will be omitted to prevent finding them during search.
+    """
+    max_people_per_company: Annotated[Optional[PositiveInt], Field(alias='maxPeoplePerCompany')] = None
+    """
+    Optional soft cap for people searches. When set, the search will try to include at most this many matching people from the same current employer company.
     """
     scope: Optional[List[ScopeItem]] = None
     """
@@ -1824,6 +1832,10 @@ class WebsetSearch(ExaBaseModel):
     count: PositiveInt
     """
     The number of results the search will attempt to find. The actual number of results may be less than this number depending on the search complexity.
+    """
+    max_people_per_company: Annotated[Optional[PositiveInt], Field(alias='maxPeoplePerCompany')] = None
+    """
+    The soft cap requested for matching people from the same current employer company, or null when no cap was requested.
     """
     behavior: Optional[WebsetSearchBehavior] = WebsetSearchBehavior.override
     """
