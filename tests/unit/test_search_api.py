@@ -596,6 +596,17 @@ def test_result_with_highlights_optional_scores_offline():
     assert result.highlight_scores is None
 
 
+def test_result_with_full_text_parsing_offline():
+    """Test that Result properly parses full_text."""
+    result = exa_api.Result(
+        url="http://example.com",
+        id="test-id",
+        title="Test Title",
+        full_text="Full page text",
+    )
+    assert result.full_text == "Full page text"
+
+
 def test_search_accepts_highlights_option_offline():
     """Test that search method accepts highlights in contents option."""
     exa = Exa(API_KEY)
@@ -705,6 +716,36 @@ def test_search_accepts_highlights_with_max_characters_offline():
         highlights_opts = options["contents"]["highlights"]
         assert highlights_opts["query"] == "key points"
         assert highlights_opts["maxCharacters"] == 500
+
+
+def test_search_accepts_full_text_option_offline():
+    """Test that search accepts full_text and sends fullText."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "fullText": "Full page text",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "test query",
+            contents={"full_text": {"max_characters": 1000}},
+            num_results=1,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].full_text == "Full page text"
+
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert options["contents"]["fullText"]["maxCharacters"] == 1000
+        assert "text" not in options["contents"]
 
 
 def test_crawl_date_parsing_offline():
@@ -824,6 +865,97 @@ def test_search_and_contents_with_highlights_offline():
         options = call_args[0][1]
         assert options["contents"]["highlights"] is True
         assert options["contents"]["text"] is True
+
+
+def test_search_and_contents_with_full_text_offline():
+    """Test deprecated search_and_contents method with full_text."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "fullText": "Full page text",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search_and_contents(
+            "test query",
+            full_text={"max_characters": 1000},
+            num_results=1,
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].full_text == "Full page text"
+
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert options["contents"]["fullText"]["maxCharacters"] == 1000
+        assert "text" not in options["contents"]
+
+
+def test_get_contents_with_full_text_offline():
+    """Test get_contents with full_text."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "fullText": "Full page text",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.get_contents(
+            ["http://example.com"],
+            full_text={"max_characters": 1000},
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].full_text == "Full page text"
+
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert options["fullText"]["maxCharacters"] == 1000
+        assert "text" not in options
+
+
+@pytest.mark.asyncio
+async def test_async_get_contents_with_full_text_offline():
+    """Test async get_contents with full_text."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "fullText": "Full page text",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        resp = await ax.get_contents(
+            ["http://example.com"],
+            full_text={"max_characters": 1000},
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].full_text == "Full page text"
+
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert options["fullText"]["maxCharacters"] == 1000
+        assert "text" not in options
 
 
 ########################################

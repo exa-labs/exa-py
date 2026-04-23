@@ -361,6 +361,7 @@ LIVECRAWL_OPTIONS = Literal["always", "fallback", "never", "auto", "preferred"]
 CONTENTS_OPTIONS_TYPES = {
     "urls": [list],
     "text": [dict, bool],
+    "full_text": [dict, bool],
     "summary": [dict, bool],
     "highlights": [dict, bool],
     "context": [dict, bool],
@@ -550,7 +551,10 @@ class ContentsOptions(TypedDict, total=False):
     max_characters=10000 is returned by default.
 
     Attributes:
-        text (TextContentsOptions | True): Options for text extraction, or True for defaults.
+        text (TextContentsOptions | True): Options for highlight-backed text extraction on search
+            and get_contents, or full page text on find_similar.
+        full_text (TextContentsOptions | True): Options for full page text extraction on search
+            and get_contents.
         highlights (HighlightsContentsOptions | True): Options for highlight extraction, or True for defaults.
         summary (SummaryContentsOptions | True): Options for summary generation, or True for defaults.
         context (ContextContentsOptions | True): Deprecated. Use ``highlights`` or ``text`` instead. Will be removed in a future version.
@@ -563,6 +567,7 @@ class ContentsOptions(TypedDict, total=False):
     """
 
     text: Union[TextContentsOptions, Literal[True]]
+    full_text: Union[TextContentsOptions, Literal[True]]
     highlights: Union[HighlightsContentsOptions, Literal[True]]
     summary: Union[SummaryContentsOptions, Literal[True]]
     context: Union[ContextContentsOptions, Literal[True]]
@@ -800,16 +805,18 @@ class _Result:
 @dataclass
 class Result(_Result):
     """
-    A class representing a search result with optional text, summary, and highlights.
+    A class representing a search result with optional text, full_text, summary, and highlights.
 
     Attributes:
-        text (str, optional): The text content of the page.
+        text (str, optional): Highlight-backed text from search and get_contents, or full page text from find_similar.
+        full_text (str, optional): The full page text content.
         summary (str, optional): A summary of the page content.
         highlights (List[str], optional): Relevant sentences from the page.
         highlight_scores (List[float], optional): Scores for each highlight.
     """
 
     text: Optional[str] = None
+    full_text: Optional[str] = None
     summary: Optional[str] = None
     highlights: Optional[List[str]] = None
     highlight_scores: Optional[List[float]] = None
@@ -829,6 +836,7 @@ class Result(_Result):
         entities=None,
         crawl_date=None,
         text=None,
+        full_text=None,
         summary=None,
         highlights=None,
         highlight_scores=None,
@@ -848,13 +856,14 @@ class Result(_Result):
             crawl_date,
         )
         self.text = text
+        self.full_text = full_text
         self.summary = summary
         self.highlights = highlights
         self.highlight_scores = highlight_scores
 
     def __str__(self):
         base_str = super().__str__()
-        result = base_str + f"Text: {self.text}\nSummary: {self.summary}\n"
+        result = base_str + f"Text: {self.text}\nFull Text: {self.full_text}\nSummary: {self.summary}\n"
         if self.highlights:
             result += f"Highlights: {self.highlights}\n"
         if self.highlight_scores:
@@ -908,6 +917,54 @@ class ResultWithText(_Result):
     def __str__(self):
         base_str = super().__str__()
         return base_str + f"Text: {self.text}\n"
+
+
+@dataclass
+class ResultWithFullText(_Result):
+    """
+    A class representing a search result with full_text present.
+
+    Attributes:
+        full_text (str): The full page text of the search result page.
+    """
+
+    full_text: str = dataclasses.field(default_factory=str)
+
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        entities=None,
+        crawl_date=None,
+        full_text="",
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+            entities,
+            crawl_date,
+        )
+        self.full_text = full_text
+
+    def __str__(self):
+        base_str = super().__str__()
+        return base_str + f"Full Text: {self.full_text}\n"
 
 
 @dataclass
@@ -1008,6 +1065,58 @@ class ResultWithTextAndSummary(_Result):
     def __str__(self):
         base_str = super().__str__()
         return base_str + f"Text: {self.text}\n" + f"Summary: {self.summary}\n"
+
+
+@dataclass
+class ResultWithFullTextAndSummary(_Result):
+    """
+    A class representing a search result with full_text and summary present.
+
+    Attributes:
+        full_text (str)
+        summary (str)
+    """
+
+    full_text: str = dataclasses.field(default_factory=str)
+    summary: str = dataclasses.field(default_factory=str)
+
+    def __init__(
+        self,
+        url,
+        id,
+        title=None,
+        score=None,
+        published_date=None,
+        author=None,
+        image=None,
+        favicon=None,
+        subpages=None,
+        extras=None,
+        entities=None,
+        crawl_date=None,
+        full_text="",
+        summary="",
+    ):
+        super().__init__(
+            url,
+            id,
+            title,
+            score,
+            published_date,
+            author,
+            image,
+            favicon,
+            subpages,
+            extras,
+            entities,
+            crawl_date,
+        )
+        self.full_text = full_text
+        self.summary = summary
+
+    def __str__(self):
+        base_str = super().__str__()
+        return base_str + f"Full Text: {self.full_text}\n" + f"Summary: {self.summary}\n"
 
 
 @dataclass
@@ -1552,7 +1661,7 @@ class Exa:
     ) -> SearchResponse[Result]:
         """Perform a search.
 
-        By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
+        By default, returns highlight-backed text contents with 10,000 max characters. Use contents=False to opt-out.
 
         Args:
             query (str): The query string.
@@ -1560,7 +1669,7 @@ class Exa:
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, etc.).
+                See ContentsOptions for available options (text, full_text, highlights, summary, etc.).
                 Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
@@ -1654,6 +1763,7 @@ class Exa:
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -1764,6 +1874,7 @@ class Exa:
         # If user didn't ask for any particular content, default to text with max characters
         if (
             "text" not in options
+            and "full_text" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -1786,6 +1897,7 @@ class Exa:
             options,
             [
                 "text",
+                "full_text",
                 "summary",
                 "highlights",
                 "context",
@@ -1818,6 +1930,7 @@ class Exa:
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -1869,6 +1982,22 @@ class Exa:
         self,
         urls: Union[str, List[str], List[_Result]],
         *,
+        full_text: Union[TextContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
+        filter_empty_results: Optional[bool] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
+        extras: Optional[ExtrasOptions] = None,
+        flags: Optional[List[str]] = None,
+    ) -> SearchResponse[ResultWithFullText]: ...
+
+    @overload
+    def get_contents(
+        self,
+        urls: Union[str, List[str], List[_Result]],
+        *,
         summary: Union[SummaryContentsOptions, Literal[True]],
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
@@ -1897,12 +2026,30 @@ class Exa:
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
+    @overload
+    def get_contents(
+        self,
+        urls: Union[str, List[str], List[_Result]],
+        *,
+        full_text: Union[TextContentsOptions, Literal[True]],
+        summary: Union[SummaryContentsOptions, Literal[True]],
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
+        filter_empty_results: Optional[bool] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
+        extras: Optional[ExtrasOptions] = None,
+        flags: Optional[List[str]] = None,
+    ) -> SearchResponse[ResultWithFullTextAndSummary]: ...
+
     def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
         """Retrieve contents for a list of URLs.
 
         Args:
             urls (str | List[str] | List[Result]): A single URL, list of URLs, or list of Result objects.
-            text (TextContentsOptions | True, optional): Options for text extraction.
+            text (TextContentsOptions | True, optional): Options for highlight-backed text extraction.
+            full_text (TextContentsOptions | True, optional): Options for full page text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
                 it will be fetched fresh. Special values: 0 = always fetch fresh content,
@@ -1940,6 +2087,7 @@ class Exa:
 
         if (
             "text" not in options
+            and "full_text" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -1985,6 +2133,7 @@ class Exa:
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -2021,7 +2170,7 @@ class Exa:
     ) -> SearchResponse[Result]:
         """Finds similar pages to a given URL, potentially with domain filters and date filters.
 
-        By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
+        By default, returns full page text contents with 10,000 max characters. Use contents=False to opt-out.
 
         Args:
             url (str): The URL to find similar pages for.
@@ -2085,6 +2234,7 @@ class Exa:
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -2249,7 +2399,7 @@ class Exa:
             if v is not None:
                 options[k] = v
         # Default to text with max characters if none specified
-        if "text" not in options and "summary" not in options:
+        if "text" not in options and "full_text" not in options and "summary" not in options:
             options["text"] = {"max_characters": DEFAULT_MAX_CHARACTERS}
 
         merged_options = {}
@@ -2269,6 +2419,7 @@ class Exa:
             options,
             [
                 "text",
+                "full_text",
                 "summary",
                 "highlights",
                 "context",
@@ -2301,6 +2452,7 @@ class Exa:
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -2699,7 +2851,7 @@ class AsyncExa(Exa):
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
-        By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
+        By default, returns highlight-backed text contents with 10,000 max characters. Use contents=False to opt-out.
 
         Args:
             query (str): The query string.
@@ -2707,7 +2859,7 @@ class AsyncExa(Exa):
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, etc.).
+                See ContentsOptions for available options (text, full_text, highlights, summary, etc.).
                 Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
@@ -2798,6 +2950,7 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -2907,6 +3060,7 @@ class AsyncExa(Exa):
         # If user didn't ask for any particular content, default to text with max characters
         if (
             "text" not in options
+            and "full_text" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -2929,6 +3083,7 @@ class AsyncExa(Exa):
             options,
             [
                 "text",
+                "full_text",
                 "summary",
                 "highlights",
                 "context",
@@ -2961,6 +3116,7 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -2981,7 +3137,8 @@ class AsyncExa(Exa):
 
         Args:
             urls (str | List[str] | List[Result]): A single URL, list of URLs, or list of Result objects.
-            text (TextContentsOptions | True, optional): Options for text extraction.
+            text (TextContentsOptions | True, optional): Options for highlight-backed text extraction.
+            full_text (TextContentsOptions | True, optional): Options for full page text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
                 it will be fetched fresh. Special values: 0 = always fetch fresh content,
@@ -3019,6 +3176,7 @@ class AsyncExa(Exa):
 
         if (
             "text" not in options
+            and "full_text" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -3064,6 +3222,7 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -3100,7 +3259,7 @@ class AsyncExa(Exa):
     ) -> SearchResponse[Result]:
         """Finds similar pages to a given URL, potentially with domain filters and date filters.
 
-        By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
+        By default, returns full page text contents with 10,000 max characters. Use contents=False to opt-out.
 
         Args:
             url (str): The URL to find similar pages for.
@@ -3170,6 +3329,7 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),
@@ -3198,7 +3358,7 @@ class AsyncExa(Exa):
             if v is not None:
                 options[k] = v
         # Default to text with max characters if none specified
-        if "text" not in options and "summary" not in options:
+        if "text" not in options and "full_text" not in options and "summary" not in options:
             options["text"] = {"max_characters": DEFAULT_MAX_CHARACTERS}
 
         merged_options = {}
@@ -3218,6 +3378,7 @@ class AsyncExa(Exa):
             options,
             [
                 "text",
+                "full_text",
                 "summary",
                 "highlights",
                 "context",
@@ -3250,6 +3411,7 @@ class AsyncExa(Exa):
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
                     text=snake_result.get("text"),
+                    full_text=snake_result.get("full_text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
                     highlight_scores=snake_result.get("highlight_scores"),

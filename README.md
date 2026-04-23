@@ -98,7 +98,7 @@ Deep search variants that also support `additional_queries`:
 ```python
 results = exa.get_contents(
     ["https://docs.exa.ai"],
-    text=True
+    full_text=True
 )
 ```
 
