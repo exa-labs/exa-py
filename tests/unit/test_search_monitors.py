@@ -113,7 +113,7 @@ class TestAsyncSearchMonitorsListAll:
             async for monitor in async_monitors_client.list_all():
                 results.append(monitor)
             return results
-        results = asyncio.get_event_loop().run_until_complete(_run())
+        results = asyncio.run(_run())
         assert len(results) == 2
         assert results[0].id == "sm_1"
 
@@ -127,7 +127,7 @@ class TestAsyncSearchMonitorsListAll:
             async for monitor in async_monitors_client.list_all():
                 results.append(monitor)
             return results
-        results = asyncio.get_event_loop().run_until_complete(_run())
+        results = asyncio.run(_run())
         assert len(results) == 2
         assert async_mock_client.async_request.call_count == 2
 
@@ -139,7 +139,7 @@ class TestAsyncSearchMonitorsListAll:
                 "nextCursor": None,
             }
             return await async_monitors_client.get_all()
-        results = asyncio.get_event_loop().run_until_complete(_run())
+        results = asyncio.run(_run())
         assert isinstance(results, list)
         assert len(results) == 1
 
