@@ -926,6 +926,36 @@ def test_get_contents_with_full_text_offline():
         assert "text" not in options
 
 
+def test_get_contents_with_query_guided_text_offline():
+    """Test get_contents passes query-guided text options."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "text": "Focused text excerpt",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.get_contents(
+            ["http://example.com"],
+            text={"query": "when did they graduate", "max_characters": 1000},
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].text == "Focused text excerpt"
+
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert options["text"]["query"] == "when did they graduate"
+        assert options["text"]["maxCharacters"] == 1000
+        assert "fullText" not in options
+
+
 @pytest.mark.asyncio
 async def test_async_get_contents_with_full_text_offline():
     """Test async get_contents with full_text."""
@@ -956,6 +986,39 @@ async def test_async_get_contents_with_full_text_offline():
         options = call_args[0][1]
         assert options["fullText"]["maxCharacters"] == 1000
         assert "text" not in options
+
+
+@pytest.mark.asyncio
+async def test_async_get_contents_with_query_guided_text_offline():
+    """Test async get_contents passes query-guided text options."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "text": "Focused text excerpt",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        resp = await ax.get_contents(
+            ["http://example.com"],
+            text={"query": "when did they graduate", "max_characters": 1000},
+        )
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert resp.results[0].text == "Focused text excerpt"
+
+        call_args = mock_request.call_args
+        options = call_args[0][1]
+        assert options["text"]["query"] == "when did they graduate"
+        assert options["text"]["maxCharacters"] == 1000
+        assert "fullText" not in options
 
 
 ########################################

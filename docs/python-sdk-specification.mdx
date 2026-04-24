@@ -70,7 +70,7 @@ deep_result = exa.search(
 | --------- | ---- | ----------- | ------- |
 | query | str | The query string. | Required |
 | stream | Optional[bool] | If True, stream the synthesized search response. Use ``stream_search(...)`` instead of ``search(..., stream=True)``. | `False` |
-| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead. | None |
+| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, full_text, highlights, summary, etc.). Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead. | None |
 | num_results | Optional[int] | Number of search results to return. Default 10. | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
 | exclude_domains | Optional[List[str]] | Domains to exclude from the search. | None |
@@ -151,7 +151,7 @@ similar_results = exa.find_similar(
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | url | str | The URL to find similar pages for. | Required |
-| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). | None |
+| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, full_text, highlights, summary, etc.). | None |
 | num_results | Optional[int] | Number of results to return. Default is None (server default). | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
 | exclude_domains | Optional[List[str]] | Domains to exclude from the search. | None |
@@ -1118,6 +1118,7 @@ A class representing the options that you can specify when requesting text
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
+| query | str | Optional guiding query. On get_contents, setting query makes text return focused excerpts instead of truncated full page text. |
 | max_characters | int | The maximum number of characters to return. Default: None (no limit). |
 | include_html_tags | bool | If true, include HTML tags in the returned text. Default false. |
 | verbosity | [VERBOSITY_OPTIONS](#verbosity_options) | Controls verbosity level of returned content. "compact" (default): main content only; "standard": balanced; "full": all sections. Requires max_age_hours=0 to take effect. |
@@ -1174,7 +1175,8 @@ max_characters=10000 is returned by default.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| text | Union[[TextContentsOptions](#textcontentsoptions), Literal[True]] | Options for text extraction, or True for defaults. |
+| text | Union[[TextContentsOptions](#textcontentsoptions), Literal[True]] | Options for highlight-backed text on search, truncated full page text on get_contents unless query is set, or full page text on find_similar. |
+| full_text | Union[[TextContentsOptions](#textcontentsoptions), Literal[True]] | Options for full page text extraction on search and get_contents. |
 | highlights | Union[[HighlightsContentsOptions](#highlightscontentsoptions), Literal[True]] | Options for highlight extraction, or True for defaults. |
 | summary | Union[[SummaryContentsOptions](#summarycontentsoptions), Literal[True]] | Options for summary generation, or True for defaults. |
 | context | Union[[ContextContentsOptions](#contextcontentsoptions), Literal[True]] | Deprecated. Use `highlights` or `text` instead. Will be removed in a future version. |
@@ -2169,4 +2171,3 @@ Structured entity data for a person.
 | type | Literal['person'] | - |
 | version | int | - |
 | properties | [EntityPersonProperties](#entitypersonproperties) | - |
-

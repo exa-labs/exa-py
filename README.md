@@ -98,14 +98,15 @@ Deep search variants that also support `additional_queries`:
 ```python
 results = exa.get_contents(
     ["https://docs.exa.ai"],
-    full_text=True
+    text=True
 )
 ```
 
 ```python
 results = exa.get_contents(
     ["https://arxiv.org/abs/2303.08774"],
-    highlights=True
+    text={"query": "main results", "max_characters": 1000},
+    full_text=True
 )
 ```
 

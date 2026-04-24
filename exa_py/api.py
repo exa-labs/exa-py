@@ -449,6 +449,8 @@ class TextContentsOptions(TypedDict, total=False):
     """A class representing the options that you can specify when requesting text
 
     Attributes:
+        query (str): Optional guiding query. On get_contents, setting query makes text return
+            focused excerpts instead of truncated full page text.
         max_characters (int): The maximum number of characters to return. Default: None (no limit).
         include_html_tags (bool): If true, include HTML tags in the returned text. Default false.
         verbosity (VERBOSITY_OPTIONS): Controls verbosity level of returned content.
@@ -460,6 +462,7 @@ class TextContentsOptions(TypedDict, total=False):
             Requires max_age_hours=0 to take effect.
     """
 
+    query: str
     max_characters: int
     include_html_tags: bool
     verbosity: VERBOSITY_OPTIONS
@@ -551,8 +554,9 @@ class ContentsOptions(TypedDict, total=False):
     max_characters=10000 is returned by default.
 
     Attributes:
-        text (TextContentsOptions | True): Options for highlight-backed text extraction on search
-            and get_contents, or full page text on find_similar.
+        text (TextContentsOptions | True): Options for highlight-backed text extraction on search,
+            truncated full page text on get_contents unless query is set, or full page text on
+            find_similar.
         full_text (TextContentsOptions | True): Options for full page text extraction on search
             and get_contents.
         highlights (HighlightsContentsOptions | True): Options for highlight extraction, or True for defaults.
@@ -808,7 +812,8 @@ class Result(_Result):
     A class representing a search result with optional text, full_text, summary, and highlights.
 
     Attributes:
-        text (str, optional): Highlight-backed text from search and get_contents, or full page text from find_similar.
+        text (str, optional): Highlight-backed text from search, truncated full page text from
+            get_contents unless query is set, or full page text from find_similar.
         full_text (str, optional): The full page text content.
         summary (str, optional): A summary of the page content.
         highlights (List[str], optional): Relevant sentences from the page.
@@ -2048,7 +2053,8 @@ class Exa:
 
         Args:
             urls (str | List[str] | List[Result]): A single URL, list of URLs, or list of Result objects.
-            text (TextContentsOptions | True, optional): Options for highlight-backed text extraction.
+            text (TextContentsOptions | True, optional): Options for truncated full page text
+                extraction. Set text.query to return focused excerpts instead.
             full_text (TextContentsOptions | True, optional): Options for full page text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
@@ -2176,7 +2182,7 @@ class Exa:
             url (str): The URL to find similar pages for.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, etc.).
+                See ContentsOptions for available options (text, full_text, highlights, summary, etc.).
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -3137,7 +3143,8 @@ class AsyncExa(Exa):
 
         Args:
             urls (str | List[str] | List[Result]): A single URL, list of URLs, or list of Result objects.
-            text (TextContentsOptions | True, optional): Options for highlight-backed text extraction.
+            text (TextContentsOptions | True, optional): Options for truncated full page text
+                extraction. Set text.query to return focused excerpts instead.
             full_text (TextContentsOptions | True, optional): Options for full page text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
@@ -3265,7 +3272,7 @@ class AsyncExa(Exa):
             url (str): The URL to find similar pages for.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, etc.).
+                See ContentsOptions for available options (text, full_text, highlights, summary, etc.).
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
