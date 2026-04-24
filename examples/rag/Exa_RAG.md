@@ -47,8 +47,7 @@ Robust retrieval helps solve all of these issues by providing a quality sources 
 ```python
 # Parameters for our Highlights search
 highlights_options  = {
-    "num_sentences": 7, # how long our highlights should be
-    "highlights_per_url": 1, # just get the best highlight for each URL
+    "max_characters": 4000, # limit returned highlights by character count
 }
 
 # Let the magic happen!

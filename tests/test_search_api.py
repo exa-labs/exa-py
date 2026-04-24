@@ -45,6 +45,39 @@ def test_search_accepts_user_location_offline():
         assert isinstance(resp, exa_api.SearchResponse)
 
 
+def test_search_and_contents_accepts_highlights_max_characters_offline():
+    """Test that highlights.max_characters is converted to highlights.maxCharacters."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "highlights": ["highlight"],
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as request_mock:
+        resp = exa.search_and_contents(
+            "test query",
+            highlights={"max_characters": 4000},
+            num_results=1,
+        )
+
+    request_mock.assert_called_once_with(
+        "/search",
+        {
+            "query": "test query",
+            "numResults": 1,
+            "contents": {"highlights": {"maxCharacters": 4000}},
+        },
+    )
+    assert isinstance(resp, exa_api.SearchResponse)
+
+
 @pytest.mark.asyncio
 async def test_async_request_accepts_201():
     ax = AsyncExa(API_KEY)

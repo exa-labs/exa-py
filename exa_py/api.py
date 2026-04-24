@@ -260,8 +260,9 @@ class HighlightsContentsOptions(TypedDict, total=False):
 
     Attributes:
         query (str): The query string for the highlights.
-        num_sentences (int): Size of highlights to return, in sentences. Default: 5
-        highlights_per_url (int): Number of highlights to return per URL. Default: 1
+        max_characters (int): The maximum number of characters to return for highlights.
+        num_sentences (int): Deprecated. Use max_characters instead.
+        highlights_per_url (int): Deprecated. Use max_characters instead.
 
     NOTE: When using the "deep" search type, only the default highlights=True is supported.
           These options will NOT be respected. Highlights will always be based on the user's query,
@@ -269,6 +270,7 @@ class HighlightsContentsOptions(TypedDict, total=False):
     """
 
     query: str
+    max_characters: int
     num_sentences: int
     highlights_per_url: int
 
