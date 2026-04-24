@@ -339,7 +339,8 @@
   "exclude_type_aliases": ["LIVECRAWL_OPTIONS"],
   "type_field_overrides": {
     "ContentsOptions": [
-      {"name": "text", "type": "Union[TextContentsOptions, Literal[True]]", "description": "Options for text extraction, or True for defaults."},
+      {"name": "text", "type": "Union[TextContentsOptions, Literal[True]]", "description": "Options for highlight-backed text on search, truncated full page text on get_contents unless query is set, or full page text on find_similar."},
+      {"name": "full_text", "type": "Union[TextContentsOptions, Literal[True]]", "description": "Options for full page text extraction on search and get_contents."},
       {"name": "highlights", "type": "Union[HighlightsContentsOptions, Literal[True]]", "description": "Options for highlight extraction, or True for defaults."},
       {"name": "summary", "type": "Union[SummaryContentsOptions, Literal[True]]", "description": "Options for summary generation, or True for defaults."},
       {"name": "context", "type": "Union[ContextContentsOptions, Literal[True]]", "description": "Deprecated. Use `highlights` or `text` instead. Will be removed in a future version."},
