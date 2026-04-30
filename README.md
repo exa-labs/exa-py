@@ -105,7 +105,8 @@ results = exa.get_contents(
 ```python
 results = exa.get_contents(
     ["https://arxiv.org/abs/2303.08774"],
-    highlights=True
+    text={"query": "main results", "max_characters": 1000},
+    full_text=True
 )
 ```
 
