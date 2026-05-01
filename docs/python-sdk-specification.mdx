@@ -70,7 +70,7 @@ deep_result = exa.search(
 | --------- | ---- | ----------- | ------- |
 | query | str | The query string. | Required |
 | stream | Optional[bool] | If True, stream the synthesized search response. Use ``stream_search(...)`` instead of ``search(..., stream=True)``. | `False` |
-| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead. | None |
+| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). DEPRECATED FIELD WARNING: ``contents.context`` is deprecated; use ``highlights`` or ``text`` instead. | None |
 | num_results | Optional[int] | Number of search results to return. Default 10. | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
 | exclude_domains | Optional[List[str]] | Domains to exclude from the search. | None |
@@ -129,6 +129,7 @@ deep_result = exa.search(
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 
 ## `find_similar` Method
 
@@ -151,7 +152,7 @@ similar_results = exa.find_similar(
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | url | str | The URL to find similar pages for. | Required |
-| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). | None |
+| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). DEPRECATED FIELD WARNING: ``contents.context`` is deprecated; use ``highlights`` or ``text`` instead. | None |
 | num_results | Optional[int] | Number of results to return. Default is None (server default). | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
 | exclude_domains | Optional[List[str]] | Domains to exclude from the search. | None |
@@ -204,6 +205,7 @@ similar_results = exa.find_similar(
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 
 ## `get_contents` Method
 
@@ -258,6 +260,7 @@ contents = exa.get_contents([
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 
 ## `answer` Method
 
@@ -1141,12 +1144,12 @@ A class representing the options that you can specify when requesting highlights
 | ----- | ---- | ----------- |
 | query | str | The query string for highlight generation. Highlights will be biased towards this query. |
 | max_characters | int | The maximum number of characters to return for highlights. Default: None (server default). |
-| num_sentences | int | Deprecated. Use max_characters instead. The number of sentences per highlight. |
-| highlights_per_url | int | Deprecated. Use max_characters instead. The number of highlights to return per URL. |
+| num_sentences | int | DEPRECATED FIELD - do not use in new code. Use max_characters instead. Kept only for backward compatibility. |
+| highlights_per_url | int | DEPRECATED FIELD - do not use in new code. Use max_characters instead. Kept only for backward compatibility. |
 
 #### `ContextContentsOptions`
 
-Options for retrieving aggregated context from a set of search results.
+DEPRECATED TYPE: Options for legacy aggregated context from search results.
 
 .. deprecated::
     Use ``highlights`` or ``text`` instead. The ``context`` option is deprecated
@@ -1154,7 +1157,7 @@ Options for retrieving aggregated context from a set of search results.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| max_characters | int | The maximum number of characters to include in the context string. |
+| max_characters | int | DEPRECATED FIELD - only applies to deprecated contents.context. Use highlights.max_characters or text.max_characters instead. |
 
 #### `ExtrasOptions`
 
@@ -1177,7 +1180,7 @@ max_characters=10000 is returned by default.
 | text | Union[[TextContentsOptions](#textcontentsoptions), Literal[True]] | Options for text extraction, or True for defaults. |
 | highlights | Union[[HighlightsContentsOptions](#highlightscontentsoptions), Literal[True]] | Options for highlight extraction, or True for defaults. |
 | summary | Union[[SummaryContentsOptions](#summarycontentsoptions), Literal[True]] | Options for summary generation, or True for defaults. |
-| context | Union[[ContextContentsOptions](#contextcontentsoptions), Literal[True]] | Deprecated. Use `highlights` or `text` instead. Will be removed in a future version. |
+| context | Union[[ContextContentsOptions](#contextcontentsoptions), Literal[True]] | DEPRECATED FIELD - do not use in new code. Use `highlights` or `text` instead. Will be removed in a future version. |
 | max_age_hours | int | Maximum age of cached content in hours. If content is older, it will be fetched fresh. Special values: 0 = always fetch fresh content, -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days. |
 | subpages | int | Number of subpages to crawl. |
 | subpage_target | Union[str, List[str]] | Target subpage path(s) to crawl. |
@@ -1208,7 +1211,7 @@ Deep search output schema for structured JSON object output.
 
 #### `JSONSchema`
 
-Represents a JSON Schema definition used for structured summary output.
+DEPRECATED TYPE: Legacy JSON Schema TypedDict for structured summary output.
 
 .. deprecated:: 1.15.0
     Use Pydantic models or dict[str, Any] directly instead.
@@ -1279,6 +1282,7 @@ A class representing the base fields of a search result.
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 
 #### `Result`
 
@@ -1297,6 +1301,7 @@ A class representing a search result with optional text, summary, and highlights
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 | text | Optional[str] | The text content of the page. |
 | summary | Optional[str] | A summary of the page content. |
 | highlights | Optional[List[str]] | Relevant sentences from the page. |
@@ -1319,6 +1324,7 @@ A class representing a search result with text present.
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 | text | str | The text of the search result page. |
 
 #### `ResultWithSummary`
@@ -1338,6 +1344,7 @@ A class representing a search result with summary present.
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 | summary | str | - |
 
 #### `ResultWithTextAndSummary`
@@ -1357,6 +1364,7 @@ A class representing a search result with text and summary present.
 | subpages | Optional[List[[_Result](#_result)]] | Subpages of main page |
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
+| crawl_date | Optional[str] | The date the page was last crawled (if available). |
 | text | str | - |
 | summary | str | - |
 
@@ -1427,7 +1435,7 @@ A class representing the response for a search operation.
 | results | List[T] | A list of search results. |
 | resolved_search_type | Optional[str] | 'neural' or 'keyword' if auto. |
 | auto_date | Optional[str] | A date for filtering if autoprompt found one. |
-| context | Optional[str] | Deprecated. Combined context string when requested via contents.context. Use highlights or text instead. |
+| context | Optional[str] | DEPRECATED FIELD - do not use in new code. Combined context string from legacy context responses. Use highlights, text, or output instead. |
 | output | Optional['[DeepSearchOutput](#deepsearchoutput)'] | Search synthesized output object returned when output_schema is provided, containing content and field-level grounding. |
 | statuses | Optional[List[[ContentStatus](#contentstatus)]] | Status list from get_contents. |
 | cost_dollars | Optional[[CostDollars](#costdollars)] | Cost breakdown. |
@@ -1742,8 +1750,8 @@ Options for highlights extraction in monitor results.
 | ----- | ---- | ----------- |
 | query | Optional[str] | - |
 | max_characters | Optional[int] | - |
-| num_sentences | Optional[int] | - |
-| highlights_per_url | Optional[int] | - |
+| num_sentences | Optional[int] | DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead. |
+| highlights_per_url | Optional[int] | DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead. |
 
 #### `SearchMonitorSummaryContents`
 
@@ -1768,7 +1776,8 @@ Options for additional data extraction in monitor results.
 Options for retrieving page contents in monitor results.
 
 Mirrors the main search ContentsOptions. Text, highlights, and summary
-accept either True (for defaults) or an options object.
+accept either True (for defaults) or an options object. The context field is
+deprecated and kept only for backward compatibility.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
@@ -1776,7 +1785,7 @@ accept either True (for defaults) or an options object.
 | highlights | Optional[Union[bool, [SearchMonitorHighlightsContents](#searchmonitorhighlightscontents)]] | - |
 | summary | Optional[Union[bool, [SearchMonitorSummaryContents](#searchmonitorsummarycontents)]] | - |
 | extras | Optional[[SearchMonitorExtrasContents](#searchmonitorextrascontents)] | - |
-| context | Optional[Union[bool, Dict[str, Any]]] | - |
+| context | Optional[Union[bool, Dict[str, Any]]] | DEPRECATED FIELD - do not use in new code. Use highlights or text instead. |
 | livecrawl | Optional[[LIVECRAWL_OPTION](#livecrawl_option)] | - |
 | livecrawl_timeout | Optional[int] | - |
 | max_age_hours | Optional[int] | - |

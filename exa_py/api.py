@@ -29,7 +29,7 @@ import requests
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, deprecated
 
 from exa_py.utils import (
     ExaOpenAICompletion,
@@ -363,7 +363,7 @@ CONTENTS_OPTIONS_TYPES = {
     "text": [dict, bool],
     "summary": [dict, bool],
     "highlights": [dict, bool],
-    "context": [dict, bool],
+    "context": [dict, bool],  # DEPRECATED FIELD: use highlights or text instead.
     "metadata": [dict, bool],
     "livecrawl_timeout": [int],
     "livecrawl": [LIVECRAWL_OPTIONS],
@@ -466,8 +466,9 @@ class TextContentsOptions(TypedDict, total=False):
     exclude_sections: List[SECTION_TAG]
 
 
+@deprecated("Use Pydantic models or dict[str, Any] directly instead. JSONSchema will be removed in a future version.")
 class JSONSchema(TypedDict, total=False):
-    """Represents a JSON Schema definition used for structured summary output.
+    """DEPRECATED TYPE: Legacy JSON Schema TypedDict for structured summary output.
 
     .. deprecated:: 1.15.0
         Use Pydantic models or dict[str, Any] directly instead.
@@ -512,28 +513,31 @@ class HighlightsContentsOptions(TypedDict, total=False):
     Attributes:
         query (str): The query string for highlight generation. Highlights will be biased towards this query.
         max_characters (int): The maximum number of characters to return for highlights. Default: None (server default).
-        num_sentences (int): Deprecated. Use max_characters instead. The number of sentences per highlight.
-        highlights_per_url (int): Deprecated. Use max_characters instead. The number of highlights to return per URL.
+        num_sentences (int): DEPRECATED FIELD - do not use in new code. Use max_characters instead.
+            Kept only for backward compatibility.
+        highlights_per_url (int): DEPRECATED FIELD - do not use in new code. Use max_characters instead.
+            Kept only for backward compatibility.
     """
 
     query: str
     max_characters: int
-    num_sentences: int
-    highlights_per_url: int
+    num_sentences: int  # DEPRECATED FIELD: use max_characters. Do not use in new code.
+    highlights_per_url: int  # DEPRECATED FIELD: use max_characters. Do not use in new code.
 
 
 class ContextContentsOptions(TypedDict, total=False):
-    """Options for retrieving aggregated context from a set of search results.
+    """DEPRECATED TYPE: Options for legacy aggregated context from search results.
 
     .. deprecated::
         Use ``highlights`` or ``text`` instead. The ``context`` option is deprecated
         and will be removed in a future version.
 
     Attributes:
-        max_characters (int): The maximum number of characters to include in the context string.
+        max_characters (int): DEPRECATED FIELD - only applies to deprecated contents.context.
+            Use highlights.max_characters or text.max_characters instead.
     """
 
-    max_characters: int
+    max_characters: int  # DEPRECATED FIELD: only for contents.context. Use highlights/text instead.
 
 
 class ExtrasOptions(TypedDict, total=False):
@@ -553,7 +557,8 @@ class ContentsOptions(TypedDict, total=False):
         text (TextContentsOptions | True): Options for text extraction, or True for defaults.
         highlights (HighlightsContentsOptions | True): Options for highlight extraction, or True for defaults.
         summary (SummaryContentsOptions | True): Options for summary generation, or True for defaults.
-        context (ContextContentsOptions | True): Deprecated. Use ``highlights`` or ``text`` instead. Will be removed in a future version.
+        context (ContextContentsOptions | True): DEPRECATED FIELD - do not use in new code.
+            Use ``highlights`` or ``text`` instead. Will be removed in a future version.
         max_age_hours (int): Maximum age of cached content in hours. If content is older, it will be
             fetched fresh. Special values: 0 = always fetch fresh content,
             -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days.
@@ -565,7 +570,7 @@ class ContentsOptions(TypedDict, total=False):
     text: Union[TextContentsOptions, Literal[True]]
     highlights: Union[HighlightsContentsOptions, Literal[True]]
     summary: Union[SummaryContentsOptions, Literal[True]]
-    context: Union[ContextContentsOptions, Literal[True]]
+    context: Union[ContextContentsOptions, Literal[True]]  # DEPRECATED FIELD: use highlights or text.
     livecrawl: LIVECRAWL_OPTIONS
     livecrawl_timeout: int
     max_age_hours: int
@@ -1253,7 +1258,8 @@ class SearchResponse(Generic[T]):
         results (List[Result]): A list of search results.
         resolved_search_type (str, optional): 'neural' or 'keyword' if auto.
         auto_date (str, optional): A date for filtering if autoprompt found one.
-        context (str, optional): Deprecated. Combined context string when requested via contents.context. Use highlights or text instead.
+        context (str, optional): DEPRECATED FIELD - do not use in new code.
+            Combined context string from legacy context responses. Use highlights, text, or output instead.
         output (DeepSearchOutput, optional): Search synthesized output object returned
             when output_schema is provided, containing content and field-level
             grounding.
@@ -1265,7 +1271,7 @@ class SearchResponse(Generic[T]):
     results: List[T]
     resolved_search_type: Optional[str]
     auto_date: Optional[str]
-    context: Optional[str] = None
+    context: Optional[str] = None  # DEPRECATED FIELD: legacy context response. Use highlights/text/output.
     output: Optional["DeepSearchOutput"] = None
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
@@ -1273,7 +1279,7 @@ class SearchResponse(Generic[T]):
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
-        if self.context:
+        if self.context:  # DEPRECATED FIELD: legacy context response.
             output += f"\nContext: {self.context}"
         if self.output is not None:
             output += f"\nOutput: {self.output}"
@@ -1561,7 +1567,8 @@ class Exa:
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
-                Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
+                DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
+                use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -1664,7 +1671,7 @@ class Exa:
             results,
             data["resolvedSearchType"] if "resolvedSearchType" in data else None,
             data["autoDate"] if "autoDate" in data else None,
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
@@ -1699,6 +1706,8 @@ class Exa:
             query (str): The query string.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
+                use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -1747,6 +1756,10 @@ class Exa:
         raw_response = self.request("/search", options)
         return StreamSearchResponse(raw_response)
 
+    @deprecated(
+        "search_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
+    )
     def search_and_contents(self, query: str, **kwargs):
         """
         DEPRECATED: Use search() instead. The search() method now returns text contents by default.
@@ -1788,7 +1801,7 @@ class Exa:
                 "text",
                 "summary",
                 "highlights",
-                "context",
+                "context",  # DEPRECATED FIELD: accepted only for backward compatibility.
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -1828,7 +1841,7 @@ class Exa:
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
@@ -1995,7 +2008,7 @@ class Exa:
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             cost_dollars=cost_dollars,
             statuses=statuses,
             search_time=data.get("searchTime"),
@@ -2028,6 +2041,8 @@ class Exa:
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
+                DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
+                use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -2100,6 +2115,10 @@ class Exa:
         )
 
     @overload
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
+        "find_similar() returns text contents by default."
+    )
     def find_similar_and_contents(
         self,
         url: str,
@@ -2126,33 +2145,10 @@ class Exa:
     ) -> SearchResponse[ResultWithText]: ...
 
     @overload
-    def find_similar_and_contents(
-        self,
-        url: str,
-        *,
-        text: Union[TextContentsOptions, Literal[True]],
-        num_results: Optional[int] = None,
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-        start_crawl_date: Optional[str] = None,
-        end_crawl_date: Optional[str] = None,
-        start_published_date: Optional[str] = None,
-        end_published_date: Optional[str] = None,
-        include_text: Optional[List[str]] = None,
-        exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
-        category: Optional[Category] = None,
-        flags: Optional[List[str]] = None,
-        livecrawl_timeout: Optional[int] = None,
-        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
-        max_age_hours: Optional[int] = None,
-        filter_empty_results: Optional[bool] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
-        extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithText]: ...
-
-    @overload
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
+        "find_similar() returns text contents by default."
+    )
     def find_similar_and_contents(
         self,
         url: str,
@@ -2180,6 +2176,41 @@ class Exa:
     ) -> SearchResponse[ResultWithText]: ...
 
     @overload
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
+        "find_similar() returns text contents by default."
+    )
+    def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[Category] = None,
+        flags: Optional[List[str]] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
+        filter_empty_results: Optional[bool] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
+        extras: Optional[ExtrasOptions] = None,
+    ) -> SearchResponse[ResultWithText]: ...
+
+    @overload
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
+        "find_similar() returns text contents by default."
+    )
     def find_similar_and_contents(
         self,
         url: str,
@@ -2207,6 +2238,10 @@ class Exa:
     ) -> SearchResponse[ResultWithSummary]: ...
 
     @overload
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
+        "find_similar() returns text contents by default."
+    )
     def find_similar_and_contents(
         self,
         url: str,
@@ -2234,6 +2269,10 @@ class Exa:
         extras: Optional[ExtrasOptions] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
+        "find_similar() returns text contents by default."
+    )
     def find_similar_and_contents(self, url: str, **kwargs):
         """
         DEPRECATED: Use find_similar() instead. The find_similar() method now returns text contents by default.
@@ -2271,7 +2310,7 @@ class Exa:
                 "text",
                 "summary",
                 "highlights",
-                "context",
+                "context",  # DEPRECATED FIELD: accepted only for backward compatibility.
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -2311,7 +2350,7 @@ class Exa:
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -2708,7 +2747,8 @@ class AsyncExa(Exa):
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
-                Note: The ``context`` option is deprecated; use ``highlights`` or ``text`` instead.
+                DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
+                use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -2808,7 +2848,7 @@ class AsyncExa(Exa):
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
@@ -2843,6 +2883,8 @@ class AsyncExa(Exa):
             query (str): The query string.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
+                DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
+                use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -2890,6 +2932,10 @@ class AsyncExa(Exa):
         raw_response = await self.async_request("/search", options)
         return AsyncStreamSearchResponse(raw_response)
 
+    @deprecated(
+        "search_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
+    )
     async def search_and_contents(self, query: str, **kwargs):
         """
         DEPRECATED: Use search() instead. The search() method now returns text contents by default.
@@ -2931,7 +2977,7 @@ class AsyncExa(Exa):
                 "text",
                 "summary",
                 "highlights",
-                "context",
+                "context",  # DEPRECATED FIELD: accepted only for backward compatibility.
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -2971,7 +3017,7 @@ class AsyncExa(Exa):
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )
@@ -3074,7 +3120,7 @@ class AsyncExa(Exa):
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             cost_dollars=cost_dollars,
             statuses=statuses,
             search_time=data.get("searchTime"),
@@ -3107,6 +3153,8 @@ class AsyncExa(Exa):
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
                 See ContentsOptions for available options (text, highlights, summary, etc.).
+                DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
+                use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
@@ -3184,6 +3232,10 @@ class AsyncExa(Exa):
             search_time=data.get("searchTime"),
         )
 
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
+        "find_similar() returns text contents by default."
+    )
     async def find_similar_and_contents(self, url: str, **kwargs):
         """
         DEPRECATED: Use find_similar() instead. The find_similar() method now returns text contents by default.
@@ -3220,7 +3272,7 @@ class AsyncExa(Exa):
                 "text",
                 "summary",
                 "highlights",
-                "context",
+                "context",  # DEPRECATED FIELD: accepted only for backward compatibility.
                 "subpages",
                 "subpage_target",
                 "livecrawl",
@@ -3260,7 +3312,7 @@ class AsyncExa(Exa):
             results,
             data.get("resolvedSearchType"),
             data.get("autoDate"),
-            context=data.get("context"),
+            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
         )

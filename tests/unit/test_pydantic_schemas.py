@@ -9,7 +9,11 @@ import pytest
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from exa_py.api import _convert_schema_input, JSONSchemaInput, JSONSchema
+from exa_py.api import (
+    JSONSchema,  # DEPRECATED TYPE: kept here only for backward compatibility tests.
+    JSONSchemaInput,
+    _convert_schema_input,
+)
 
 
 class SimpleModel(BaseModel):
@@ -118,7 +122,7 @@ class TestSchemaConversion:
         assert result is schema_dict  # Should be the same object
 
     def test_legacy_jsonschema_support(self):
-        """Test that legacy JSONSchema TypedDict instances work."""
+        """Deprecated JSONSchema TypedDict instances still work for compatibility."""
         legacy_schema: JSONSchema = {
             "type": "object",
             "properties": {"name": {"type": "string"}, "age": {"type": "number"}},
@@ -164,8 +168,8 @@ class TestTypeAnnotations:
         assert isinstance(result2, dict)
 
     def test_backward_compatibility_with_typeddict(self):
-        """Test that old JSONSchema TypedDict usage still works."""
-        # This simulates the old usage pattern
+        """Deprecated JSONSchema TypedDict usage still works for compatibility."""
+        # DEPRECATED TYPE: simulate the old JSONSchema usage pattern.
         old_style_schema: JSONSchema = {
             "type": "object",
             "properties": {

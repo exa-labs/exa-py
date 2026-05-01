@@ -75,16 +75,16 @@ def test_search_accepts_user_location_offline():
 
 def test_search_accepts_additional_queries_offline():
     """Test that search method accepts additional_queries parameter for deep search.
-    
-    Deep search always returns context in the response.
+
+    Deep search may return the deprecated context response field for backward compatibility.
     """
     exa = Exa(API_KEY)
-    # Create a mock response with context (always returned for deep search)
+    # Mock the deprecated context response field that may be returned for deep search.
     mock_response = {
         "results": [
             {"url": "http://example.com", "id": "1", "title": "Deep Search Result"}
         ],
-        "context": "Deep search context string",
+        "context": "Deep search context string",  # DEPRECATED FIELD: legacy response key.
         "costDollars": {"total": 0.002},
     }
 
@@ -97,8 +97,8 @@ def test_search_accepts_additional_queries_offline():
             num_results=5,
         )
         assert isinstance(resp, exa_api.SearchResponse)
-        assert resp.context is not None  # Context always present for deep search
-        
+        assert resp.context is not None  # DEPRECATED FIELD: legacy context response.
+
         # Verify the request was called with correct camelCase parameters
         call_args = mock_request.call_args
         assert call_args[0][0] == "/search"
@@ -629,8 +629,8 @@ def test_search_accepts_highlights_option_offline():
         assert options["contents"]["highlights"] is True
 
 
-def test_search_accepts_highlights_with_options_offline():
-    """Test that search method accepts detailed highlights options."""
+def test_search_accepts_deprecated_highlights_options_offline():
+    """Deprecated num_sentences/highlights_per_url are kept for compatibility."""
     exa = Exa(API_KEY)
     mock_response = {
         "results": [
@@ -651,8 +651,8 @@ def test_search_accepts_highlights_with_options_offline():
             contents={
                 "highlights": {
                     "query": "key points",
-                    "num_sentences": 2,
-                    "highlights_per_url": 3,
+                    "num_sentences": 2,  # DEPRECATED FIELD: use max_characters.
+                    "highlights_per_url": 3,  # DEPRECATED FIELD: use max_characters.
                 }
             },
             num_results=1,
@@ -660,13 +660,13 @@ def test_search_accepts_highlights_with_options_offline():
         assert isinstance(resp, exa_api.SearchResponse)
         assert resp.results[0].highlights == ["highlight 1"]
 
-        # Verify the request was called with correct camelCase parameters
+        # Verify deprecated fields still map to their legacy camelCase parameters.
         call_args = mock_request.call_args
         options = call_args[0][1]
         highlights_opts = options["contents"]["highlights"]
         assert highlights_opts["query"] == "key points"
-        assert highlights_opts["numSentences"] == 2
-        assert highlights_opts["highlightsPerUrl"] == 3
+        assert highlights_opts["numSentences"] == 2  # DEPRECATED FIELD: legacy API key.
+        assert highlights_opts["highlightsPerUrl"] == 3  # DEPRECATED FIELD: legacy API key.
 
 
 def test_search_accepts_highlights_with_max_characters_offline():
@@ -900,19 +900,22 @@ async def test_get_contents_async_live():
 
 
 ########################################
-# Live tests for new context / statuses features
+# Live tests for deprecated context compatibility / statuses features
 ########################################
 
 
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_search_and_contents_context_live():
-    """search_and_contents with context=True should return non-empty context string."""
+    """Deprecated context=True compatibility should return a context string."""
     exa = Exa(API_KEY)
     resp = exa.search_and_contents(
-        "openai research", num_results=3, context=True, text=False
+        "openai research",
+        num_results=3,
+        context=True,  # DEPRECATED FIELD: use highlights or text.
+        text=False,
     )
     assert (
-        resp.context is not None
+        resp.context is not None  # DEPRECATED FIELD: legacy context response.
         and isinstance(resp.context, str)
         and len(resp.context) > 0
     )
@@ -920,12 +923,15 @@ def test_search_and_contents_context_live():
 
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_find_similar_and_contents_context_live():
-    """find_similar_and_contents with context flag should include context string."""
+    """Deprecated context=True compatibility should include the context field."""
     exa = Exa(API_KEY)
     resp = exa.find_similar_and_contents(
-        "https://example.com", num_results=3, context=True, text=False
+        "https://example.com",
+        num_results=3,
+        context=True,  # DEPRECATED FIELD: use highlights or text.
+        text=False,
     )
-    # context may be empty depending on backend, but attribute should exist (None or str)
+    # DEPRECATED FIELD: context may be empty, but legacy attribute should exist.
     assert hasattr(resp, "context")
 
 
@@ -963,14 +969,14 @@ def test_search_with_highlights_live():
 
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_search_with_highlights_options_live():
-    """search with detailed highlights options should work."""
+    """Deprecated highlight count fields should still work for compatibility."""
     exa = Exa(API_KEY)
     resp = exa.search(
         "machine learning",
         contents={
             "highlights": {
-                "num_sentences": 2,
-                "highlights_per_url": 3,
+                "num_sentences": 2,  # DEPRECATED FIELD: use max_characters.
+                "highlights_per_url": 3,  # DEPRECATED FIELD: use max_characters.
             }
         },
         num_results=2,

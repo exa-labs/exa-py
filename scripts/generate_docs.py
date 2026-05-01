@@ -316,6 +316,47 @@ class DocGenerator:
         # Not an Annotated type, return as-is
         return self.get_type_annotation_str(annotation), None
 
+    def extract_field_call_description(self, value: Optional[ast.expr]) -> Optional[str]:
+        """Extract description or deprecation text from a Pydantic Field(...) assignment."""
+        if not isinstance(value, ast.Call):
+            return None
+
+        func_name = ""
+        if isinstance(value.func, ast.Name):
+            func_name = value.func.id
+        elif isinstance(value.func, ast.Attribute):
+            func_name = value.func.attr
+
+        if func_name != "Field":
+            return None
+
+        description = None
+        deprecated_message = None
+
+        for keyword in value.keywords:
+            if keyword.arg == "description" and isinstance(keyword.value, ast.Constant):
+                description = keyword.value.value
+            elif keyword.arg == "deprecated":
+                if isinstance(keyword.value, ast.Constant):
+                    if isinstance(keyword.value.value, str):
+                        deprecated_message = keyword.value.value
+                    elif keyword.value.value is True:
+                        deprecated_message = "DEPRECATED FIELD"
+                elif isinstance(keyword.value, ast.Call) and keyword.value.args:
+                    first_arg = keyword.value.args[0]
+                    if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                        deprecated_message = first_arg.value
+
+        if deprecated_message and description:
+            if "DEPRECATED" not in description.upper():
+                return f"{description} {deprecated_message}"
+            return description
+
+        if deprecated_message:
+            return deprecated_message
+
+        return description
+
     def parse_type_alias(self, node: ast.Assign, next_node: Optional[ast.Expr] = None) -> Optional[ParsedTypeAlias]:
         """Parse a type alias assignment (e.g., Category = Literal[...])."""
         # Only handle simple name assignments
@@ -383,8 +424,10 @@ class DocGenerator:
                 # Try to extract from Pydantic Field() first
                 field_type, pydantic_desc = self.extract_pydantic_field_info(item.annotation)
 
+                field_call_desc = self.extract_field_call_description(item.value)
+
                 # Use Pydantic description, fall back to docstring attributes
-                field_desc = pydantic_desc or attr_descriptions.get(field_name)
+                field_desc = pydantic_desc or field_call_desc or attr_descriptions.get(field_name)
                 fields.append((field_name, field_type, field_desc))
 
         return ParsedClass(
