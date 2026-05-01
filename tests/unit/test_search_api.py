@@ -73,6 +73,22 @@ def test_search_accepts_user_location_offline():
         assert isinstance(resp, exa_api.SearchResponse)
 
 
+def test_find_similar_deprecated_offline():
+    """Verify deprecated find_similar() still works for compatibility and warns."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Test"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        with pytest.warns(DeprecationWarning, match="find_similar"):
+            resp = exa.find_similar("https://example.com", num_results=1)
+
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert mock_request.call_args[0][0] == "/findSimilar"
+
+
 def test_search_accepts_additional_queries_offline():
     """Test that search method accepts additional_queries parameter for deep search.
 
@@ -878,7 +894,8 @@ def test_search_with_user_location_live():
 @pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_find_similar_live():
     exa = Exa(API_KEY)
-    resp = exa.find_similar("https://example.com", num_results=1)
+    with pytest.warns(DeprecationWarning, match="find_similar"):
+        resp = exa.find_similar("https://example.com", num_results=1)
     assert resp.results
 
 

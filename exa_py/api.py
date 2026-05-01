@@ -548,7 +548,7 @@ class ExtrasOptions(TypedDict, total=False):
 
 
 class ContentsOptions(TypedDict, total=False):
-    """Options for retrieving page contents in search and find_similar methods.
+    """Options for retrieving page contents in search and legacy find_similar methods.
 
     All fields are optional. If no content options are specified, text with
     max_characters=10000 is returned by default.
@@ -2014,6 +2014,7 @@ class Exa:
             search_time=data.get("searchTime"),
         )
 
+    @deprecated("find_similar()/findSimilar is deprecated. Use search() instead.")
     def find_similar(
         self,
         url: str,
@@ -2032,7 +2033,12 @@ class Exa:
         category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[Result]:
-        """Finds similar pages to a given URL, potentially with domain filters and date filters.
+        """DEPRECATED METHOD: find_similar()/findSimilar is deprecated. Use search() instead.
+
+        Migration:
+            Use search("pages similar to " + url) instead of find_similar(url).
+
+        Finds similar pages to a given URL, potentially with domain filters and date filters.
 
         By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
 
@@ -2060,10 +2066,10 @@ class Exa:
             SearchResponse[Result]
 
         Examples:
-            similar_results = exa.find_similar(
-                "miniclip.com",
+            url = "https://www.miniclip.com/games/en/"
+            similar_results = exa.search(
+                f"pages similar to {url}",
                 num_results=2,
-                exclude_source_domain=True
             )
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
@@ -2116,8 +2122,8 @@ class Exa:
 
     @overload
     @deprecated(
-        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
-        "find_similar() returns text contents by default."
+        "find_similar_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
     )
     def find_similar_and_contents(
         self,
@@ -2146,39 +2152,8 @@ class Exa:
 
     @overload
     @deprecated(
-        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
-        "find_similar() returns text contents by default."
-    )
-    def find_similar_and_contents(
-        self,
-        url: str,
-        *,
-        text: Union[TextContentsOptions, Literal[True]],
-        num_results: Optional[int] = None,
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-        start_crawl_date: Optional[str] = None,
-        end_crawl_date: Optional[str] = None,
-        start_published_date: Optional[str] = None,
-        end_published_date: Optional[str] = None,
-        include_text: Optional[List[str]] = None,
-        exclude_text: Optional[List[str]] = None,
-        exclude_source_domain: Optional[bool] = None,
-        category: Optional[Category] = None,
-        flags: Optional[List[str]] = None,
-        livecrawl_timeout: Optional[int] = None,
-        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
-        max_age_hours: Optional[int] = None,
-        filter_empty_results: Optional[bool] = None,
-        subpages: Optional[int] = None,
-        subpage_target: Optional[Union[str, List[str]]] = None,
-        extras: Optional[ExtrasOptions] = None,
-    ) -> SearchResponse[ResultWithText]: ...
-
-    @overload
-    @deprecated(
-        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
-        "find_similar() returns text contents by default."
+        "find_similar_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
     )
     def find_similar_and_contents(
         self,
@@ -2208,8 +2183,39 @@ class Exa:
 
     @overload
     @deprecated(
-        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
-        "find_similar() returns text contents by default."
+        "find_similar_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
+    )
+    def find_similar_and_contents(
+        self,
+        url: str,
+        *,
+        text: Union[TextContentsOptions, Literal[True]],
+        num_results: Optional[int] = None,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+        start_crawl_date: Optional[str] = None,
+        end_crawl_date: Optional[str] = None,
+        start_published_date: Optional[str] = None,
+        end_published_date: Optional[str] = None,
+        include_text: Optional[List[str]] = None,
+        exclude_text: Optional[List[str]] = None,
+        exclude_source_domain: Optional[bool] = None,
+        category: Optional[Category] = None,
+        flags: Optional[List[str]] = None,
+        livecrawl_timeout: Optional[int] = None,
+        livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
+        max_age_hours: Optional[int] = None,
+        filter_empty_results: Optional[bool] = None,
+        subpages: Optional[int] = None,
+        subpage_target: Optional[Union[str, List[str]]] = None,
+        extras: Optional[ExtrasOptions] = None,
+    ) -> SearchResponse[ResultWithText]: ...
+
+    @overload
+    @deprecated(
+        "find_similar_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
     )
     def find_similar_and_contents(
         self,
@@ -2239,8 +2245,8 @@ class Exa:
 
     @overload
     @deprecated(
-        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
-        "find_similar() returns text contents by default."
+        "find_similar_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
     )
     def find_similar_and_contents(
         self,
@@ -2270,17 +2276,17 @@ class Exa:
     ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
     @deprecated(
-        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
-        "find_similar() returns text contents by default."
+        "find_similar_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
     )
     def find_similar_and_contents(self, url: str, **kwargs):
         """
-        DEPRECATED: Use find_similar() instead. The find_similar() method now returns text contents by default.
+        DEPRECATED: Use search() instead. The search() method returns text contents by default.
 
         Migration:
-        - find_similar_and_contents(url) → find_similar(url)
-        - find_similar_and_contents(url, text=True) → find_similar(url, contents={"text": True})
-        - find_similar_and_contents(url, summary=True) → find_similar(url, contents={"summary": True})
+        - find_similar_and_contents(url) → search(f"pages similar to {url}")
+        - find_similar_and_contents(url, text=True) → search(f"pages similar to {url}", contents={"text": True})
+        - find_similar_and_contents(url, summary=True) → search(f"pages similar to {url}", contents={"summary": True})
         """
 
         options = {"url": url}
@@ -3126,6 +3132,7 @@ class AsyncExa(Exa):
             search_time=data.get("searchTime"),
         )
 
+    @deprecated("find_similar()/findSimilar is deprecated. Use search() instead.")
     async def find_similar(
         self,
         url: str,
@@ -3144,7 +3151,12 @@ class AsyncExa(Exa):
         category: Optional[Category] = None,
         flags: Optional[List[str]] = None,
     ) -> SearchResponse[Result]:
-        """Finds similar pages to a given URL, potentially with domain filters and date filters.
+        """DEPRECATED METHOD: find_similar()/findSimilar is deprecated. Use search() instead.
+
+        Migration:
+            Use await search("pages similar to " + url) instead of await find_similar(url).
+
+        Finds similar pages to a given URL, potentially with domain filters and date filters.
 
         By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
 
@@ -3172,16 +3184,16 @@ class AsyncExa(Exa):
             SearchResponse[Result]
 
         Examples:
-            Find similar pages asynchronously:
+            Use async search instead:
             >>> async_exa = AsyncExa(api_key="your-api-key")
-            >>> results = await async_exa.find_similar("https://www.nature.com/articles/s41586-021-03819-2")
+            >>> results = await async_exa.search("pages similar to https://www.nature.com/articles/s41586-021-03819-2")
             >>> print(results.results[0].title)
 
-            Find similar with domain filters:
-            >>> results = await async_exa.find_similar(
-            ...     "https://arxiv.org/abs/2301.00001",
+            Search with domain filters:
+            >>> url = "https://arxiv.org/abs/2301.00001"
+            >>> results = await async_exa.search(
+            ...     f"pages similar to {url}",
             ...     include_domains=["arxiv.org", "openreview.net"],
-            ...     exclude_source_domain=True
             ... )
         """
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
@@ -3233,17 +3245,17 @@ class AsyncExa(Exa):
         )
 
     @deprecated(
-        "find_similar_and_contents() is deprecated. Use find_similar() instead; "
-        "find_similar() returns text contents by default."
+        "find_similar_and_contents() is deprecated. Use search() instead; "
+        "search() returns text contents by default."
     )
     async def find_similar_and_contents(self, url: str, **kwargs):
         """
-        DEPRECATED: Use find_similar() instead. The find_similar() method now returns text contents by default.
+        DEPRECATED: Use search() instead. The search() method returns text contents by default.
 
         Migration:
-        - find_similar_and_contents(url) → find_similar(url)
-        - find_similar_and_contents(url, text=True) → find_similar(url, contents={"text": True})
-        - find_similar_and_contents(url, summary=True) → find_similar(url, contents={"summary": True})
+        - find_similar_and_contents(url) → search(f"pages similar to {url}")
+        - find_similar_and_contents(url, text=True) → search(f"pages similar to {url}", contents={"text": True})
+        - find_similar_and_contents(url, summary=True) → search(f"pages similar to {url}", contents={"summary": True})
         """
         options = {"url": url}
         for k, v in kwargs.items():
