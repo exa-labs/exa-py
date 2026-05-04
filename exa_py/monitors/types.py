@@ -67,8 +67,26 @@ class SearchMonitorHighlightsContents(BaseModel):
 
     query: Optional[str] = None
     max_characters: Optional[int] = Field(default=None, alias="maxCharacters")
-    num_sentences: Optional[int] = Field(default=None, alias="numSentences")
-    highlights_per_url: Optional[int] = Field(default=None, alias="highlightsPerUrl")
+    num_sentences: Optional[int] = Field(
+        default=None,
+        alias="numSentences",  # DEPRECATED FIELD: legacy API key.
+        deprecated=(
+            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+        ),
+        description=(
+            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+        ),
+    )
+    highlights_per_url: Optional[int] = Field(
+        default=None,
+        alias="highlightsPerUrl",  # DEPRECATED FIELD: legacy API key.
+        deprecated=(
+            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+        ),
+        description=(
+            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+        ),
+    )
 
     model_config = {"populate_by_name": True}
 
@@ -95,14 +113,23 @@ class SearchMonitorContents(BaseModel):
     """Options for retrieving page contents in monitor results.
 
     Mirrors the main search ContentsOptions. Text, highlights, and summary
-    accept either True (for defaults) or an options object.
+    accept either True (for defaults) or an options object. The context field is
+    deprecated and kept only for backward compatibility.
     """
 
     text: Optional[Union[bool, SearchMonitorTextContents]] = None
     highlights: Optional[Union[bool, SearchMonitorHighlightsContents]] = None
     summary: Optional[Union[bool, SearchMonitorSummaryContents]] = None
     extras: Optional[SearchMonitorExtrasContents] = None
-    context: Optional[Union[bool, Dict[str, Any]]] = None
+    context: Optional[Union[bool, Dict[str, Any]]] = Field(
+        default=None,
+        deprecated=(
+            "DEPRECATED FIELD - do not use in new code. Use highlights or text instead."
+        ),
+        description=(
+            "DEPRECATED FIELD - do not use in new code. Use highlights or text instead."
+        ),
+    )
     livecrawl: Optional[LIVECRAWL_OPTION] = None
     livecrawl_timeout: Optional[int] = Field(default=None, alias="livecrawlTimeout")
     max_age_hours: Optional[int] = Field(default=None, alias="maxAgeHours")
