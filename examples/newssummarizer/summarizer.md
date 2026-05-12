@@ -105,14 +105,14 @@ for url in urls:
 ```
 
     URLs:
-    https://phys.org/news/2023-11-carbon-material-energy-storage-advance-supercapacitors.html?utm_source=twitter.com&utm_medium=social&utm_campaign=v2%7C
+    https://phys.org/news/2023-11-carbon-material-energy-storage-advance-supercapacitors.html
     https://www.sciencedaily.com/releases/2023/11/231120124138.htm
-    https://phys.org/news/2023-11-fullerene-like-molecule-metal-atoms.html?utm_source=twitter.com&utm_medium=social&utm_campaign=v2%7C
+    https://phys.org/news/2023-11-fullerene-like-molecule-metal-atoms.html
     https://arxiv.org/abs/2311.14088
     https://www.theguardian.com/science/2023/nov/24/amaterasu-extremely-high-energy-particle-detected-falling-to-earth
-    https://phys.org/news/2023-11-physicists-evidence-exotic-quantum-material.html?utm_source=twitter.com&utm_medium=social&utm_campaign=v2%7C
-    https://phys.org/news/2023-11-scientists-succeed-dolomite-lab-dissolving.html?utm_source=twitter.com&utm_medium=social&utm_campaign=v2%7C
-    https://interestingengineering.com/science/strange-metal-quantum-shot-noise?utm_source=Twitter&utm_medium=content&utm_campaign=organic&utm_content=Nov24%7C
+    https://phys.org/news/2023-11-physicists-evidence-exotic-quantum-material.html
+    https://phys.org/news/2023-11-scientists-succeed-dolomite-lab-dissolving.html
+    https://interestingengineering.com/science/strange-metal-quantum-shot-noise
     https://arxiv.org/abs/2311.12903
     https://www.quantamagazine.org/meet-strange-metals-where-electricity-may-flow-without-electrons-20231127/
 
@@ -137,7 +137,7 @@ print(content_item)
 
     10 items total, printing the first one:
     ID: FVgU_DDBF1D6pqLlGS1qyg
-    URL: https://phys.org/news/2023-11-carbon-material-energy-storage-advance-supercapacitors.html?utm_source=twitter.com&utm_medium=social&utm_campaign=v2%7C
+    URL: https://phys.org/news/2023-11-carbon-material-energy-storage-advance-supercapacitors.html
     Title: New carbon material sets energy-storage record, likely to advance supercapacitors
     Extract: <div><div>
     <div>
@@ -185,7 +185,7 @@ print(content_item.title)
 print(textwrap.fill(summary, 80))
 ```
 
-    Summary for https://phys.org/news/2023-11-carbon-material-energy-storage-advance-supercapacitors.html?utm_source=twitter.com&utm_medium=social&utm_campaign=v2%7C:
+    Summary for https://phys.org/news/2023-11-carbon-material-energy-storage-advance-supercapacitors.html:
     New carbon material sets energy-storage record, likely to advance supercapacitors
     Chemists at the Department of Energy's Oak Ridge National Laboratory have
     designed a carbonaceous supercapacitor material using machine learning that
