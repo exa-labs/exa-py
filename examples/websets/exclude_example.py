@@ -20,6 +20,15 @@ if not api_key:
 
 exa = Exa(api_key)
 
+
+def delete_webset_if_exists(webset_id):
+    try:
+        exa.websets.delete(webset_id)
+    except ValueError as e:
+        if "Webset not found" not in str(e):
+            raise
+
+
 def main():
     query = "AI companies based in SF building foundational models"
     
@@ -53,8 +62,8 @@ def main():
         print(f"Found {len(items2.data)} new companies (excluded duplicates)")
         
         # Clean up
-        exa.websets.delete(webset1.id)
-        exa.websets.delete(webset2.id)
+        delete_webset_if_exists(webset1.id)
+        delete_webset_if_exists(webset2.id)
         print("Cleanup complete")
         
     except ValueError as e:
@@ -64,4 +73,4 @@ def main():
             raise e
 
 if __name__ == "__main__":
-    main() 
+    main()
