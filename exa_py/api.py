@@ -53,6 +53,16 @@ is_beta = os.getenv("IS_BETA") == "True"
 DEFAULT_MAX_CHARACTERS = 10_000
 
 
+def _convert_contents_summary_schema(options: Dict[str, Any]) -> None:
+    contents = options.get("contents")
+    if not isinstance(contents, dict):
+        return
+
+    summary_opts = contents.get("summary")
+    if isinstance(summary_opts, dict) and "schema" in summary_opts:
+        summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
+
+
 def snake_to_camel(snake_str: str) -> str:
     """Convert snake_case string to camelCase.
 
@@ -1658,8 +1668,9 @@ class Exa:
             # User provided contents - use as-is
             options["contents"] = contents
 
+        _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -2859,8 +2870,9 @@ class AsyncExa(Exa):
             # User provided contents - use as-is
             options["contents"] = contents
 
+        _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []

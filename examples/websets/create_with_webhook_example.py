@@ -46,6 +46,13 @@ webset = exa.websets.create(
 print(f"\nWebset created with ID: {webset.id}")
 print("Processing has started. Webhooks will be triggered as events occur.")
 
+if os.environ.get("CI"):
+    print("\nSkipping Webset completion wait in CI.")
+    exa.websets.webhooks.delete(id=webhook.id)
+    exa.websets.delete(id=webset.id)
+    print("Cleanup complete.")
+    raise SystemExit(0)
+
 # In a real application, your webhook endpoint would receive callbacks
 # Here we'll wait a bit and then query for webhook attempts to simulate what happened
 time.sleep(5)  # Give it some time to process

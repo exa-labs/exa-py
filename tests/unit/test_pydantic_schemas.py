@@ -7,6 +7,7 @@ with both Pydantic models and regular dictionaries (backward compatibility).
 
 import pytest
 from typing import List, Optional
+from unittest.mock import AsyncMock
 from pydantic import BaseModel, Field
 
 from exa_py.api import (
@@ -21,6 +22,12 @@ class SimpleModel(BaseModel):
 
     name: str = Field(description="The name field")
     age: Optional[int] = Field(default=None, description="The age field")
+
+
+class SnakeCaseModel(BaseModel):
+    """Model with snake_case fields to ensure schema keys are preserved."""
+
+    company_name: str = Field(description="The company name")
 
 
 class NestedModel(BaseModel):
@@ -220,6 +227,55 @@ class TestIntegrationMocking:
         converted_schema = payload["contents"]["summary"]["schema"]
         assert isinstance(converted_schema, dict)
         assert converted_schema["type"] == "object"
+
+    def test_search_contents_summary_with_pydantic_model(self, mocker):
+        """Test that search contents summary schemas accept Pydantic models."""
+        from exa_py import Exa
+
+        mock_request = mocker.patch.object(Exa, "request")
+        mock_request.return_value = {
+            "results": [],
+            "autopromptString": "test",
+            "resolvedSearchType": "neural",
+        }
+
+        exa = Exa("test_api_key")
+
+        exa.search("test query", contents={"summary": {"schema": SnakeCaseModel}})
+
+        payload = mock_request.call_args[0][1]
+        converted_schema = payload["contents"]["summary"]["schema"]
+        assert isinstance(converted_schema, dict)
+        assert converted_schema["type"] == "object"
+        assert "company_name" in converted_schema["properties"]
+        assert "companyName" not in converted_schema["properties"]
+
+    @pytest.mark.asyncio
+    async def test_async_search_contents_summary_with_pydantic_model(self, mocker):
+        """Test that async search contents summary schemas accept Pydantic models."""
+        from exa_py import AsyncExa
+
+        mock_response = {
+            "results": [],
+            "autopromptString": "test",
+            "resolvedSearchType": "neural",
+        }
+        async_exa = AsyncExa("test_api_key")
+
+        mocker.patch.object(
+            async_exa, "async_request", new=AsyncMock(return_value=mock_response)
+        )
+
+        await async_exa.search(
+            "test query", contents={"summary": {"schema": SnakeCaseModel}}
+        )
+
+        payload = async_exa.async_request.call_args[0][1]
+        converted_schema = payload["contents"]["summary"]["schema"]
+        assert isinstance(converted_schema, dict)
+        assert converted_schema["type"] == "object"
+        assert "company_name" in converted_schema["properties"]
+        assert "companyName" not in converted_schema["properties"]
 
     def test_answer_with_pydantic_model(self, mocker):
         """Test that answer endpoint works with Pydantic models."""

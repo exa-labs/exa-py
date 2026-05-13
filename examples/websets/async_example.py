@@ -43,6 +43,12 @@ async def main():
         print(f"\nGetting details for webset {webset.id}...")
         webset_details = await async_exa.websets.get(webset.id)
         print(f"Webset status: {webset_details.status}")
+
+        if os.environ.get("CI"):
+            print("\nSkipping Webset completion wait in CI.")
+            deleted_webset = await async_exa.websets.delete(webset.id)
+            print(f"Deleted webset: {deleted_webset.id}")
+            return
         
         # Wait for webset to be idle
         print(f"\nWaiting for webset to be idle...")
