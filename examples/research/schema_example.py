@@ -71,7 +71,10 @@ dict_schema = {
     "type": "object",
     "properties": {
         "answer": {"type": "string"},
-        "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+        "confidence": {
+            "type": "string",
+            "description": "Confidence level: high, medium, or low",
+        },
     },
     "required": ["answer", "confidence"],
 }

@@ -23,6 +23,11 @@ response = exa.websets.create(
 
 print("Webset created:", response.model_dump_json(indent=2))
 
+if os.environ.get("CI"):
+    exa.websets.delete(response.id)
+    print("Skipping Webset completion wait in CI.")
+    raise SystemExit(0)
+
 # Wait until Webset completes
 webset = exa.websets.wait_until_idle(response.id)
 

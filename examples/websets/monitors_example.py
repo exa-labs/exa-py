@@ -39,6 +39,12 @@ def main():
     )
     
     print(f"✓ Created webset: https://websets.exa.ai/{webset.id}")
+
+    if os.environ.get("CI"):
+        print("Skipping Webset completion wait in CI.")
+        exa.websets.delete(webset.id)
+        print("Webset deleted")
+        return
     
     # Wait for the webset to complete
     print("Waiting for webset to complete...")
@@ -97,4 +103,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

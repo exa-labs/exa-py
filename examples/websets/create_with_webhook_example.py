@@ -7,6 +7,10 @@ from exa_py.websets.types import CreateWebsetParameters, CreateEnrichmentParamet
 # Initialize the client with the provided API key
 exa = Exa(os.environ.get("EXA_API_KEY"))
 
+if os.environ.get("CI"):
+    print("Skipping webhook example in CI.")
+    raise SystemExit(0)
+
 print("Setting up webhooks for real-time updates...")
 
 # Create a webhook to track various webset events

@@ -121,6 +121,40 @@ for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
 
+## Agent API (Beta)
+
+```python
+run = exa.beta.agent.runs.create(
+    betas=["agent-2026-05-07"],
+    query="Find engineering leaders at AI infrastructure companies that raised a Series A or B in the last 6 months.",
+    output_schema={
+        "type": "object",
+        "properties": {
+            "people": {
+                "type": "array",
+                "maxItems": 10,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "contact_email": {"type": "string", "format": "email"},
+                        "linkedin_url": {"type": "string", "format": "uri"},
+                    },
+                    "required": ["name", "linkedin_url"],
+                },
+            }
+        },
+        "required": ["people"],
+    },
+    effort="auto",
+)
+
+run = exa.beta.agent.runs.poll_until_finished(
+    run.id, betas=["agent-2026-05-07"]
+)
+print(run.output.structured if run.output else None)
+```
+
 ## Async
 
 ```python

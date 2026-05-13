@@ -44,12 +44,23 @@ from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
 from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
+from .agent import BetaClient, AsyncBetaClient
 
 
 is_beta = os.getenv("IS_BETA") == "True"
 
 # Default max characters for text contents
 DEFAULT_MAX_CHARACTERS = 10_000
+
+
+def _convert_contents_summary_schema(options: Dict[str, Any]) -> None:
+    contents = options.get("contents")
+    if not isinstance(contents, dict):
+        return
+
+    summary_opts = contents.get("summary")
+    if isinstance(summary_opts, dict) and "schema" in summary_opts:
+        summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
 
 def snake_to_camel(snake_str: str) -> str:
@@ -1448,6 +1459,8 @@ class Exa:
         self.research = ResearchClient(self)
         # Search Monitors client
         self.monitors = SearchMonitorsClient(self)
+        # Beta clients
+        self.beta = BetaClient(self)
 
     def request(
         self,
@@ -1482,14 +1495,17 @@ class Exa:
             json_data = json.dumps(data, cls=ExaJSONEncoder) if data else None
 
         # Check if we need streaming (either from data for POST or params for GET)
-        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or (
-            params and params.get("stream") == "true"
-        )
-
         # Merge additional headers with existing headers
         request_headers = {**self.headers}
         if headers:
             request_headers.update(headers)
+
+        # Check if we need streaming (either from data, params, or SSE Accept header)
+        needs_streaming = (
+            (data and isinstance(data, dict) and data.get("stream"))
+            or (params and params.get("stream") == "true")
+            or request_headers.get("Accept") == "text/event-stream"
+        )
 
         if method.upper() == "GET":
             if needs_streaming:
@@ -1499,6 +1515,12 @@ class Exa:
                     params=params,
                     stream=True,
                 )
+                if res.status_code >= 400:
+                    message = (
+                        f"Request failed with status code {res.status_code}: {res.text}"
+                    )
+                    res.close()
+                    raise ValueError(message)
                 return res
             else:
                 res = requests.get(
@@ -1512,6 +1534,12 @@ class Exa:
                     headers=request_headers,
                     stream=True,
                 )
+                if res.status_code >= 400:
+                    message = (
+                        f"Request failed with status code {res.status_code}: {res.text}"
+                    )
+                    res.close()
+                    raise ValueError(message)
                 return res
             else:
                 res = requests.post(
@@ -1640,8 +1668,9 @@ class Exa:
             # User provided contents - use as-is
             options["contents"] = contents
 
+        _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
         data = self.request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -2632,6 +2661,8 @@ class AsyncExa(Exa):
         self.websets = AsyncWebsetsClient(self)
         # Override the synchronous SearchMonitorsClient with its async counterpart.
         self.monitors = AsyncSearchMonitorsClient(self)
+        # Override the synchronous beta clients with async counterparts.
+        self.beta = AsyncBetaClient(self)
         self._client = None
 
     @property
@@ -2667,15 +2698,17 @@ class AsyncExa(Exa):
         Raises:
             ValueError: If the request fails (non-200 status code).
         """
-        # Check if we need streaming (either from data for POST or params for GET)
-        needs_streaming = (data and isinstance(data, dict) and data.get("stream")) or (
-            params and params.get("stream") == "true"
-        )
-
         # Merge additional headers with existing headers
         request_headers = {**self.headers}
         if headers:
             request_headers.update(headers)
+
+        # Check if we need streaming (either from data, params, or SSE Accept header)
+        needs_streaming = (
+            (data and isinstance(data, dict) and data.get("stream"))
+            or (params and params.get("stream") == "true")
+            or request_headers.get("Accept") == "text/event-stream"
+        )
 
         if method.upper() == "GET":
             if needs_streaming:
@@ -2686,6 +2719,13 @@ class AsyncExa(Exa):
                     headers=request_headers,
                 )
                 res = await self.client.send(request, stream=True)
+                if res.status_code != 200 and res.status_code != 201:
+                    body = await res.aread()
+                    await res.aclose()
+                    error_text = body.decode(errors="replace")
+                    raise ValueError(
+                        f"Request failed with status code {res.status_code}: {error_text}"
+                    )
                 return res
             else:
                 res = await self.client.get(
@@ -2697,6 +2737,13 @@ class AsyncExa(Exa):
                     "POST", self.base_url + endpoint, json=data, headers=request_headers
                 )
                 res = await self.client.send(request, stream=True)
+                if res.status_code != 200 and res.status_code != 201:
+                    body = await res.aread()
+                    await res.aclose()
+                    error_text = body.decode(errors="replace")
+                    raise ValueError(
+                        f"Request failed with status code {res.status_code}: {error_text}"
+                    )
                 return res
             else:
                 res = await self.client.post(
@@ -2823,8 +2870,9 @@ class AsyncExa(Exa):
             # User provided contents - use as-is
             options["contents"] = contents
 
+        _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
         data = await self.async_request("/search", options)
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
