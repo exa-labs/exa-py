@@ -7,6 +7,10 @@ from exa_py.websets.types import CreateWebsetParameters, CreateEnrichmentParamet
 # Initialize the client with the provided API key
 exa = Exa(os.environ.get("EXA_API_KEY"))
 
+if os.environ.get("CI"):
+    print("Skipping webhook example in CI.")
+    raise SystemExit(0)
+
 print("Setting up webhooks for real-time updates...")
 
 # Create a webhook to track various webset events
@@ -45,13 +49,6 @@ webset = exa.websets.create(
 
 print(f"\nWebset created with ID: {webset.id}")
 print("Processing has started. Webhooks will be triggered as events occur.")
-
-if os.environ.get("CI"):
-    print("\nSkipping Webset completion wait in CI.")
-    exa.websets.webhooks.delete(id=webhook.id)
-    exa.websets.delete(id=webset.id)
-    print("Cleanup complete.")
-    raise SystemExit(0)
 
 # In a real application, your webhook endpoint would receive callbacks
 # Here we'll wait a bit and then query for webhook attempts to simulate what happened

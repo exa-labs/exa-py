@@ -8,6 +8,10 @@ api_key = os.environ.get("EXA_API_KEY")
 base_url = os.environ.get("EXA_BASE_URL", "https://api.exa.ai")
 client = Exa(api_key=api_key, base_url=base_url)
 
+if os.environ.get("CI"):
+    print("Skipping live streaming research example in CI.")
+    raise SystemExit(0)
+
 # Create a research request
 print("Creating research request...")
 research = client.research.create(
