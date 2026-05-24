@@ -172,6 +172,56 @@ class TestSearchMonitorRunsListAll:
         assert len(results) == 2
         assert results[0].id == "run_1"
 
+    def test_list_accepts_structured_object_output_content(self, monitors_client, mock_client):
+        mock_client.request.return_value = {
+            "data": [
+                {
+                    **_make_run("run_1"),
+                    "output": {
+                        "content": {
+                            "hits": [{"id": "anthropic", "score": 0.99}],
+                            "when": "May 2026",
+                        }
+                    },
+                }
+            ],
+            "hasMore": False,
+            "nextCursor": None,
+        }
+
+        response = monitors_client.runs.list("sm_123")
+
+        assert response.data[0].output is not None
+        assert response.data[0].output.content == {
+            "hits": [{"id": "anthropic", "score": 0.99}],
+            "when": "May 2026",
+        }
+
+    def test_list_accepts_structured_list_output_content(self, monitors_client, mock_client):
+        mock_client.request.return_value = {
+            "data": [
+                {
+                    **_make_run("run_1"),
+                    "output": {
+                        "content": [
+                            {"title": "First hit", "url": "https://example.com/1"},
+                            {"title": "Second hit", "url": "https://example.com/2"},
+                        ]
+                    },
+                }
+            ],
+            "hasMore": False,
+            "nextCursor": None,
+        }
+
+        response = monitors_client.runs.list("sm_123")
+
+        assert response.data[0].output is not None
+        assert response.data[0].output.content == [
+            {"title": "First hit", "url": "https://example.com/1"},
+            {"title": "Second hit", "url": "https://example.com/2"},
+        ]
+
     def test_list_all_multiple_pages(self, monitors_client, mock_client):
         mock_client.request.side_effect = [
             {"data": [_make_run("run_1")], "hasMore": True, "nextCursor": "cursor_1"},
