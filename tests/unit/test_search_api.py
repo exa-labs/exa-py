@@ -50,6 +50,35 @@ def test_contentstatus_parsing_offline():
     payload_status = {"id": "u", "status": "success", "source": "cached"}
     cs = exa_api.ContentStatus(**payload_status)
     assert cs.id == "u" and cs.status == "success" and cs.source == "cached"
+    # freshness_verdict is optional and defaults to None when absent.
+    assert cs.freshness_verdict is None
+    cs_fallback = exa_api.ContentStatus(
+        id="u", status="success", source="cached", freshness_verdict="fallback"
+    )
+    assert cs_fallback.freshness_verdict == "fallback"
+
+
+def test_get_contents_maps_freshness_verdict_offline():
+    """get_contents should surface freshnessVerdict on each ContentStatus."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "http://example.com"}],
+        "statuses": [
+            {
+                "id": "http://example.com",
+                "status": "success",
+                "source": "cached",
+                "freshnessVerdict": "fallback",
+            }
+        ],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response):
+        resp = exa.get_contents(["http://example.com"], text=True)
+
+    assert resp.statuses is not None and len(resp.statuses) == 1
+    assert resp.statuses[0].freshness_verdict == "fallback"
 
 
 def test_answerresponse_accepts_dict():

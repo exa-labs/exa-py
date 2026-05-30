@@ -1427,9 +1427,10 @@ A class representing the status of a content retrieval operation.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| id | str | - |
-| status | str | - |
-| source | str | - |
+| id | str | The URL or document ID that was requested. |
+| status | str | Either "success" or "error". |
+| source | str | Where the returned content was sourced from ("cached" or "crawled"). |
+| freshness_verdict | Optional[str] | Freshness outcome for the served content. "fallback" indicates a requested livecrawl did not succeed and stale cached content was returned instead (it may be older than the requested ``max_age_hours``). Other values are "accept", "reject", and "not_checked". |
 
 #### `SearchResponse`
 

@@ -1254,11 +1254,24 @@ T = TypeVar("T")
 
 @dataclass
 class ContentStatus:
-    """A class representing the status of a content retrieval operation."""
+    """A class representing the status of a content retrieval operation.
+
+    Attributes:
+        id (str): The URL or document ID that was requested.
+        status (str): Either "success" or "error".
+        source (str): Where the returned content was sourced from
+            ("cached" or "crawled").
+        freshness_verdict (str, optional): Freshness outcome for the served
+            content. "fallback" indicates a requested livecrawl did not
+            succeed and stale cached content was returned instead (it may be
+            older than the requested ``max_age_hours``). Other values are
+            "accept", "reject", and "not_checked".
+    """
 
     id: str
     status: str
     source: str
+    freshness_verdict: Optional[str] = None
 
 
 @dataclass
@@ -2008,6 +2021,7 @@ class Exa:
                     id=status.get("id"),
                     status=status.get("status"),
                     source=status.get("source"),
+                    freshness_verdict=status.get("freshnessVerdict"),
                 )
             )
         results = []
@@ -3145,6 +3159,7 @@ class AsyncExa(Exa):
                     id=status.get("id"),
                     status=status.get("status"),
                     source=status.get("source"),
+                    freshness_verdict=status.get("freshnessVerdict"),
                 )
             )
         results = []
