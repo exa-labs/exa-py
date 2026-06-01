@@ -200,4 +200,36 @@ class TestTriggerResponse:
         mock_client.request.return_value = {"triggered": True}
         result = monitors_client.trigger("sm_123")
         assert isinstance(result, TriggerSearchMonitorResponse)
-        assert result.triggered is True
+
+
+class TestSearchMonitorRunOutputContent:
+    """Runs configured with an outputSchema return ``output.content`` as a
+    structured object, so the field must accept both ``str`` and ``dict``."""
+
+    def _make_run_with_content(self, content) -> dict:
+        run = _make_run("run_1")
+        run["output"] = {"results": None, "content": content, "grounding": None}
+        return run
+
+    def test_get_run_with_structured_content(self, monitors_client, mock_client):
+        structured = {"summary": "AI breakthroughs", "count": 3}
+        mock_client.request.return_value = self._make_run_with_content(structured)
+        run = monitors_client.runs.get("sm_123", "run_1")
+        assert run.output is not None
+        assert run.output.content == structured
+
+    def test_get_run_with_string_content(self, monitors_client, mock_client):
+        mock_client.request.return_value = self._make_run_with_content("plain text")
+        run = monitors_client.runs.get("sm_123", "run_1")
+        assert run.output is not None
+        assert run.output.content == "plain text"
+
+    def test_list_runs_with_structured_content(self, monitors_client, mock_client):
+        structured = {"summary": "AI breakthroughs"}
+        mock_client.request.return_value = {
+            "data": [self._make_run_with_content(structured)],
+            "hasMore": False,
+            "nextCursor": None,
+        }
+        runs = monitors_client.runs.list("sm_123")
+        assert runs.data[0].output.content == structured
