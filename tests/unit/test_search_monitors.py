@@ -200,6 +200,7 @@ class TestTriggerResponse:
         mock_client.request.return_value = {"triggered": True}
         result = monitors_client.trigger("sm_123")
         assert isinstance(result, TriggerSearchMonitorResponse)
+        assert result.triggered is True
 
 
 class TestSearchMonitorRunOutputContent:
