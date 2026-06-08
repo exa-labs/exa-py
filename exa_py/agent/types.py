@@ -47,7 +47,7 @@ class AgentOutput(BaseModel):
 
 
 class AgentUsage(BaseModel):
-    agent_compute_units: Optional[int] = Field(default=None, alias="agentComputeUnits")
+    agent_compute_units: Optional[float] = Field(default=None, alias="agentComputeUnits")
     searches: Optional[int] = None
     emails: Optional[int] = None
     phone_numbers: Optional[int] = Field(default=None, alias="phoneNumbers")
