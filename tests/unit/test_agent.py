@@ -46,7 +46,7 @@ def _make_run(run_id: str = "agent_run_123") -> dict:
                 }
             ],
         },
-        "usage": {"agentComputeUnits": 100, "searches": 2},
+        "usage": {"agentComputeUnits": 0.1, "searches": 2},
         "costDollars": {"total": 0.02, "agentCompute": 0.01, "search": 0.01},
     }
 
@@ -97,6 +97,7 @@ def test_create_agent_run(run_client, mock_client):
 
     assert result.id == "agent_run_123"
     assert result.output.structured == {"companies": [{"name": "Example AI"}]}
+    assert result.usage.agent_compute_units == 0.1
     mock_client.request.assert_called_once_with(
         "/agent/runs",
         data={
