@@ -1,0 +1,28 @@
+name: release-please
+
+# Version tracking for exa-py (NO publishing).
+#
+# Flow: merges to `master` with Conventional Commit titles keep a single
+# Release PR up to date. That PR updates versions across pyproject.toml,
+# setup.py, uv.lock, and CHANGELOG.md. Merging the Release PR creates the git
+# tag and GitHub Release. It does NOT publish to PyPI.
+
+on:
+  push:
+    branches: [master]
+
+permissions: {}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target-branch: master
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

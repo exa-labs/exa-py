@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "exa-py"
-version = "2.13.2"
+version = "2.13.2" # x-release-please-version
 description = "Python SDK for Exa API."
 authors = ["Exa AI <hello@exa.ai>"]
 readme = "README.md"
