@@ -123,6 +123,8 @@ for chunk in exa.stream_answer("Explain quantum computing"):
 
 ## Agent API 
 
+The Agent API is available without a beta header.
+
 ```python
 run = exa.agent.runs.create(
     query="Find engineering leaders at AI infrastructure companies that raised a Series A or B in the last 6 months.",
