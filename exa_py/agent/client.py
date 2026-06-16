@@ -41,6 +41,48 @@ def _is_pydantic_model(schema: Any) -> bool:
         return False
 
 
+def _headers_for_betas(betas: Optional[Sequence[str]]) -> Optional[Dict[str, str]]:
+    if not betas:
+        return None
+
+    beta_values = [beta for beta in betas if beta]
+    if not beta_values:
+        return None
+
+    return {"Exa-Beta": ",".join(beta_values)}
+
+
+def _build_create_payload(
+    *,
+    query: str,
+    system_prompt: Optional[str] = None,
+    input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+    output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+    effort: Optional[AgentEffort] = None,
+    previous_run_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    schema = (
+        _convert_schema_input(output_schema)
+        if _is_pydantic_model(output_schema)
+        else output_schema
+    )
+    run_input = (
+        input
+        if isinstance(input, AgentInput) or input is None
+        else AgentInput.model_validate(input)
+    )
+    return CreateAgentRunParams(
+        query=query,
+        system_prompt=system_prompt,
+        input=run_input,
+        output_schema=schema,
+        effort=effort,
+        previous_run_id=previous_run_id,
+        metadata=metadata,
+    ).model_dump(by_alias=True, exclude_none=True)
+
+
 class AgentRunEventsClient(AgentBaseClient):
     """Synchronous client for Agent run events."""
 
@@ -48,7 +90,6 @@ class AgentRunEventsClient(AgentBaseClient):
         self,
         run_id: str,
         *,
-        betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ListAgentRunEventsResponse:
@@ -56,7 +97,6 @@ class AgentRunEventsClient(AgentBaseClient):
 
         Args:
             run_id: The ID of the Agent run.
-            betas: Beta feature identifiers to enable for this request.
             cursor: Pagination cursor from a previous response.
             limit: Maximum number of events to return.
 
@@ -68,17 +108,14 @@ class AgentRunEventsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            events = exa.beta.agent.runs.events.list(
+            events = exa.agent.runs.events.list(
                 "agent_run_123",
-                betas=["agent-2026-05-07"],
                 limit=20,
             )
             print(events.data[0].event if events.data else "no events yet")
         """
         params = self.build_pagination_params(cursor, limit)
-        response = self.request(
-            f"/{run_id}/events", betas=betas, method="GET", params=params
-        )
+        response = self.request(f"/{run_id}/events", method="GET", params=params)
         return ListAgentRunEventsResponse.model_validate(response)
 
 
@@ -95,7 +132,6 @@ class AgentRunsClient(AgentBaseClient):
     def create(
         self,
         *,
-        betas: Sequence[str],
         query: str,
         system_prompt: Optional[str] = None,
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
@@ -110,7 +146,6 @@ class AgentRunsClient(AgentBaseClient):
     def create(
         self,
         *,
-        betas: Sequence[str],
         query: str,
         system_prompt: Optional[str] = None,
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
@@ -124,7 +159,6 @@ class AgentRunsClient(AgentBaseClient):
     def create(
         self,
         *,
-        betas: Sequence[str],
         query: str,
         system_prompt: Optional[str] = None,
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
@@ -137,7 +171,6 @@ class AgentRunsClient(AgentBaseClient):
         """Create an Agent run.
 
         Args:
-            betas: Beta feature identifiers to enable for this request.
             query: The task or question for the Agent run.
             system_prompt: Optional instructions that steer the Agent.
             input: Optional structured input data for the Agent.
@@ -155,45 +188,31 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            run = exa.beta.agent.runs.create(
-                betas=["agent-2026-05-07"],
+            run = exa.agent.runs.create(
                 query="Find companies building browser automation tools",
             )
             print(run.id)
         """
-        schema = (
-            _convert_schema_input(output_schema)
-            if _is_pydantic_model(output_schema)
-            else output_schema
-        )
-        run_input = (
-            input
-            if isinstance(input, AgentInput) or input is None
-            else AgentInput.model_validate(input)
-        )
-        payload = CreateAgentRunParams(
+        payload = _build_create_payload(
             query=query,
             system_prompt=system_prompt,
-            input=run_input,
-            output_schema=schema,
+            input=input,
+            output_schema=output_schema,
             effort=effort,
             previous_run_id=previous_run_id,
             metadata=metadata,
-        ).model_dump(by_alias=True, exclude_none=True)
-
-        response = self.request(
-            "", betas=betas, method="POST", data=payload, stream=stream
         )
+
+        response = self.request("", method="POST", data=payload, stream=stream)
         if stream:
             return stream_agent_events(response)
         return AgentRun.model_validate(response)
 
-    def get(self, run_id: str, *, betas: Sequence[str]) -> AgentRun:
+    def get(self, run_id: str) -> AgentRun:
         """Get an Agent run by ID.
 
         Args:
             run_id: The ID of the Agent run.
-            betas: Beta feature identifiers to enable for this request.
 
         Returns:
             The Agent run.
@@ -203,26 +222,21 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            run = exa.beta.agent.runs.get(
-                "agent_run_123",
-                betas=["agent-2026-05-07"],
-            )
+            run = exa.agent.runs.get("agent_run_123")
             print(run.status)
         """
-        response = self.request(f"/{run_id}", betas=betas, method="GET")
+        response = self.request(f"/{run_id}", method="GET")
         return AgentRun.model_validate(response)
 
     def list(
         self,
         *,
-        betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ListAgentRunsResponse:
         """List Agent runs.
 
         Args:
-            betas: Beta feature identifiers to enable for this request.
             cursor: Pagination cursor from a previous response.
             limit: Maximum number of runs to return.
 
@@ -234,23 +248,17 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            runs = exa.beta.agent.runs.list(
-                betas=["agent-2026-05-07"],
-                limit=10,
-            )
+            runs = exa.agent.runs.list(limit=10)
             print([run.id for run in runs.data])
         """
         params = self.build_pagination_params(cursor, limit)
-        response = self.request("", betas=betas, method="GET", params=params)
+        response = self.request("", method="GET", params=params)
         return ListAgentRunsResponse.model_validate(response)
 
-    def list_all(
-        self, *, betas: Sequence[str], limit: Optional[int] = None
-    ) -> Iterator[AgentRun]:
+    def list_all(self, *, limit: Optional[int] = None) -> Iterator[AgentRun]:
         """Iterate through all Agent runs, handling pagination automatically.
 
         Args:
-            betas: Beta feature identifiers to enable for this request.
             limit: Maximum number of runs to return per page.
 
         Yields:
@@ -261,27 +269,22 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            for run in exa.beta.agent.runs.list_all(
-                betas=["agent-2026-05-07"],
-            ):
+            for run in exa.agent.runs.list_all():
                 print(run.id)
         """
         cursor = None
         while True:
-            response = self.list(betas=betas, cursor=cursor, limit=limit)
+            response = self.list(cursor=cursor, limit=limit)
             for run in response.data:
                 yield run
             if not response.has_more or not response.next_cursor:
                 break
             cursor = response.next_cursor
 
-    def get_all(
-        self, *, betas: Sequence[str], limit: Optional[int] = None
-    ) -> list[AgentRun]:
+    def get_all(self, *, limit: Optional[int] = None) -> list[AgentRun]:
         """Collect all Agent runs into a list.
 
         Args:
-            betas: Beta feature identifiers to enable for this request.
             limit: Maximum number of runs to return per page.
 
         Returns:
@@ -292,19 +295,16 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            runs = exa.beta.agent.runs.get_all(
-                betas=["agent-2026-05-07"],
-            )
+            runs = exa.agent.runs.get_all()
             print(len(runs))
         """
-        return list(self.list_all(betas=betas, limit=limit))
+        return list(self.list_all(limit=limit))
 
-    def cancel(self, run_id: str, *, betas: Sequence[str]) -> AgentRun:
+    def cancel(self, run_id: str) -> AgentRun:
         """Cancel a queued or running Agent run.
 
         Args:
             run_id: The ID of the Agent run.
-            betas: Beta feature identifiers to enable for this request.
 
         Returns:
             The cancelled Agent run.
@@ -314,21 +314,17 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            run = exa.beta.agent.runs.cancel(
-                "agent_run_123",
-                betas=["agent-2026-05-07"],
-            )
+            run = exa.agent.runs.cancel("agent_run_123")
             print(run.status)
         """
-        response = self.request(f"/{run_id}/cancel", betas=betas, method="POST")
+        response = self.request(f"/{run_id}/cancel", method="POST")
         return AgentRun.model_validate(response)
 
-    def delete(self, run_id: str, *, betas: Sequence[str]) -> DeletedAgentRun:
+    def delete(self, run_id: str) -> DeletedAgentRun:
         """Delete an Agent run.
 
         Args:
             run_id: The ID of the Agent run.
-            betas: Beta feature identifiers to enable for this request.
 
         Returns:
             Deletion status for the Agent run.
@@ -338,20 +334,16 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            deleted = exa.beta.agent.runs.delete(
-                "agent_run_123",
-                betas=["agent-2026-05-07"],
-            )
+            deleted = exa.agent.runs.delete("agent_run_123")
             print(deleted.deleted)
         """
-        response = self.request(f"/{run_id}", betas=betas, method="DELETE")
+        response = self.request(f"/{run_id}", method="DELETE")
         return DeletedAgentRun.model_validate(response)
 
     def poll_until_finished(
         self,
         run_id: str,
         *,
-        betas: Sequence[str],
         poll_interval: int = 1000,
         timeout_ms: int = 3600000,
     ) -> AgentRun:
@@ -359,7 +351,6 @@ class AgentRunsClient(AgentBaseClient):
 
         Args:
             run_id: The ID of the Agent run.
-            betas: Beta feature identifiers to enable for this request.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
 
@@ -371,12 +362,180 @@ class AgentRunsClient(AgentBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            run = exa.beta.agent.runs.poll_until_finished(
-                "agent_run_123",
-                betas=["agent-2026-05-07"],
-            )
+            run = exa.agent.runs.poll_until_finished("agent_run_123")
             print(run.status)
         """
+        start_time = time.monotonic()
+        poll_interval_sec = poll_interval / 1000
+
+        while True:
+            run = self.get(run_id)
+            if run.status in ("completed", "failed", "cancelled"):
+                return run
+
+            if (time.monotonic() - start_time) * 1000 > timeout_ms:
+                raise TimeoutError(
+                    f"Agent run {run_id} did not complete within {timeout_ms}ms"
+                )
+
+            time.sleep(poll_interval_sec)
+
+
+class AgentBetaRunEventsClient(AgentRunEventsClient):
+    """Deprecated compatibility wrapper for Agent run events."""
+
+    def list(
+        self,
+        run_id: str,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> ListAgentRunEventsResponse:
+        params = self.build_pagination_params(cursor, limit)
+        response = self.request(
+            f"/{run_id}/events",
+            method="GET",
+            params=params,
+            headers=_headers_for_betas(betas),
+        )
+        return ListAgentRunEventsResponse.model_validate(response)
+
+
+class AgentBetaRunsClient(AgentRunsClient):
+    """Deprecated compatibility wrapper for Agent runs."""
+
+    events: AgentBetaRunEventsClient
+
+    def __init__(self, client: Any):
+        super().__init__(client)
+        self.events = AgentBetaRunEventsClient(client)
+
+    @overload
+    def create(
+        self,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        query: str,
+        system_prompt: Optional[str] = None,
+        input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+        output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        effort: Optional[AgentEffort] = None,
+        previous_run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        stream: Literal[False] = False,
+    ) -> AgentRun: ...
+
+    @overload
+    def create(
+        self,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        query: str,
+        system_prompt: Optional[str] = None,
+        input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+        output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        effort: Optional[AgentEffort] = None,
+        previous_run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        stream: Literal[True] = True,
+    ) -> Generator[AgentEvent, None, None]: ...
+
+    def create(
+        self,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        query: str,
+        system_prompt: Optional[str] = None,
+        input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+        output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        effort: Optional[AgentEffort] = None,
+        previous_run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        stream: bool = False,
+    ) -> Union[AgentRun, Generator[AgentEvent, None, None]]:
+        payload = _build_create_payload(
+            query=query,
+            system_prompt=system_prompt,
+            input=input,
+            output_schema=output_schema,
+            effort=effort,
+            previous_run_id=previous_run_id,
+            metadata=metadata,
+        )
+        response = self.request(
+            "",
+            method="POST",
+            data=payload,
+            stream=stream,
+            headers=_headers_for_betas(betas),
+        )
+        if stream:
+            return stream_agent_events(response)
+        return AgentRun.model_validate(response)
+
+    def get(
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+    ) -> AgentRun:
+        response = self.request(
+            f"/{run_id}", method="GET", headers=_headers_for_betas(betas)
+        )
+        return AgentRun.model_validate(response)
+
+    def list(
+        self,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> ListAgentRunsResponse:
+        params = self.build_pagination_params(cursor, limit)
+        response = self.request(
+            "", method="GET", params=params, headers=_headers_for_betas(betas)
+        )
+        return ListAgentRunsResponse.model_validate(response)
+
+    def list_all(
+        self, *, betas: Optional[Sequence[str]] = None, limit: Optional[int] = None
+    ) -> Iterator[AgentRun]:
+        cursor = None
+        while True:
+            response = self.list(betas=betas, cursor=cursor, limit=limit)
+            for run in response.data:
+                yield run
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    def get_all(
+        self, *, betas: Optional[Sequence[str]] = None, limit: Optional[int] = None
+    ) -> list[AgentRun]:
+        return list(self.list_all(betas=betas, limit=limit))
+
+    def cancel(
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+    ) -> AgentRun:
+        response = self.request(
+            f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas)
+        )
+        return AgentRun.model_validate(response)
+
+    def delete(
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+    ) -> DeletedAgentRun:
+        response = self.request(
+            f"/{run_id}", method="DELETE", headers=_headers_for_betas(betas)
+        )
+        return DeletedAgentRun.model_validate(response)
+
+    def poll_until_finished(
+        self,
+        run_id: str,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        poll_interval: int = 1000,
+        timeout_ms: int = 3600000,
+    ) -> AgentRun:
         start_time = time.monotonic()
         poll_interval_sec = poll_interval / 1000
 
@@ -393,8 +552,8 @@ class AgentRunsClient(AgentBaseClient):
             time.sleep(poll_interval_sec)
 
 
-class AgentBetaNamespace:
-    """Synchronous beta Agent namespace."""
+class AgentNamespace:
+    """Synchronous Agent namespace."""
 
     runs: AgentRunsClient
 
@@ -402,8 +561,18 @@ class AgentBetaNamespace:
         self.runs = AgentRunsClient(client)
 
 
+class AgentBetaNamespace(AgentNamespace):
+    """Deprecated compatibility wrapper for the synchronous Agent namespace."""
+
+    runs: AgentBetaRunsClient
+
+    def __init__(self, client: Any):
+        super().__init__(client)
+        self.runs = AgentBetaRunsClient(client)
+
+
 class BetaClient:
-    """Synchronous beta namespace."""
+    """Deprecated synchronous beta namespace."""
 
     agent: AgentBetaNamespace
 
