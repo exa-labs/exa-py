@@ -66,7 +66,8 @@ class ResponsesClient:
             input: The user input string or Responses message list.
             model: The Responses model name. Defaults to ``"agent"``.
             reasoning: Optional reasoning configuration. ``reasoning["effort"]``
-                maps to Agent effort modes: ``low``, ``medium``, ``high``, ``xhigh``, or ``auto``.
+                maps to Agent effort modes: ``minimal``, ``low``, ``medium``, ``high``,
+                ``xhigh``, or ``auto``.
             instructions: Optional system or developer instructions.
             previous_response_id: Optional previous response ID for follow-up context.
             metadata: Optional metadata to attach to the response.
@@ -90,7 +91,7 @@ class ResponsesClient:
             response = exa.responses.create(
                 model="agent",
                 input="Find companies building browser automation tools.",
-                reasoning={"effort": "low"},
+                reasoning={"effort": "minimal"},
             )
             print(response.output_text)
         """
@@ -152,7 +153,8 @@ class AsyncResponsesClient:
             input: The user input string or Responses message list.
             model: The Responses model name. Defaults to ``"agent"``.
             reasoning: Optional reasoning configuration. ``reasoning["effort"]``
-                maps to Agent effort modes: ``low``, ``medium``, ``high``, ``xhigh``, or ``auto``.
+                maps to Agent effort modes: ``minimal``, ``low``, ``medium``, ``high``,
+                ``xhigh``, or ``auto``.
             instructions: Optional system or developer instructions.
             previous_response_id: Optional previous response ID for follow-up context.
             metadata: Optional metadata to attach to the response.
@@ -176,7 +178,7 @@ class AsyncResponsesClient:
             response = await exa.responses.create(
                 model="agent",
                 input="Find companies building browser automation tools.",
-                reasoning={"effort": "low"},
+                reasoning={"effort": "minimal"},
             )
             print(response.output_text)
         """
@@ -205,4 +207,3 @@ class AsyncResponsesClient:
             method="POST",
         )
         return Response.model_validate(response)
-

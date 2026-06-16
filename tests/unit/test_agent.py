@@ -85,7 +85,7 @@ def _make_response() -> dict:
         "parallel_tool_calls": True,
         "temperature": 1,
         "top_p": 1,
-        "reasoning": {"effort": "low", "summary": None},
+        "reasoning": {"effort": "minimal", "summary": None},
         "usage": None,
     }
 
@@ -133,7 +133,7 @@ def test_responses_create_uses_agent_model_and_reasoning_effort(mock_client):
 
     result = responses.create(
         input="Find recent funding rounds.",
-        reasoning={"effort": "low"},
+        reasoning={"effort": "minimal"},
         temperature=0,
         tools=[{"type": "function", "name": "ignored_tool"}],
     )
@@ -145,7 +145,7 @@ def test_responses_create_uses_agent_model_and_reasoning_effort(mock_client):
         data={
             "input": "Find recent funding rounds.",
             "model": "agent",
-            "reasoning": {"effort": "low"},
+            "reasoning": {"effort": "minimal"},
             "temperature": 0,
             "tools": [{"type": "function", "name": "ignored_tool"}],
         },

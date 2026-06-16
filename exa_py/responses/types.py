@@ -9,7 +9,7 @@ from typing_extensions import TypedDict
 
 
 AgentResponseModel = Literal["agent", "exa-agent"]
-AgentResponseEffort = Literal["low", "medium", "high", "xhigh", "auto"]
+AgentResponseEffort = Literal["minimal", "low", "medium", "high", "xhigh", "auto"]
 ResponseStatus = Literal["completed", "failed", "incomplete", "queued", "running"]
 
 
@@ -92,4 +92,3 @@ class Response(BaseModel):
     usage: Optional[Dict[str, Any]] = None
 
     model_config = {"populate_by_name": True, "extra": "allow"}
-
