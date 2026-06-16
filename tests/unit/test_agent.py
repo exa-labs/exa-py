@@ -9,7 +9,11 @@ from exa_py import AsyncExa, Exa
 from exa_py.agent import (
     AGENT_BETA_HEADER,
     AgentNamespace,
+    AgentRunEventsClient,
+    AgentRunsClient,
     AsyncAgentNamespace,
+    AsyncAgentRunEventsClient,
+    AsyncAgentRunsClient,
     AsyncBetaClient,
     BetaClient,
     ListAgentRunsResponse,
@@ -81,6 +85,9 @@ def test_exa_exposes_agent_run_under_agent_namespace():
     assert "betas" in signature(exa.beta.agent.runs.create).parameters
     assert "betas" not in signature(exa.agent.runs.events.list).parameters
     assert "betas" in signature(exa.beta.agent.runs.events.list).parameters
+    assert isinstance(exa.beta.agent, AgentNamespace)
+    assert isinstance(exa.beta.agent.runs, AgentRunsClient)
+    assert isinstance(exa.beta.agent.runs.events, AgentRunEventsClient)
 
 
 def test_async_exa_exposes_agent_run_under_agent_namespace():
@@ -93,6 +100,9 @@ def test_async_exa_exposes_agent_run_under_agent_namespace():
     assert "betas" in signature(exa.beta.agent.runs.create).parameters
     assert "betas" not in signature(exa.agent.runs.events.list).parameters
     assert "betas" in signature(exa.beta.agent.runs.events.list).parameters
+    assert isinstance(exa.beta.agent, AsyncAgentNamespace)
+    assert isinstance(exa.beta.agent.runs, AsyncAgentRunsClient)
+    assert isinstance(exa.beta.agent.runs.events, AsyncAgentRunEventsClient)
 
 
 def test_create_agent_run(run_client, mock_client):

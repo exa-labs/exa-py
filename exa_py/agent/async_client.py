@@ -336,7 +336,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             await asyncio.sleep(poll_interval_sec)
 
 
-class AsyncAgentBetaRunEventsClient(AsyncAgentBaseClient):
+class AsyncAgentBetaRunEventsClient(AsyncAgentRunEventsClient):
     """Deprecated compatibility wrapper for asynchronous Agent run events."""
 
     async def list(
@@ -357,7 +357,7 @@ class AsyncAgentBetaRunEventsClient(AsyncAgentBaseClient):
         return ListAgentRunEventsResponse.model_validate(response)
 
 
-class AsyncAgentBetaRunsClient(AsyncAgentBaseClient):
+class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
     """Deprecated compatibility wrapper for asynchronous Agent runs."""
 
     events: AsyncAgentBetaRunEventsClient
@@ -522,12 +522,13 @@ class AsyncAgentNamespace:
         self.runs = AsyncAgentRunsClient(client)
 
 
-class AsyncAgentBetaNamespace:
+class AsyncAgentBetaNamespace(AsyncAgentNamespace):
     """Deprecated compatibility wrapper for the asynchronous Agent namespace."""
 
     runs: AsyncAgentBetaRunsClient
 
     def __init__(self, client: Any):
+        super().__init__(client)
         self.runs = AsyncAgentBetaRunsClient(client)
 
 

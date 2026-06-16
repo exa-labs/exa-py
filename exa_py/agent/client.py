@@ -381,7 +381,7 @@ class AgentRunsClient(AgentBaseClient):
             time.sleep(poll_interval_sec)
 
 
-class AgentBetaRunEventsClient(AgentBaseClient):
+class AgentBetaRunEventsClient(AgentRunEventsClient):
     """Deprecated compatibility wrapper for Agent run events."""
 
     def list(
@@ -402,7 +402,7 @@ class AgentBetaRunEventsClient(AgentBaseClient):
         return ListAgentRunEventsResponse.model_validate(response)
 
 
-class AgentBetaRunsClient(AgentBaseClient):
+class AgentBetaRunsClient(AgentRunsClient):
     """Deprecated compatibility wrapper for Agent runs."""
 
     events: AgentBetaRunEventsClient
@@ -561,12 +561,13 @@ class AgentNamespace:
         self.runs = AgentRunsClient(client)
 
 
-class AgentBetaNamespace:
+class AgentBetaNamespace(AgentNamespace):
     """Deprecated compatibility wrapper for the synchronous Agent namespace."""
 
     runs: AgentBetaRunsClient
 
     def __init__(self, client: Any):
+        super().__init__(client)
         self.runs = AgentBetaRunsClient(client)
 
 
