@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import httpx
 
@@ -21,17 +21,14 @@ class AsyncAgentBaseClient:
         self,
         endpoint: str,
         *,
-        betas: Sequence[str],
         method: str = "POST",
         data: Optional[Union[Dict[str, Any], str]] = None,
         params: Optional[Dict[str, str]] = None,
         stream: bool = False,
         headers: Optional[Dict[str, str]] = None,
     ) -> Union[Dict[str, Any], httpx.Response]:
-        if not betas:
-            raise ValueError("betas must include the Agent API beta identifier")
         full_endpoint = f"{self.base_path}{endpoint}"
-        request_headers = {"Exa-Beta": ",".join(betas)}
+        request_headers = {}
         if stream:
             request_headers["Accept"] = "text/event-stream"
         if headers:

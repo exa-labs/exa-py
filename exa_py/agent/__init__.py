@@ -1,8 +1,15 @@
 """Exa Agent API client."""
 
-from .client import AgentBetaNamespace, AgentRunsClient, AgentRunEventsClient, BetaClient
+from .client import (
+    AgentBetaNamespace,
+    AgentNamespace,
+    AgentRunsClient,
+    AgentRunEventsClient,
+    BetaClient,
+)
 from .async_client import (
     AsyncAgentBetaNamespace,
+    AsyncAgentNamespace,
     AsyncAgentRunsClient,
     AsyncAgentRunEventsClient,
     AsyncBetaClient,
@@ -30,10 +37,12 @@ from .types import (
 __all__ = [
     "AGENT_BETA_HEADER",
     "BetaClient",
+    "AgentNamespace",
     "AgentBetaNamespace",
     "AgentRunsClient",
     "AgentRunEventsClient",
     "AsyncBetaClient",
+    "AsyncAgentNamespace",
     "AsyncAgentBetaNamespace",
     "AsyncAgentRunsClient",
     "AsyncAgentRunEventsClient",

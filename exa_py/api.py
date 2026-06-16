@@ -44,7 +44,7 @@ from .websets import WebsetsClient
 from .websets.core.base import ExaJSONEncoder
 from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
-from .agent import BetaClient, AsyncBetaClient
+from .agent import AgentNamespace, AsyncAgentNamespace, BetaClient, AsyncBetaClient
 
 
 is_beta = os.getenv("IS_BETA") == "True"
@@ -1459,7 +1459,8 @@ class Exa:
         self.research = ResearchClient(self)
         # Search Monitors client
         self.monitors = SearchMonitorsClient(self)
-        # Beta clients
+        # Agent clients
+        self.agent = AgentNamespace(self)
         self.beta = BetaClient(self)
 
     def request(
@@ -2661,7 +2662,8 @@ class AsyncExa(Exa):
         self.websets = AsyncWebsetsClient(self)
         # Override the synchronous SearchMonitorsClient with its async counterpart.
         self.monitors = AsyncSearchMonitorsClient(self)
-        # Override the synchronous beta clients with async counterparts.
+        # Override the synchronous Agent clients with async counterparts.
+        self.agent = AsyncAgentNamespace(self)
         self.beta = AsyncBetaClient(self)
         self._client = None
 
