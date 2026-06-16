@@ -121,11 +121,10 @@ for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
 
-## Agent API (Beta)
+## Agent API 
 
 ```python
-run = exa.beta.agent.runs.create(
-    betas=["agent-2026-05-07"],
+run = exa.agent.runs.create(
     query="Find engineering leaders at AI infrastructure companies that raised a Series A or B in the last 6 months.",
     output_schema={
         "type": "object",
@@ -149,9 +148,7 @@ run = exa.beta.agent.runs.create(
     effort="auto",
 )
 
-run = exa.beta.agent.runs.poll_until_finished(
-    run.id, betas=["agent-2026-05-07"]
-)
+run = exa.agent.runs.poll_until_finished(run.id)
 print(run.output.structured if run.output else None)
 ```
 
