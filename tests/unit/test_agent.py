@@ -113,7 +113,7 @@ def test_create_agent_run(run_client, mock_client):
         system_prompt="Prefer primary sources.",
         input={"data": [{"company": "Example AI"}]},
         output_schema={"type": "object"},
-        effort="high",
+        effort="minimal",
         metadata={"workflow": "funding-watch"},
     )
 
@@ -127,7 +127,7 @@ def test_create_agent_run(run_client, mock_client):
             "systemPrompt": "Prefer primary sources.",
             "input": {"data": [{"company": "Example AI"}]},
             "outputSchema": {"type": "object"},
-            "effort": "high",
+            "effort": "minimal",
             "metadata": {"workflow": "funding-watch"},
         },
         method="POST",
