@@ -51,6 +51,45 @@ def _make_run(run_id: str = "agent_run_123") -> dict:
     }
 
 
+def _make_response() -> dict:
+    return {
+        "id": "resp_agent_run_123",
+        "object": "response",
+        "created_at": 1778706660,
+        "completed_at": 1778706684,
+        "status": "completed",
+        "model": "agent",
+        "output_text": "Returned 1 company.",
+        "output": [
+            {
+                "id": "msg_agent_run_123",
+                "type": "message",
+                "status": "completed",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "output_text",
+                        "text": "Returned 1 company.",
+                        "annotations": [],
+                    }
+                ],
+            }
+        ],
+        "error": None,
+        "incomplete_details": None,
+        "instructions": None,
+        "previous_response_id": None,
+        "metadata": {},
+        "tools": [],
+        "tool_choice": "auto",
+        "parallel_tool_calls": True,
+        "temperature": 1,
+        "top_p": 1,
+        "reasoning": {"effort": "low", "summary": None},
+        "usage": None,
+    }
+
+
 class _MockAsyncSseResponse:
     def __init__(self, lines):
         self.lines = lines
@@ -80,6 +119,48 @@ def test_async_exa_exposes_agent_run_under_beta_namespace():
     assert hasattr(exa.beta.agent, "runs")
     assert not hasattr(exa.beta.agent, "run")
     assert not hasattr(exa, "agent")
+
+
+def test_exa_exposes_responses_namespace():
+    exa = Exa(api_key="test-api-key")
+    assert hasattr(exa, "responses")
+
+
+def test_responses_create_uses_agent_model_and_reasoning_effort(mock_client):
+    mock_client.request.return_value = _make_response()
+    responses = Exa(api_key="test-api-key").responses
+    responses._client = mock_client
+
+    result = responses.create(
+        input="Find recent funding rounds.",
+        reasoning={"effort": "low"},
+        temperature=0,
+        tools=[{"type": "function", "name": "ignored_tool"}],
+    )
+
+    assert result.id == "resp_agent_run_123"
+    assert result.output_text == "Returned 1 company."
+    mock_client.request.assert_called_once_with(
+        "/v1/responses",
+        data={
+            "input": "Find recent funding rounds.",
+            "model": "agent",
+            "reasoning": {"effort": "low"},
+            "temperature": 0,
+            "tools": [{"type": "function", "name": "ignored_tool"}],
+        },
+        method="POST",
+    )
+
+
+def test_responses_create_rejects_streaming(mock_client):
+    responses = Exa(api_key="test-api-key").responses
+    responses._client = mock_client
+
+    with pytest.raises(ValueError, match="Streaming Responses"):
+        responses.create(input="Find recent funding rounds.", stream=True)
+
+    mock_client.request.assert_not_called()
 
 
 def test_create_agent_run(run_client, mock_client):
@@ -374,6 +455,30 @@ async def test_async_agent_create():
         method="POST",
         params=None,
         headers={"Exa-Beta": AGENT_BETA_HEADER},
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_responses_create():
+    client = MagicMock()
+    client.async_request = AsyncMock(return_value=_make_response())
+    responses = AsyncExa(api_key="test-api-key").responses
+    responses._client = client
+
+    result = await responses.create(
+        input="Find recent funding rounds.",
+        reasoning={"effort": "high"},
+    )
+
+    assert result.output_text == "Returned 1 company."
+    client.async_request.assert_awaited_once_with(
+        "/v1/responses",
+        data={
+            "input": "Find recent funding rounds.",
+            "model": "agent",
+            "reasoning": {"effort": "high"},
+        },
+        method="POST",
     )
 
 
