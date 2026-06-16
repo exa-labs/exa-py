@@ -45,6 +45,7 @@ from .websets.core.base import ExaJSONEncoder
 from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
 from .agent import BetaClient, AsyncBetaClient
+from .responses import ResponsesClient, AsyncResponsesClient
 
 
 is_beta = os.getenv("IS_BETA") == "True"
@@ -1459,6 +1460,8 @@ class Exa:
         self.research = ResearchClient(self)
         # Search Monitors client
         self.monitors = SearchMonitorsClient(self)
+        # OpenAI-compatible Responses client for Agent.
+        self.responses = ResponsesClient(self)
         # Beta clients
         self.beta = BetaClient(self)
 
@@ -2661,6 +2664,8 @@ class AsyncExa(Exa):
         self.websets = AsyncWebsetsClient(self)
         # Override the synchronous SearchMonitorsClient with its async counterpart.
         self.monitors = AsyncSearchMonitorsClient(self)
+        # Override the synchronous Responses client with its async counterpart.
+        self.responses = AsyncResponsesClient(self)
         # Override the synchronous beta clients with async counterparts.
         self.beta = AsyncBetaClient(self)
         self._client = None
