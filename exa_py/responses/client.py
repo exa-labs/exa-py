@@ -115,7 +115,7 @@ class ResponsesClient:
             **kwargs,
         }
         response = self._client.request(
-            "/v1/responses",
+            "/responses",
             data={key: value for key, value in payload.items() if value is not None},
             method="POST",
         )
@@ -202,7 +202,7 @@ class AsyncResponsesClient:
             **kwargs,
         }
         response = await self._client.async_request(
-            "/v1/responses",
+            "/responses",
             data={key: value for key, value in payload.items() if value is not None},
             method="POST",
         )

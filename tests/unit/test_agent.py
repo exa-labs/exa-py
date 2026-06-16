@@ -141,7 +141,7 @@ def test_responses_create_uses_agent_model_and_reasoning_effort(mock_client):
     assert result.id == "resp_agent_run_123"
     assert result.output_text == "Returned 1 company."
     mock_client.request.assert_called_once_with(
-        "/v1/responses",
+        "/responses",
         data={
             "input": "Find recent funding rounds.",
             "model": "agent",
@@ -472,7 +472,7 @@ async def test_async_responses_create():
 
     assert result.output_text == "Returned 1 company."
     client.async_request.assert_awaited_once_with(
-        "/v1/responses",
+        "/responses",
         data={
             "input": "Find recent funding rounds.",
             "model": "agent",
