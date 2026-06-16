@@ -1422,9 +1422,6 @@ def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
 class Exa:
     """A client for interacting with Exa API."""
 
-    agent: AgentNamespace
-    beta: BetaClient
-
     def __init__(
         self,
         api_key: Optional[str],
@@ -2657,9 +2654,6 @@ class Exa:
 
 
 class AsyncExa(Exa):
-    agent: AsyncAgentNamespace  # type: ignore[assignment]
-    beta: AsyncBetaClient  # type: ignore[assignment]
-
     def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
         super().__init__(api_key, api_base)
         # Override the synchronous ResearchClient with its async counterpart.
