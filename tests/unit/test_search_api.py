@@ -46,6 +46,29 @@ class _FakeAsyncStreamResponse:
 ########################################
 
 
+def test_exa_uses_env_api_key_by_default(monkeypatch):
+    monkeypatch.setenv("EXA_API_KEY", "env-api-key")
+
+    exa = Exa()
+
+    assert exa.headers["x-api-key"] == "env-api-key"
+
+
+def test_async_exa_uses_env_api_key_by_default(monkeypatch):
+    monkeypatch.setenv("EXA_API_KEY", "env-api-key")
+
+    exa = AsyncExa()
+
+    assert exa.headers["x-api-key"] == "env-api-key"
+
+
+def test_exa_without_api_key_raises_value_error(monkeypatch):
+    monkeypatch.delenv("EXA_API_KEY", raising=False)
+
+    with pytest.raises(ValueError, match="EXA_API_KEY"):
+        Exa()
+
+
 def test_contentstatus_parsing_offline():
     payload_status = {"id": "u", "status": "success", "source": "cached"}
     cs = exa_api.ContentStatus(**payload_status)
