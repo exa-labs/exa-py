@@ -23,7 +23,7 @@ async def main():
     # Initialize the async client
     api_key = os.environ.get("EXA_API_KEY")
     base_url = os.environ.get("EXA_BASE_URL", "https://api.exa.ai")
-    client = AsyncExa(api_key=api_key, api_base=base_url)
+    client = AsyncExa(api_key=api_key, base_url=base_url)
 
     print("Creating async research request with schema...")
 
