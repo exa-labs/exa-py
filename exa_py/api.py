@@ -1424,20 +1424,19 @@ class Exa:
 
     def __init__(
         self,
-        api_key: Optional[str],
+        api_key: Optional[str] = None,
         base_url: str = "https://api.exa.ai",
         user_agent: Optional[str] = None,
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
         Args:
-            api_key (str): The API key for authenticating with the Exa API.
+            api_key (str, optional): The API key for authenticating with the Exa API.
+                Defaults to the EXA_API_KEY environment variable.
             base_url (str, optional): The base URL for the Exa API. Defaults to "https://api.exa.ai".
             user_agent (str, optional): Custom user agent. Defaults to "exa-py {version}".
         """
         if api_key is None:
-            import os
-
             api_key = os.environ.get("EXA_API_KEY")
             if api_key is None:
                 raise ValueError(
@@ -2654,7 +2653,11 @@ class Exa:
 
 
 class AsyncExa(Exa):
-    def __init__(self, api_key: str, api_base: str = "https://api.exa.ai"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        api_base: str = "https://api.exa.ai",
+    ):
         super().__init__(api_key, api_base)
         # Override the synchronous ResearchClient with its async counterpart.
         self.research = AsyncResearchClient(self)
