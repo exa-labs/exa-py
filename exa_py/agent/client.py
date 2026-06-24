@@ -22,6 +22,7 @@ from exa_py.utils import _convert_schema_input
 
 from .base import AgentBaseClient
 from .types import (
+    AgentDataSource,
     AgentEvent,
     AgentEffort,
     AgentInput,
@@ -61,6 +62,7 @@ def _build_create_payload(
     effort: Optional[AgentEffort] = None,
     previous_run_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    data_sources: Optional[list[AgentDataSource]] = None,
 ) -> Dict[str, Any]:
     schema = (
         _convert_schema_input(output_schema)
@@ -80,6 +82,7 @@ def _build_create_payload(
         effort=effort,
         previous_run_id=previous_run_id,
         metadata=metadata,
+        data_sources=data_sources,
     ).model_dump(by_alias=True, exclude_none=True)
 
 
@@ -139,6 +142,7 @@ class AgentRunsClient(AgentBaseClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[False] = False,
     ) -> AgentRun: ...
 
@@ -153,6 +157,7 @@ class AgentRunsClient(AgentBaseClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[True] = True,
     ) -> Generator[AgentEvent, None, None]: ...
 
@@ -166,6 +171,7 @@ class AgentRunsClient(AgentBaseClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: bool = False,
     ) -> Union[AgentRun, Generator[AgentEvent, None, None]]:
         """Create an Agent run.
@@ -178,6 +184,7 @@ class AgentRunsClient(AgentBaseClient):
             effort: Optional cost and reasoning effort preference. Defaults to auto.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
+            data_sources: Optional Exa Connect data providers to enable for the run.
             stream: Whether to stream server-sent Agent events instead of returning a run.
 
         Returns:
@@ -201,6 +208,7 @@ class AgentRunsClient(AgentBaseClient):
             effort=effort,
             previous_run_id=previous_run_id,
             metadata=metadata,
+            data_sources=data_sources,
         )
 
         response = self.request("", method="POST", data=payload, stream=stream)
@@ -423,6 +431,7 @@ class AgentBetaRunsClient(AgentRunsClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[False] = False,
     ) -> AgentRun: ...
 
@@ -438,6 +447,7 @@ class AgentBetaRunsClient(AgentRunsClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[True] = True,
     ) -> Generator[AgentEvent, None, None]: ...
 
@@ -452,6 +462,7 @@ class AgentBetaRunsClient(AgentRunsClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: bool = False,
     ) -> Union[AgentRun, Generator[AgentEvent, None, None]]:
         payload = _build_create_payload(
@@ -462,6 +473,7 @@ class AgentBetaRunsClient(AgentRunsClient):
             effort=effort,
             previous_run_id=previous_run_id,
             metadata=metadata,
+            data_sources=data_sources,
         )
         response = self.request(
             "",
