@@ -154,6 +154,18 @@ run = exa.agent.runs.poll_until_finished(run.id)
 print(run.output.structured if run.output else None)
 ```
 
+Enable [Exa Connect](https://docs.exa.ai) data providers for a run with `data_sources` (up to 5):
+
+```python
+run = exa.agent.runs.create(
+    query="Summarize the latest financials for the top AI infrastructure companies.",
+    data_sources=[{"provider": "financial_datasets"}],
+)
+
+run = exa.agent.runs.poll_until_finished(run.id)
+print(run.usage.data_sources if run.usage else None)  # per-provider tool call counts
+```
+
 ## Async
 
 ```python

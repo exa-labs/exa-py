@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from exa_py import AsyncExa, Exa
 from exa_py.agent import (
     AGENT_BETA_HEADER,
+    AgentDataSource,
     AgentNamespace,
     AgentRunEventsClient,
     AgentRunsClient,
@@ -134,6 +135,44 @@ def test_create_agent_run(run_client, mock_client):
         params=None,
         headers={},
     )
+
+
+def test_create_agent_run_serializes_data_sources(run_client, mock_client):
+    mock_client.request.return_value = _make_run()
+
+    run_client.create(
+        query="Find recent funding rounds.",
+        data_sources=[
+            AgentDataSource(provider="financial_datasets"),
+            {"provider": "custom_provider"},
+        ],
+    )
+
+    payload = mock_client.request.call_args.kwargs["data"]
+    assert payload["dataSources"] == [
+        {"provider": "financial_datasets"},
+        {"provider": "custom_provider"},
+    ]
+
+
+def test_create_agent_run_omits_data_sources_when_not_provided(run_client, mock_client):
+    mock_client.request.return_value = _make_run()
+
+    run_client.create(query="Find recent funding rounds.")
+
+    assert "dataSources" not in mock_client.request.call_args.kwargs["data"]
+
+
+def test_agent_run_parses_data_source_usage_and_cost(run_client, mock_client):
+    run = _make_run()
+    run["usage"]["dataSources"] = {"financial_datasets": 3}
+    run["costDollars"]["dataSources"] = {"financial_datasets": 0.05}
+    mock_client.request.return_value = run
+
+    result = run_client.create(query="Find recent funding rounds.")
+
+    assert result.usage.data_sources == {"financial_datasets": 3}
+    assert result.cost_dollars.data_sources == {"financial_datasets": 0.05}
 
 
 def test_agent_run_does_not_accept_betas(run_client):
@@ -465,6 +504,21 @@ async def test_async_agent_create():
         params=None,
         headers={},
     )
+
+
+@pytest.mark.asyncio
+async def test_async_agent_create_serializes_data_sources():
+    client = MagicMock()
+    client.async_request = AsyncMock(return_value=_make_run())
+    run = AsyncAgentNamespace(client).runs
+
+    await run.create(
+        query="Find recent funding rounds.",
+        data_sources=[AgentDataSource(provider="similar_web")],
+    )
+
+    payload = client.async_request.await_args.kwargs["data"]
+    assert payload["dataSources"] == [{"provider": "similar_web"}]
 
 
 @pytest.mark.asyncio
