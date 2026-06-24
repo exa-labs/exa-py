@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,23 +14,15 @@ AgentStopReason = Literal["schema_satisfied", "budget_reached", "error", "cancel
 AgentConfidence = Literal["low", "medium", "high"]
 AgentEffort = Literal["low", "medium", "high", "xhigh", "auto"]
 
-AgentDataSourceProvider = Union[
-    Literal[
-        "fiber_ai",
-        "financial_datasets",
-        "similar_web",
-        "baselayer",
-        "affiliate",
-        "particle_news",
-        "jinko",
-    ],
-    str,
-]
+AgentDataSourceProvider = str
 """Identifier of an Exa Connect data provider."""
 
 
 class AgentDataSource(BaseModel):
-    """Exa Connect data source to enable for an Agent run."""
+    """Exa Connect data source to enable for an Agent run.
+
+    See https://exa.ai/docs/reference/agent-api/connect/overview for available providers.
+    """
 
     provider: AgentDataSourceProvider
 
@@ -163,6 +155,6 @@ class CreateAgentRunParams(BaseModel):
     previous_run_id: Optional[str] = Field(default=None, alias="previousRunId")
     metadata: Optional[Dict[str, Any]] = None
     data_sources: Optional[List[AgentDataSource]] = Field(default=None, alias="dataSources")
-    """Exa Connect data providers to enable for the run (max 5)."""
+    """Exa Connect data providers to enable for the run."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
