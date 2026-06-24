@@ -17,6 +17,8 @@ from .async_client import (
 from .types import (
     AGENT_BETA_HEADER,
     AgentCostDollars,
+    AgentDataSource,
+    AgentDataSourceProvider,
     AgentEffort,
     AgentError,
     AgentEvent,
@@ -47,6 +49,8 @@ __all__ = [
     "AsyncAgentRunsClient",
     "AsyncAgentRunEventsClient",
     "AgentCostDollars",
+    "AgentDataSource",
+    "AgentDataSourceProvider",
     "AgentEffort",
     "AgentError",
     "AgentEvent",

@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from .async_base import AsyncAgentBaseClient
 from .client import _build_create_payload, _headers_for_betas
 from .types import (
+    AgentDataSource,
     AgentEvent,
     AgentEffort,
     AgentInput,
@@ -87,6 +88,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[False] = False,
     ) -> AgentRun: ...
 
@@ -101,6 +103,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[True] = True,
     ) -> AsyncGenerator[AgentEvent, None]: ...
 
@@ -114,6 +117,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: bool = False,
     ) -> Union[AgentRun, AsyncGenerator[AgentEvent, None]]:
         """Create an Agent run.
@@ -126,6 +130,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             effort: Optional cost and reasoning effort preference. Defaults to auto.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
+            data_sources: Optional Exa Connect data providers to enable for the run.
             stream: Whether to stream server-sent Agent events instead of returning a run.
 
         Returns:
@@ -149,6 +154,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             effort=effort,
             previous_run_id=previous_run_id,
             metadata=metadata,
+            data_sources=data_sources,
         )
 
         response = await self.request("", method="POST", data=payload, stream=stream)
@@ -378,6 +384,7 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[False] = False,
     ) -> AgentRun: ...
 
@@ -393,6 +400,7 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: Literal[True] = True,
     ) -> AsyncGenerator[AgentEvent, None]: ...
 
@@ -407,6 +415,7 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         effort: Optional[AgentEffort] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
         stream: bool = False,
     ) -> Union[AgentRun, AsyncGenerator[AgentEvent, None]]:
         payload = _build_create_payload(
@@ -417,6 +426,7 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
             effort=effort,
             previous_run_id=previous_run_id,
             metadata=metadata,
+            data_sources=data_sources,
         )
         response = await self.request(
             "",

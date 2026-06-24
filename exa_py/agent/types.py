@@ -14,6 +14,20 @@ AgentStopReason = Literal["schema_satisfied", "budget_reached", "error", "cancel
 AgentConfidence = Literal["low", "medium", "high"]
 AgentEffort = Literal["low", "medium", "high", "xhigh", "auto"]
 
+AgentDataSourceProvider = str
+"""Identifier of an Exa Connect data provider."""
+
+
+class AgentDataSource(BaseModel):
+    """Exa Connect data source to enable for an Agent run.
+
+    See https://exa.ai/docs/reference/agent-api/connect/overview for available providers.
+    """
+
+    provider: AgentDataSourceProvider
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
 
 class AgentInput(BaseModel):
     data: Optional[List[Dict[str, Any]]] = None
@@ -51,6 +65,8 @@ class AgentUsage(BaseModel):
     searches: Optional[int] = None
     emails: Optional[int] = None
     phone_numbers: Optional[int] = Field(default=None, alias="phoneNumbers")
+    data_sources: Optional[Dict[str, int]] = Field(default=None, alias="dataSources")
+    """Per-provider tool call counts for Exa Connect data sources used during the run."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -61,6 +77,8 @@ class AgentCostDollars(BaseModel):
     search: Optional[float] = None
     emails: Optional[float] = None
     phone_numbers: Optional[float] = Field(default=None, alias="phoneNumbers")
+    data_sources: Optional[Dict[str, float]] = Field(default=None, alias="dataSources")
+    """Per-provider cost in dollars for Exa Connect data sources used during the run."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -136,5 +154,7 @@ class CreateAgentRunParams(BaseModel):
     effort: Optional[AgentEffort] = None
     previous_run_id: Optional[str] = Field(default=None, alias="previousRunId")
     metadata: Optional[Dict[str, Any]] = None
+    data_sources: Optional[List[AgentDataSource]] = Field(default=None, alias="dataSources")
+    """Exa Connect data providers to enable for the run."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
