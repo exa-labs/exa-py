@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -14,14 +14,17 @@ AgentStopReason = Literal["schema_satisfied", "budget_reached", "error", "cancel
 AgentConfidence = Literal["low", "medium", "high"]
 AgentEffort = Literal["low", "medium", "high", "xhigh", "auto"]
 
-AgentDataSourceProvider = Literal[
-    "fiber_ai",
-    "financial_datasets",
-    "similar_web",
-    "baselayer",
-    "affiliate",
-    "particle_news",
-    "jinko",
+AgentDataSourceProvider = Union[
+    Literal[
+        "fiber_ai",
+        "financial_datasets",
+        "similar_web",
+        "baselayer",
+        "affiliate",
+        "particle_news",
+        "jinko",
+    ],
+    str,
 ]
 """Identifier of an Exa Connect data provider."""
 
