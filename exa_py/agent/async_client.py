@@ -401,8 +401,6 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in _TERMINAL_RUN_STATUSES:
-            return _ensure_completed_run(run)
         terminal_run = await self.poll_until_finished(
             run.id,
             poll_interval=poll_interval,
@@ -617,8 +615,6 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in _TERMINAL_RUN_STATUSES:
-            return _ensure_completed_run(run)
         terminal_run = await self.poll_until_finished(
             run.id,
             betas=betas,

@@ -455,8 +455,6 @@ class AgentRunsClient(AgentBaseClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in _TERMINAL_RUN_STATUSES:
-            return _ensure_completed_run(run)
         terminal_run = self.poll_until_finished(
             run.id,
             poll_interval=poll_interval,
@@ -665,8 +663,6 @@ class AgentBetaRunsClient(AgentRunsClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in _TERMINAL_RUN_STATUSES:
-            return _ensure_completed_run(run)
         terminal_run = self.poll_until_finished(
             run.id,
             betas=betas,
