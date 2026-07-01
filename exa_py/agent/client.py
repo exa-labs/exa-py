@@ -36,6 +36,9 @@ from .types import (
 )
 from .utils import stream_agent_events
 
+_DEFAULT_POLL_INTERVAL_MS = 1000
+_DEFAULT_POLL_TIMEOUT_MS = 3600000
+_DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS = 120000
 _TERMINAL_RUN_STATUSES = {"completed", "failed", "cancelled"}
 
 
@@ -364,8 +367,8 @@ class AgentRunsClient(AgentBaseClient):
         self,
         run_id: str,
         *,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         """Poll an Agent run until it reaches a terminal status.
 
@@ -411,8 +414,8 @@ class AgentRunsClient(AgentBaseClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
     ) -> AgentRun:
         """Create an Agent run and wait for it to reach a terminal status.
 
@@ -618,8 +621,8 @@ class AgentBetaRunsClient(AgentRunsClient):
         run_id: str,
         *,
         betas: Optional[Sequence[str]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         start_time = time.monotonic()
         poll_interval_sec = poll_interval / 1000
@@ -648,8 +651,8 @@ class AgentBetaRunsClient(AgentRunsClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
     ) -> AgentRun:
         run = self.create(
             betas=betas,

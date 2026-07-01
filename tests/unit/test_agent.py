@@ -478,6 +478,21 @@ def test_create_and_wait_creates_then_polls(run_client, mock_client):
     )
 
 
+def test_create_and_wait_uses_two_minute_timeout_defaults(run_client, mock_client):
+    mock_client.request.return_value = {**_make_run(), "status": "running"}
+    run_client.poll_until_finished = MagicMock(
+        return_value=MagicMock(status="completed")
+    )
+
+    run_client.create_and_wait(query="Find companies.")
+
+    run_client.poll_until_finished.assert_called_once_with(
+        "agent_run_123",
+        poll_interval=1000,
+        timeout_ms=120000,
+    )
+
+
 def test_create_and_wait_raises_for_failed_run(run_client, mock_client):
     failed_run = {
         **_make_run(),
@@ -783,6 +798,24 @@ async def test_async_create_and_wait_creates_then_polls():
     }
     assert client.async_request.call_args_list[1].args == (
         "/agent/runs/agent_run_123",
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_create_and_wait_uses_two_minute_timeout_defaults():
+    client = MagicMock()
+    client.async_request = AsyncMock(
+        return_value={**_make_run(), "status": "running"}
+    )
+    run = AsyncAgentNamespace(client).runs
+    run.poll_until_finished = AsyncMock(return_value=MagicMock(status="completed"))
+
+    await run.create_and_wait(query="Find companies.")
+
+    run.poll_until_finished.assert_awaited_once_with(
+        "agent_run_123",
+        poll_interval=1000,
+        timeout_ms=120000,
     )
 
 

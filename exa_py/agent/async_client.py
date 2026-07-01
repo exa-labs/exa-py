@@ -19,6 +19,9 @@ from pydantic import BaseModel
 
 from .async_base import AsyncAgentBaseClient
 from .client import (
+    _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+    _DEFAULT_POLL_INTERVAL_MS,
+    _DEFAULT_POLL_TIMEOUT_MS,
     _TERMINAL_RUN_STATUSES,
     _build_create_payload,
     _ensure_completed_run,
@@ -310,8 +313,8 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         self,
         run_id: str,
         *,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         """Poll an Agent run until it reaches a terminal status.
 
@@ -357,8 +360,8 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
     ) -> AgentRun:
         """Create an Agent run and wait for it to reach a terminal status.
 
@@ -570,8 +573,8 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         run_id: str,
         *,
         betas: Optional[Sequence[str]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         start_time = asyncio.get_event_loop().time()
         poll_interval_sec = poll_interval / 1000
@@ -600,8 +603,8 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
     ) -> AgentRun:
         run = await self.create(
             betas=betas,
