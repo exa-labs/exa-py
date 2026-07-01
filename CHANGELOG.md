@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.15.0](https://github.com/exa-labs/exa-py/compare/v2.14.0...v2.15.0) (2026-07-01)
+
+
+### Features
+
+* **agent:** add create_and_wait helper ([#225](https://github.com/exa-labs/exa-py/issues/225)) ([f52c5c6](https://github.com/exa-labs/exa-py/commit/f52c5c6185c39296b0a14819717648cb3c248938))
+* **agent:** add Exa Connect data_sources support ([#222](https://github.com/exa-labs/exa-py/issues/222)) ([b7c57e8](https://github.com/exa-labs/exa-py/commit/b7c57e824be86d5208c6b09b0a17cd704717cc1e))
+
 ## [2.14.0](https://github.com/exa-labs/exa-py/compare/v2.13.2...v2.14.0) (2026-06-16)
 
 
