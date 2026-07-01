@@ -10,7 +10,9 @@ from exa_py.agent import (
     AGENT_BETA_HEADER,
     AgentDataSource,
     AgentNamespace,
+    AgentRunCancelledError,
     AgentRunEventsClient,
+    AgentRunFailedError,
     AgentRunsClient,
     AsyncAgentNamespace,
     AsyncAgentRunEventsClient,
@@ -452,6 +454,70 @@ def test_poll_until_finished_returns_terminal_run(run_client, mock_client, monke
     sleep.assert_called_once_with(0.005)
 
 
+def test_create_and_wait_creates_then_polls(run_client, mock_client):
+    mock_client.request.side_effect = [
+        {**_make_run(), "status": "running"},
+        {**_make_run(), "status": "completed"},
+    ]
+
+    result = run_client.create_and_wait(
+        query="Find companies.",
+        output_schema={"type": "object"},
+        poll_interval=5,
+        timeout_ms=600000,
+    )
+
+    assert result.status == "completed"
+    assert mock_client.request.call_args_list[0].args == ("/agent/runs",)
+    assert mock_client.request.call_args_list[0].kwargs["data"] == {
+        "query": "Find companies.",
+        "outputSchema": {"type": "object"},
+    }
+    assert mock_client.request.call_args_list[1].args == (
+        "/agent/runs/agent_run_123",
+    )
+
+
+def test_create_and_wait_raises_for_failed_run(run_client, mock_client):
+    failed_run = {
+        **_make_run(),
+        "status": "failed",
+        "error": {"message": "Could not produce a final answer."},
+    }
+    mock_client.request.side_effect = [
+        {**_make_run(), "status": "running"},
+        failed_run,
+    ]
+
+    with pytest.raises(AgentRunFailedError) as exc_info:
+        run_client.create_and_wait(
+            query="Find companies.",
+            poll_interval=5,
+            timeout_ms=600000,
+        )
+
+    assert str(exc_info.value) == "Could not produce a final answer."
+    assert exc_info.value.run.status == "failed"
+    assert exc_info.value.run.id == "agent_run_123"
+
+
+def test_create_and_wait_raises_for_cancelled_run(run_client, mock_client):
+    mock_client.request.side_effect = [
+        {**_make_run(), "status": "running"},
+        {**_make_run(), "status": "cancelled", "stopReason": "cancelled"},
+    ]
+
+    with pytest.raises(AgentRunCancelledError) as exc_info:
+        run_client.create_and_wait(
+            query="Find companies.",
+            poll_interval=5,
+            timeout_ms=600000,
+        )
+
+    assert str(exc_info.value) == "Agent run agent_run_123 was cancelled"
+    assert exc_info.value.run.status == "cancelled"
+
+
 def test_beta_poll_until_finished_sends_legacy_betas_as_header(
     mock_client, monkeypatch
 ):
@@ -465,6 +531,29 @@ def test_beta_poll_until_finished_sends_legacy_betas_as_header(
 
     result = run_client.poll_until_finished(
         "agent_run_123", betas=AGENT_BETAS, poll_interval=5, timeout_ms=1000
+    )
+
+    assert result.status == "completed"
+    assert mock_client.request.call_args_list[0].kwargs["headers"] == {
+        "Exa-Beta": AGENT_BETA_HEADER
+    }
+    assert mock_client.request.call_args_list[1].kwargs["headers"] == {
+        "Exa-Beta": AGENT_BETA_HEADER
+    }
+
+
+def test_beta_create_and_wait_sends_legacy_betas_as_header(mock_client):
+    mock_client.request.side_effect = [
+        {**_make_run(), "status": "running"},
+        {**_make_run(), "status": "completed"},
+    ]
+    run_client = BetaClient(mock_client).agent.runs
+
+    result = run_client.create_and_wait(
+        betas=AGENT_BETAS,
+        query="Find companies.",
+        poll_interval=5,
+        timeout_ms=1000,
     )
 
     assert result.status == "completed"
@@ -666,3 +755,58 @@ async def test_async_poll_until_finished_returns_terminal_run(monkeypatch):
 
     assert result.status == "completed"
     sleep.assert_awaited_once_with(0.005)
+
+
+@pytest.mark.asyncio
+async def test_async_create_and_wait_creates_then_polls():
+    client = MagicMock()
+    client.async_request = AsyncMock(
+        side_effect=[
+            {**_make_run(), "status": "running"},
+            {**_make_run(), "status": "completed"},
+        ]
+    )
+    run = AsyncAgentNamespace(client).runs
+
+    result = await run.create_and_wait(
+        query="Find companies.",
+        output_schema={"type": "object"},
+        poll_interval=5,
+        timeout_ms=600000,
+    )
+
+    assert result.status == "completed"
+    assert client.async_request.call_args_list[0].args == ("/agent/runs",)
+    assert client.async_request.call_args_list[0].kwargs["data"] == {
+        "query": "Find companies.",
+        "outputSchema": {"type": "object"},
+    }
+    assert client.async_request.call_args_list[1].args == (
+        "/agent/runs/agent_run_123",
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_create_and_wait_raises_for_failed_run():
+    client = MagicMock()
+    client.async_request = AsyncMock(
+        side_effect=[
+            {**_make_run(), "status": "running"},
+            {
+                **_make_run(),
+                "status": "failed",
+                "error": {"message": "Could not produce a final answer."},
+            },
+        ]
+    )
+    run = AsyncAgentNamespace(client).runs
+
+    with pytest.raises(AgentRunFailedError) as exc_info:
+        await run.create_and_wait(
+            query="Find companies.",
+            poll_interval=5,
+            timeout_ms=600000,
+        )
+
+    assert str(exc_info.value) == "Could not produce a final answer."
+    assert exc_info.value.run.status == "failed"
