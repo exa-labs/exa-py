@@ -126,7 +126,7 @@ for chunk in exa.stream_answer("Explain quantum computing"):
 The Agent API is available without a beta header.
 
 ```python
-run = exa.agent.runs.create_and_wait(
+run = exa.agent.runs.create(
     query="Find engineering leaders at AI infrastructure companies that raised a Series A or B in the last 6 months.",
     output_schema={
         "type": "object",
@@ -148,9 +148,9 @@ run = exa.agent.runs.create_and_wait(
         "required": ["people"],
     },
     effort="auto",
-    timeout_ms=600000,
 )
 
+run = exa.agent.runs.poll_until_finished(run.id)
 print(run.output.structured if run.output else None)
 ```
 
