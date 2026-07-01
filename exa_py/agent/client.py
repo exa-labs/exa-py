@@ -36,6 +36,8 @@ from .types import (
 )
 from .utils import stream_agent_events
 
+_TERMINAL_RUN_STATUSES = {"completed", "failed", "cancelled"}
+
 
 def _is_pydantic_model(schema: Any) -> bool:
     try:
@@ -388,7 +390,7 @@ class AgentRunsClient(AgentBaseClient):
 
         while True:
             run = self.get(run_id)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (time.monotonic() - start_time) * 1000 > timeout_ms:
@@ -450,7 +452,7 @@ class AgentRunsClient(AgentBaseClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in ("completed", "failed", "cancelled"):
+        if run.status in _TERMINAL_RUN_STATUSES:
             return _ensure_completed_run(run)
         terminal_run = self.poll_until_finished(
             run.id,
@@ -624,7 +626,7 @@ class AgentBetaRunsClient(AgentRunsClient):
 
         while True:
             run = self.get(run_id, betas=betas)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (time.monotonic() - start_time) * 1000 > timeout_ms:
@@ -660,7 +662,7 @@ class AgentBetaRunsClient(AgentRunsClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in ("completed", "failed", "cancelled"):
+        if run.status in _TERMINAL_RUN_STATUSES:
             return _ensure_completed_run(run)
         terminal_run = self.poll_until_finished(
             run.id,

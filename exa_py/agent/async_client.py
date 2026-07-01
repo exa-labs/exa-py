@@ -18,7 +18,12 @@ from typing import (
 from pydantic import BaseModel
 
 from .async_base import AsyncAgentBaseClient
-from .client import _build_create_payload, _ensure_completed_run, _headers_for_betas
+from .client import (
+    _TERMINAL_RUN_STATUSES,
+    _build_create_payload,
+    _ensure_completed_run,
+    _headers_for_betas,
+)
 from .types import (
     AgentDataSource,
     AgentEvent,
@@ -331,7 +336,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
 
         while True:
             run = await self.get(run_id)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (asyncio.get_event_loop().time() - start_time) * 1000 > timeout_ms:
@@ -393,7 +398,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in ("completed", "failed", "cancelled"):
+        if run.status in _TERMINAL_RUN_STATUSES:
             return _ensure_completed_run(run)
         terminal_run = await self.poll_until_finished(
             run.id,
@@ -573,7 +578,7 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
 
         while True:
             run = await self.get(run_id, betas=betas)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (asyncio.get_event_loop().time() - start_time) * 1000 > timeout_ms:
@@ -609,7 +614,7 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
             metadata=metadata,
             data_sources=data_sources,
         )
-        if run.status in ("completed", "failed", "cancelled"):
+        if run.status in _TERMINAL_RUN_STATUSES:
             return _ensure_completed_run(run)
         terminal_run = await self.poll_until_finished(
             run.id,
