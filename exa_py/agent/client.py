@@ -27,12 +27,19 @@ from .types import (
     AgentEffort,
     AgentInput,
     AgentRun,
+    AgentRunCancelledError,
+    AgentRunFailedError,
     CreateAgentRunParams,
     DeletedAgentRun,
     ListAgentRunEventsResponse,
     ListAgentRunsResponse,
 )
 from .utils import stream_agent_events
+
+_DEFAULT_POLL_INTERVAL_MS = 1000
+_DEFAULT_POLL_TIMEOUT_MS = 3600000
+_DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS = 120000
+_TERMINAL_RUN_STATUSES = {"completed", "failed", "cancelled"}
 
 
 def _is_pydantic_model(schema: Any) -> bool:
@@ -51,6 +58,14 @@ def _headers_for_betas(betas: Optional[Sequence[str]]) -> Optional[Dict[str, str
         return None
 
     return {"Exa-Beta": ",".join(beta_values)}
+
+
+def _ensure_completed_run(run: AgentRun) -> AgentRun:
+    if run.status == "failed":
+        raise AgentRunFailedError(run)
+    if run.status == "cancelled":
+        raise AgentRunCancelledError(run)
+    return run
 
 
 def _build_create_payload(
@@ -352,8 +367,8 @@ class AgentRunsClient(AgentBaseClient):
         self,
         run_id: str,
         *,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         """Poll an Agent run until it reaches a terminal status.
 
@@ -378,7 +393,7 @@ class AgentRunsClient(AgentBaseClient):
 
         while True:
             run = self.get(run_id)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (time.monotonic() - start_time) * 1000 > timeout_ms:
@@ -387,6 +402,65 @@ class AgentRunsClient(AgentBaseClient):
                 )
 
             time.sleep(poll_interval_sec)
+
+    def create_and_wait(
+        self,
+        *,
+        query: str,
+        system_prompt: Optional[str] = None,
+        input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+        output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        effort: Optional[AgentEffort] = None,
+        previous_run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+    ) -> AgentRun:
+        """Create an Agent run and wait for it to reach a terminal status.
+
+        Args:
+            query: The task or question for the Agent run.
+            system_prompt: Optional instructions that steer the Agent.
+            input: Optional structured input data for the Agent.
+            output_schema: Optional JSON schema or Pydantic model for structured output.
+            effort: Optional cost and reasoning effort preference. Defaults to auto.
+            previous_run_id: Optional prior run ID to continue from.
+            metadata: Optional metadata to attach to the run.
+            data_sources: Optional Exa Connect data providers to enable for the run.
+            poll_interval: Delay between polls in milliseconds.
+            timeout_ms: Maximum time to wait in milliseconds.
+
+        Returns:
+            The completed Agent run.
+
+        Examples:
+            from exa_py import Exa
+
+            exa = Exa("EXA_API_KEY")
+
+            run = exa.agent.runs.create_and_wait(
+                query="Find companies building browser automation tools",
+                timeout_ms=600000,
+            )
+            print(run.status)
+        """
+        run = self.create(
+            query=query,
+            system_prompt=system_prompt,
+            input=input,
+            output_schema=output_schema,
+            effort=effort,
+            previous_run_id=previous_run_id,
+            metadata=metadata,
+            data_sources=data_sources,
+        )
+        terminal_run = self.poll_until_finished(
+            run.id,
+            poll_interval=poll_interval,
+            timeout_ms=timeout_ms,
+        )
+        return _ensure_completed_run(terminal_run)
 
 
 class AgentBetaRunEventsClient(AgentRunEventsClient):
@@ -545,15 +619,15 @@ class AgentBetaRunsClient(AgentRunsClient):
         run_id: str,
         *,
         betas: Optional[Sequence[str]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         start_time = time.monotonic()
         poll_interval_sec = poll_interval / 1000
 
         while True:
             run = self.get(run_id, betas=betas)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (time.monotonic() - start_time) * 1000 > timeout_ms:
@@ -562,6 +636,40 @@ class AgentBetaRunsClient(AgentRunsClient):
                 )
 
             time.sleep(poll_interval_sec)
+
+    def create_and_wait(
+        self,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        query: str,
+        system_prompt: Optional[str] = None,
+        input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+        output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        effort: Optional[AgentEffort] = None,
+        previous_run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+    ) -> AgentRun:
+        run = self.create(
+            betas=betas,
+            query=query,
+            system_prompt=system_prompt,
+            input=input,
+            output_schema=output_schema,
+            effort=effort,
+            previous_run_id=previous_run_id,
+            metadata=metadata,
+            data_sources=data_sources,
+        )
+        terminal_run = self.poll_until_finished(
+            run.id,
+            betas=betas,
+            poll_interval=poll_interval,
+            timeout_ms=timeout_ms,
+        )
+        return _ensure_completed_run(terminal_run)
 
 
 class AgentNamespace:

@@ -111,6 +111,31 @@ class AgentRun(BaseModel):
     model_config = {"populate_by_name": True, "extra": "allow"}
 
 
+class AgentRunFailedError(RuntimeError):
+    """Raised when create_and_wait reaches a failed Agent run."""
+
+    run: AgentRun
+
+    def __init__(self, run: AgentRun):
+        message = (
+            run.error.message
+            if run.error is not None and run.error.message is not None
+            else f"Agent run {run.id} failed"
+        )
+        super().__init__(message)
+        self.run = run
+
+
+class AgentRunCancelledError(RuntimeError):
+    """Raised when create_and_wait reaches a cancelled Agent run."""
+
+    run: AgentRun
+
+    def __init__(self, run: AgentRun):
+        super().__init__(f"Agent run {run.id} was cancelled")
+        self.run = run
+
+
 class ListAgentRunsResponse(BaseModel):
     object: Optional[str] = None
     data: List[AgentRun]

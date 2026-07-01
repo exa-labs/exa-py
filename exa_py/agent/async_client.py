@@ -18,7 +18,15 @@ from typing import (
 from pydantic import BaseModel
 
 from .async_base import AsyncAgentBaseClient
-from .client import _build_create_payload, _headers_for_betas
+from .client import (
+    _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+    _DEFAULT_POLL_INTERVAL_MS,
+    _DEFAULT_POLL_TIMEOUT_MS,
+    _TERMINAL_RUN_STATUSES,
+    _build_create_payload,
+    _ensure_completed_run,
+    _headers_for_betas,
+)
 from .types import (
     AgentDataSource,
     AgentEvent,
@@ -305,8 +313,8 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         self,
         run_id: str,
         *,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         """Poll an Agent run until it reaches a terminal status.
 
@@ -331,7 +339,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
 
         while True:
             run = await self.get(run_id)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (asyncio.get_event_loop().time() - start_time) * 1000 > timeout_ms:
@@ -340,6 +348,65 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
                 )
 
             await asyncio.sleep(poll_interval_sec)
+
+    async def create_and_wait(
+        self,
+        *,
+        query: str,
+        system_prompt: Optional[str] = None,
+        input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+        output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        effort: Optional[AgentEffort] = None,
+        previous_run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+    ) -> AgentRun:
+        """Create an Agent run and wait for it to reach a terminal status.
+
+        Args:
+            query: The task or question for the Agent run.
+            system_prompt: Optional instructions that steer the Agent.
+            input: Optional structured input data for the Agent.
+            output_schema: Optional JSON schema or Pydantic model for structured output.
+            effort: Optional cost and reasoning effort preference. Defaults to auto.
+            previous_run_id: Optional prior run ID to continue from.
+            metadata: Optional metadata to attach to the run.
+            data_sources: Optional Exa Connect data providers to enable for the run.
+            poll_interval: Delay between polls in milliseconds.
+            timeout_ms: Maximum time to wait in milliseconds.
+
+        Returns:
+            The completed Agent run.
+
+        Examples:
+            from exa_py import AsyncExa
+
+            exa = AsyncExa("EXA_API_KEY")
+
+            run = await exa.agent.runs.create_and_wait(
+                query="Find companies building browser automation tools",
+                timeout_ms=600000,
+            )
+            print(run.status)
+        """
+        run = await self.create(
+            query=query,
+            system_prompt=system_prompt,
+            input=input,
+            output_schema=output_schema,
+            effort=effort,
+            previous_run_id=previous_run_id,
+            metadata=metadata,
+            data_sources=data_sources,
+        )
+        terminal_run = await self.poll_until_finished(
+            run.id,
+            poll_interval=poll_interval,
+            timeout_ms=timeout_ms,
+        )
+        return _ensure_completed_run(terminal_run)
 
 
 class AsyncAgentBetaRunEventsClient(AsyncAgentRunEventsClient):
@@ -504,15 +571,15 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         run_id: str,
         *,
         betas: Optional[Sequence[str]] = None,
-        poll_interval: int = 1000,
-        timeout_ms: int = 3600000,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
     ) -> AgentRun:
         start_time = asyncio.get_event_loop().time()
         poll_interval_sec = poll_interval / 1000
 
         while True:
             run = await self.get(run_id, betas=betas)
-            if run.status in ("completed", "failed", "cancelled"):
+            if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
             if (asyncio.get_event_loop().time() - start_time) * 1000 > timeout_ms:
@@ -521,6 +588,40 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
                 )
 
             await asyncio.sleep(poll_interval_sec)
+
+    async def create_and_wait(
+        self,
+        *,
+        betas: Optional[Sequence[str]] = None,
+        query: str,
+        system_prompt: Optional[str] = None,
+        input: Optional[Union[Dict[str, Any], AgentInput]] = None,
+        output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        effort: Optional[AgentEffort] = None,
+        previous_run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        data_sources: Optional[list[AgentDataSource]] = None,
+        poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+    ) -> AgentRun:
+        run = await self.create(
+            betas=betas,
+            query=query,
+            system_prompt=system_prompt,
+            input=input,
+            output_schema=output_schema,
+            effort=effort,
+            previous_run_id=previous_run_id,
+            metadata=metadata,
+            data_sources=data_sources,
+        )
+        terminal_run = await self.poll_until_finished(
+            run.id,
+            betas=betas,
+            poll_interval=poll_interval,
+            timeout_ms=timeout_ms,
+        )
+        return _ensure_completed_run(terminal_run)
 
 
 class AsyncAgentNamespace:
