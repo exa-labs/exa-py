@@ -318,8 +318,12 @@ SEARCH_OPTIONS_TYPES = {
         list
     ],  # Domains to search from; exclusive with 'exclude_domains'.
     "exclude_domains": [list],  # Domains to omit; exclusive with 'include_domains'.
-    "start_crawl_date": [str],  # Results after this crawl date. ISO 8601 format.
-    "end_crawl_date": [str],  # Results before this crawl date. ISO 8601 format.
+    "start_crawl_date": [
+        str
+    ],  # DEPRECATED FIELD: will be removed in a future release. Results after this crawl date. ISO 8601 format.
+    "end_crawl_date": [
+        str
+    ],  # DEPRECATED FIELD: will be removed in a future release. Results before this crawl date. ISO 8601 format.
     "start_published_date": [
         str
     ],  # Results after this publish date; excludes links with no date. ISO 8601 format.
@@ -354,8 +358,8 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "num_results": [int],
     "include_domains": [list],
     "exclude_domains": [list],
-    "start_crawl_date": [str],
-    "end_crawl_date": [str],
+    "start_crawl_date": [str],  # DEPRECATED FIELD: will be removed in a future release.
+    "end_crawl_date": [str],  # DEPRECATED FIELD: will be removed in a future release.
     "start_published_date": [str],
     "end_published_date": [str],
     "include_text": [list],
@@ -1600,8 +1604,8 @@ class Exa:
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
-            start_crawl_date (str, optional): Only links crawled after this date.
-            end_crawl_date (str, optional): Only links crawled before this date.
+            start_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled after this date.
+            end_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
@@ -1740,8 +1744,8 @@ class Exa:
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
-            start_crawl_date (str, optional): Only links crawled after this date.
-            end_crawl_date (str, optional): Only links crawled before this date.
+            start_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled after this date.
+            end_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
@@ -2081,8 +2085,8 @@ class Exa:
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
-            start_crawl_date (str, optional): Only links crawled after this date.
-            end_crawl_date (str, optional): Only links crawled before this date.
+            start_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled after this date.
+            end_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
@@ -2810,8 +2814,8 @@ class AsyncExa(Exa):
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
-            start_crawl_date (str, optional): Only links crawled after this date.
-            end_crawl_date (str, optional): Only links crawled before this date.
+            start_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled after this date.
+            end_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
@@ -2947,8 +2951,8 @@ class AsyncExa(Exa):
             num_results (int, optional): Number of search results to return. Default 10.
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
-            start_crawl_date (str, optional): Only links crawled after this date.
-            end_crawl_date (str, optional): Only links crawled before this date.
+            start_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled after this date.
+            end_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
@@ -3223,8 +3227,8 @@ class AsyncExa(Exa):
             num_results (int, optional): Number of results to return. Default is None (server default).
             include_domains (List[str], optional): Domains to include in the search.
             exclude_domains (List[str], optional): Domains to exclude from the search.
-            start_crawl_date (str, optional): Only links crawled after this date.
-            end_crawl_date (str, optional): Only links crawled before this date.
+            start_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled after this date.
+            end_crawl_date (str, optional): Deprecated and will be removed in a future release. Only links crawled before this date.
             start_published_date (str, optional): Only links published after this date.
             end_published_date (str, optional): Only links published before this date.
             include_text (List[str], optional): Strings that must appear in the page text.
