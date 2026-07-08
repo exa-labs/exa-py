@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.1](https://github.com/exa-labs/exa-py/compare/v2.16.0...v2.16.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* mark start_crawl_date and end_crawl_date as deprecated ([#229](https://github.com/exa-labs/exa-py/issues/229)) ([3d0514b](https://github.com/exa-labs/exa-py/commit/3d0514bb6c5ef8d23d854511784657bb7929fad3))
+
 ## [2.16.0](https://github.com/exa-labs/exa-py/compare/v2.15.0...v2.16.0) (2026-07-02)
 
 
