@@ -175,7 +175,8 @@ def compare_technologies():
 
     if comparison.get("winner"):
         print(f"\nRecommended Choice: {comparison['winner']}")
-        print(f"Reasoning: {comparison['reasoning']}")
+        if comparison.get("reasoning"):
+            print(f"Reasoning: {comparison['reasoning']}")
 
     print("\nFinal Recommendation:")
     print(comparison["recommendation"])
