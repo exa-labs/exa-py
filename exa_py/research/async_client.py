@@ -277,7 +277,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         poll_interval_sec = poll_interval / 1000
         timeout_sec = timeout_ms / 1000
         max_consecutive_failures = 5
-        start_time = asyncio.get_event_loop().time()
+        start_time = asyncio.get_running_loop().time()
         consecutive_failures = 0
 
         while True:
@@ -304,7 +304,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
                         f"for research {research_id}: {e}"
                     )
 
-            if asyncio.get_event_loop().time() - start_time > timeout_sec:
+            if asyncio.get_running_loop().time() - start_time > timeout_sec:
                 raise TimeoutError(
                     f"Research {research_id} did not complete within {timeout_ms}ms"
                 )
