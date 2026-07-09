@@ -7,7 +7,7 @@ import io
 import asyncio
 import requests
 import httpx
-from typing import Dict, Any, Union, Optional
+from typing import Dict, Any, Union, Optional, Iterator, List, AsyncIterator
 from pathlib import Path
 
 from ..types import (
@@ -181,6 +181,21 @@ class ImportsClient(WebsetsBaseClient):
                 
             time.sleep(poll_interval)
 
+    def list_all(self, *, limit: Optional[int] = None) -> Iterator[Import]:
+        """Iterate through all Imports, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit)
+            for import_obj in response.data:
+                yield import_obj
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    def get_all(self, *, limit: Optional[int] = None) -> List[Import]:
+        """Collect all Imports into a list."""
+        return list(self.list_all(limit=limit))
+
 
 class AsyncImportsClient(WebsetsAsyncBaseClient):
     """Async client for managing Imports."""
@@ -344,4 +359,22 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
             if asyncio.get_event_loop().time() - start_time > timeout:
                 raise TimeoutError(f"Import {import_id} did not complete within {timeout} seconds")
                 
-            await asyncio.sleep(poll_interval) 
+            await asyncio.sleep(poll_interval)
+
+    async def list_all(self, *, limit: Optional[int] = None) -> AsyncIterator[Import]:
+        """Iterate through all Imports, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit)
+            for import_obj in response.data:
+                yield import_obj
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    async def get_all(self, *, limit: Optional[int] = None) -> List[Import]:
+        """Collect all Imports into a list."""
+        imports = []
+        async for import_obj in self.list_all(limit=limit):
+            imports.append(import_obj)
+        return imports       

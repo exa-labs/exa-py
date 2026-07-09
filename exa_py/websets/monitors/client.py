@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Any, Union, Optional
+from typing import Dict, Any, Union, Optional, Iterator, List, AsyncIterator
 
 from ..types import (
     Monitor,
@@ -96,6 +96,21 @@ class MonitorsClient(WebsetsBaseClient):
         response = self.request(f"/v0/monitors/{monitor_id}", method="DELETE")
         return Monitor.model_validate(response)
 
+    def list_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None) -> Iterator[Monitor]:
+        """Iterate through all Monitors, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit, webset_id=webset_id)
+            for monitor in response.data:
+                yield monitor
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    def get_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None) -> List[Monitor]:
+        """Collect all Monitors into a list."""
+        return list(self.list_all(limit=limit, webset_id=webset_id))
+
 
 class AsyncMonitorsClient(WebsetsAsyncBaseClient):
     """Async client for managing Monitors."""
@@ -129,4 +144,22 @@ class AsyncMonitorsClient(WebsetsAsyncBaseClient):
     async def delete(self, monitor_id: str) -> Monitor:
         """Delete a monitor."""
         response = await self.request(f"/v0/monitors/{monitor_id}", method="DELETE")
-        return Monitor.model_validate(response) 
+        return Monitor.model_validate(response)
+
+    async def list_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None) -> AsyncIterator[Monitor]:
+        """Iterate through all Monitors, handling pagination automatically."""
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit, webset_id=webset_id)
+            for monitor in response.data:
+                yield monitor
+            if not response.has_more or not response.next_cursor:
+                break
+            cursor = response.next_cursor
+
+    async def get_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None) -> List[Monitor]:
+        """Collect all Monitors into a list."""
+        monitors = []
+        async for monitor in self.list_all(limit=limit, webset_id=webset_id):
+            monitors.append(monitor)
+        return monitors       
