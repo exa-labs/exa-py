@@ -81,6 +81,53 @@ def test_answerresponse_accepts_dict():
     assert isinstance(resp.answer, dict) and resp.answer["foo"] == "bar"
 
 
+def test_parse_api_json_response_accepts_valid_json():
+    class _Ok:
+        status_code = 200
+        text = '{"ok": true}'
+
+        def json(self):
+            return {"ok": True}
+
+    assert exa_api._parse_api_json_response(_Ok()) == {"ok": True}
+
+
+def test_parse_api_json_response_rejects_html_body():
+    import json
+
+    class _Html:
+        status_code = 502
+        text = "<!DOCTYPE html><html><body>Bad Gateway</body></html>"
+
+        def json(self):
+            raise json.JSONDecodeError("Expecting value", self.text, 0)
+
+    with pytest.raises(ValueError, match="non-JSON response \\(status 502\\).*DOCTYPE"):
+        exa_api._parse_api_json_response(_Html())
+
+
+def test_request_surfaces_non_json_success_body(monkeypatch):
+    """Even HTTP 200 HTML (e.g. Cloudflare) must not raise opaque JSONDecodeError."""
+    import json
+
+    exa = Exa(API_KEY)
+
+    class _Html200:
+        status_code = 200
+        text = "<!DOCTYPE html><html><title>Oops</title></html>"
+
+        def json(self):
+            raise json.JSONDecodeError("Expecting value", self.text, 0)
+
+    monkeypatch.setattr(
+        exa_api.requests,
+        "post",
+        lambda *args, **kwargs: _Html200(),
+    )
+
+    with pytest.raises(ValueError, match="non-JSON response \\(status 200\\)"):
+        exa.request("/search", {"query": "test"})
+
 def test_search_accepts_user_location_offline():
     """Test that search method accepts user_location parameter without error."""
     exa = Exa(API_KEY)

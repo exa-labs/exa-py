@@ -53,6 +53,27 @@ is_beta = os.getenv("IS_BETA") == "True"
 DEFAULT_MAX_CHARACTERS = 10_000
 
 
+def _parse_api_json_response(
+    res: Union[requests.Response, httpx.Response],
+) -> Any:
+    """Decode JSON from an Exa API response.
+
+    Cloudflare / gateway errors often return HTML (``<!DOCTYPE …``). Calling
+    ``Response.json()`` then raises an opaque ``JSONDecodeError``. Surface a
+    ``ValueError`` that includes the HTTP status and a short body snippet so
+    callers can diagnose the failure (mirrors the exa-js non-JSON hardening).
+    """
+    try:
+        return res.json()
+    except (ValueError, json.JSONDecodeError) as exc:
+        text = getattr(res, "text", "") or ""
+        snippet = " ".join(text.split())[:200] or "<empty body>"
+        status = getattr(res, "status_code", "?")
+        raise ValueError(
+            f"Exa API returned a non-JSON response (status {status}): {snippet}"
+        ) from exc
+
+
 def _convert_contents_summary_schema(options: Dict[str, Any]) -> None:
     contents = options.get("contents")
     if not isinstance(contents, dict):
@@ -1562,7 +1583,7 @@ class Exa:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
             )
-        return res.json()
+        return _parse_api_json_response(res)
 
     def search(
         self,
@@ -2772,7 +2793,7 @@ class AsyncExa(Exa):
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
             )
-        return res.json()
+        return _parse_api_json_response(res)
 
     async def search(
         self,
