@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 from exa_py import Exa, AsyncExa, api as exa_api
+from exa_py.research import AsyncResearchClient
 
 API_KEY = os.getenv("EXA_API_KEY", "test-key")
 
@@ -60,6 +61,12 @@ def test_async_exa_reads_api_key_from_environment(monkeypatch):
     exa = AsyncExa()
 
     assert exa.headers["x-api-key"] == "async-env-api-key"
+
+
+def test_async_exa_uses_async_research_client():
+    exa = AsyncExa(API_KEY)
+
+    assert isinstance(exa.research, AsyncResearchClient)
 
 
 def test_exa_requires_api_key_argument_or_environment(monkeypatch):
