@@ -259,9 +259,8 @@ def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
 # Category options for search filtering
 Category = Literal[
     "company",
-    "research paper",
     "news",
-    "pdf",
+    "publication",
     "personal site",
     "financial report",
     "people",
@@ -341,7 +340,7 @@ SEARCH_OPTIONS_TYPES = {
         SearchType,
         str,
     ],  # Search type: 'auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
-    "category": [Category],  # A data category to focus on.
+    "category": [str],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
@@ -365,7 +364,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "include_text": [list],
     "exclude_text": [list],
     "exclude_source_domain": [bool],
-    "category": [Category],  # A data category to focus on.
+    "category": [str],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "contents": [dict, bool],  # Options for retrieving page contents
 }
@@ -1612,7 +1611,8 @@ class Exa:
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
                 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
@@ -2092,7 +2092,8 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags.
 
         Returns:
@@ -2822,7 +2823,8 @@ class AsyncExa(Exa):
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
                 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
@@ -3234,7 +3236,8 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags.
 
         Returns:
