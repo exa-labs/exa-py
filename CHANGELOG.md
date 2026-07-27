@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.2](https://github.com/exa-labs/exa-py/compare/v2.16.1...v2.16.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* update Category values and accept str at runtime ([#237](https://github.com/exa-labs/exa-py/issues/237)) ([6677724](https://github.com/exa-labs/exa-py/commit/6677724b05d0f9a3ebdc89ffdf08d3500cf7c983))
+
 ## [2.16.1](https://github.com/exa-labs/exa-py/compare/v2.16.0...v2.16.1) (2026-07-08)
 
 
