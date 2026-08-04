@@ -578,9 +578,7 @@ class AgentBetaRunsClient(AgentRunsClient):
             return stream_agent_events(response)
         return AgentRun.model_validate(response)
 
-    def get(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
-    ) -> AgentRun:
+    def get(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
         response = self.request(
             f"/{run_id}", method="GET", headers=_headers_for_betas(betas)
         )
@@ -616,9 +614,7 @@ class AgentBetaRunsClient(AgentRunsClient):
     ) -> list[AgentRun]:
         return list(self.list_all(betas=betas, limit=limit))
 
-    def cancel(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
-    ) -> AgentRun:
+    def cancel(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
         response = self.request(
             f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas)
         )
@@ -696,25 +692,25 @@ class AgentNamespace:
     """Synchronous Agent namespace."""
 
     runs: AgentRunsClient
-    monitors: AgentMonitorsClient
 
     def __init__(self, client: Any):
         self.runs = AgentRunsClient(client)
-        self.monitors = AgentMonitorsClient(client)
 
 
 class AgentBetaNamespace(AgentNamespace):
-    """Deprecated compatibility wrapper for the synchronous Agent namespace."""
+    """Synchronous beta Agent namespace."""
 
     runs: AgentBetaRunsClient
+    monitors: AgentMonitorsClient
 
     def __init__(self, client: Any):
         super().__init__(client)
         self.runs = AgentBetaRunsClient(client)
+        self.monitors = AgentMonitorsClient(client)
 
 
 class BetaClient:
-    """Deprecated synchronous beta namespace."""
+    """Synchronous beta namespace."""
 
     agent: AgentBetaNamespace
 

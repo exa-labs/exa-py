@@ -11,6 +11,9 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+
+AGENT_MONITORS_BETA_HEADER = "agent-monitors-2026-08-04"
+
 AgentMonitorStatus = Literal["creating", "pending_first_refresh", "active"]
 AgentMonitorFieldType = Literal["static", "dynamic"]
 AgentMonitorSnapshotStatus = Literal["running", "completed", "failed"]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
 
 if TYPE_CHECKING:
     from exa_py.api import AsyncExa
@@ -19,18 +19,26 @@ class AsyncAgentMonitorsBaseClient:
         self,
         endpoint: str,
         *,
+        betas: Sequence[str],
         method: str = "POST",
         data: Optional[Union[Dict[str, Any], str]] = None,
         params: Optional[Dict[str, str]] = None,
         headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
+        if not betas:
+            raise ValueError(
+                "betas must include the Agent Monitors API beta identifier"
+            )
         full_endpoint = f"{self.base_path}{endpoint}"
+        request_headers = {"Exa-Beta": ",".join(betas)}
+        if headers:
+            request_headers.update(headers)
         return await self._client.async_request(
             full_endpoint,
             data=data,
             method=method,
             params=params,
-            headers=headers or {},
+            headers=request_headers,
         )
 
     def build_pagination_params(

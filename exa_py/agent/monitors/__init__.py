@@ -13,6 +13,7 @@ from .async_client import (
     AsyncAgentMonitorsClient,
 )
 from .types import (
+    AGENT_MONITORS_BETA_HEADER,
     AgentMonitor,
     AgentMonitorChange,
     AgentMonitorChangeEntity,
@@ -40,6 +41,7 @@ from .types import (
 )
 
 __all__ = [
+    "AGENT_MONITORS_BETA_HEADER",
     "AgentMonitorsClient",
     "AgentMonitorEntitiesClient",
     "AgentMonitorChangesClient",

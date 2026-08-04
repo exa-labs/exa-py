@@ -10,14 +10,18 @@ from exa_py.agent import (
     AgentMonitorSnapshotFailedError,
     AgentMonitorSnapshotsClient,
     AgentMonitorsClient,
-    AgentNamespace,
+    AgentBetaNamespace,
     AsyncAgentMonitorsClient,
-    AsyncAgentNamespace,
+    AsyncAgentBetaNamespace,
     DeletedAgentMonitor,
     ListAgentMonitorChangesResponse,
     ListAgentMonitorEntitiesResponse,
     ListAgentMonitorsResponse,
 )
+
+
+_BETAS = ["agent-monitors-2026-08-04"]
+_BETA_HEADERS = {"Exa-Beta": "agent-monitors-2026-08-04"}
 
 
 @pytest.fixture
@@ -27,7 +31,7 @@ def mock_client():
 
 @pytest.fixture
 def monitors_client(mock_client):
-    return AgentNamespace(mock_client).monitors
+    return AgentBetaNamespace(mock_client).monitors
 
 
 def _make_monitor(monitor_id: str = "agentmon_123", status: str = "active") -> dict:
@@ -116,23 +120,26 @@ _SNAPSHOT_KWARGS = {
 }
 
 
-def test_exa_exposes_monitors_under_agent_namespace():
+def test_exa_exposes_monitors_only_under_beta_agent_namespace():
     exa = Exa(api_key="test-api-key")
-    assert isinstance(exa.agent.monitors, AgentMonitorsClient)
-    assert isinstance(exa.agent.monitors.entities, AgentMonitorEntitiesClient)
-    assert isinstance(exa.agent.monitors.changes, AgentMonitorChangesClient)
-    assert isinstance(exa.agent.monitors.snapshots, AgentMonitorSnapshotsClient)
+    assert not hasattr(exa.agent, "monitors")
+    assert isinstance(exa.beta.agent.monitors, AgentMonitorsClient)
+    assert isinstance(exa.beta.agent.monitors.entities, AgentMonitorEntitiesClient)
+    assert isinstance(exa.beta.agent.monitors.changes, AgentMonitorChangesClient)
+    assert isinstance(exa.beta.agent.monitors.snapshots, AgentMonitorSnapshotsClient)
 
 
-def test_async_exa_exposes_monitors_under_agent_namespace():
+def test_async_exa_exposes_monitors_only_under_beta_agent_namespace():
     exa = AsyncExa(api_key="test-api-key")
-    assert isinstance(exa.agent.monitors, AsyncAgentMonitorsClient)
+    assert not hasattr(exa.agent, "monitors")
+    assert isinstance(exa.beta.agent.monitors, AsyncAgentMonitorsClient)
 
 
 def test_create_monitor(monitors_client, mock_client):
     mock_client.request.return_value = _make_monitor(status="creating")
 
     result = monitors_client.create(
+        betas=_BETAS,
         cadence="7d",
         entities=[
             {"name": "Acme Corp", "domain": "acme.com"},
@@ -173,7 +180,7 @@ def test_create_monitor(monitors_client, mock_client):
         },
         method="POST",
         params=None,
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -181,6 +188,7 @@ def test_create_monitor_sends_idempotency_key(monitors_client, mock_client):
     mock_client.request.return_value = _make_monitor(status="creating")
 
     monitors_client.create(
+        betas=_BETAS,
         cadence="12h",
         entities=[{"name": "Acme Corp", "domain": "acme.com"}],
         fields=[{"name": "ceo", "description": "The company's current CEO"}],
@@ -188,14 +196,22 @@ def test_create_monitor_sends_idempotency_key(monitors_client, mock_client):
     )
 
     assert mock_client.request.call_args.kwargs["headers"] == {
-        "Idempotency-Key": "my-key-1"
+        "Exa-Beta": "agent-monitors-2026-08-04",
+        "Idempotency-Key": "my-key-1",
     }
+
+
+def test_empty_beta_list_is_rejected(monitors_client):
+    with pytest.raises(
+        ValueError, match="betas must include the Agent Monitors API beta identifier"
+    ):
+        monitors_client.get("agentmon_123", betas=[])
 
 
 def test_get_monitor(monitors_client, mock_client):
     mock_client.request.return_value = _make_monitor()
 
-    result = monitors_client.get("agentmon_123")
+    result = monitors_client.get("agentmon_123", betas=_BETAS)
 
     assert isinstance(result, AgentMonitor)
     assert result.entity_count == 2
@@ -205,7 +221,7 @@ def test_get_monitor(monitors_client, mock_client):
         data=None,
         method="GET",
         params=None,
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -217,7 +233,7 @@ def test_list_monitors(monitors_client, mock_client):
         "nextCursor": None,
     }
 
-    result = monitors_client.list(limit=10)
+    result = monitors_client.list(betas=_BETAS, limit=10)
 
     assert isinstance(result, ListAgentMonitorsResponse)
     assert result.data[0].id == "agentmon_1"
@@ -226,7 +242,7 @@ def test_list_monitors(monitors_client, mock_client):
         data=None,
         method="GET",
         params={"limit": "10"},
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -246,7 +262,7 @@ def test_list_all_and_get_all_monitors(monitors_client, mock_client):
         },
     ]
 
-    monitors = monitors_client.get_all()
+    monitors = monitors_client.get_all(betas=_BETAS)
 
     assert [monitor.id for monitor in monitors] == ["agentmon_1", "agentmon_2"]
     assert mock_client.request.call_count == 2
@@ -261,7 +277,7 @@ def test_delete_monitor(monitors_client, mock_client):
         "deleted": True,
     }
 
-    result = monitors_client.delete("agentmon_123")
+    result = monitors_client.delete("agentmon_123", betas=_BETAS)
 
     assert isinstance(result, DeletedAgentMonitor)
     assert result.deleted is True
@@ -270,7 +286,7 @@ def test_delete_monitor(monitors_client, mock_client):
         data=None,
         method="DELETE",
         params=None,
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -279,6 +295,7 @@ def test_add_entities(monitors_client, mock_client):
 
     result = monitors_client.entities.add(
         "agentmon_123",
+        betas=_BETAS,
         entities=[{"name": "Initech", "domain": "initech.com"}],
     )
 
@@ -288,7 +305,7 @@ def test_add_entities(monitors_client, mock_client):
         data={"entities": [{"name": "Initech", "domain": "initech.com"}]},
         method="POST",
         params=None,
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -303,6 +320,7 @@ def test_list_entities_with_since(monitors_client, mock_client):
 
     result = monitors_client.entities.list(
         "agentmon_123",
+        betas=_BETAS,
         cursor="abc",
         limit=50,
         since="2026-01-07T00:00:00Z",
@@ -316,7 +334,7 @@ def test_list_entities_with_since(monitors_client, mock_client):
         data=None,
         method="GET",
         params={"cursor": "abc", "limit": "50", "since": "2026-01-07T00:00:00Z"},
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -338,7 +356,7 @@ def test_list_all_entities_paginates(monitors_client, mock_client):
         },
     ]
 
-    entities = monitors_client.entities.get_all("agentmon_123")
+    entities = monitors_client.entities.get_all("agentmon_123", betas=_BETAS)
 
     assert len(entities) == 2
     assert mock_client.request.call_count == 2
@@ -356,7 +374,7 @@ def test_list_changes(monitors_client, mock_client):
     }
 
     result = monitors_client.changes.list(
-        "agentmon_123", since="2026-01-07T00:00:00Z"
+        "agentmon_123", betas=_BETAS, since="2026-01-07T00:00:00Z"
     )
 
     assert isinstance(result, ListAgentMonitorChangesResponse)
@@ -367,7 +385,7 @@ def test_list_changes(monitors_client, mock_client):
         data=None,
         method="GET",
         params={"since": "2026-01-07T00:00:00Z"},
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -390,7 +408,7 @@ def test_list_all_changes_resumes_from_cursor(monitors_client, mock_client):
     ]
 
     changes = monitors_client.changes.get_all(
-        "agentmon_123", cursor="change-cursor-1"
+        "agentmon_123", betas=_BETAS, cursor="change-cursor-1"
     )
 
     assert len(changes) == 2
@@ -402,7 +420,9 @@ def test_list_all_changes_resumes_from_cursor(monitors_client, mock_client):
 def test_create_snapshot(monitors_client, mock_client):
     mock_client.request.return_value = _make_snapshot()
 
-    result = monitors_client.snapshots.create(**_SNAPSHOT_KWARGS, end_hour=12)
+    result = monitors_client.snapshots.create(
+        betas=_BETAS, **_SNAPSHOT_KWARGS, end_hour=12
+    )
 
     assert result.status == "running"
     mock_client.request.assert_called_once_with(
@@ -422,7 +442,7 @@ def test_create_snapshot(monitors_client, mock_client):
         },
         method="POST",
         params=None,
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -439,7 +459,7 @@ def test_get_snapshot(monitors_client, mock_client):
         warnings=[],
     )
 
-    result = monitors_client.snapshots.get("agentsnap_123")
+    result = monitors_client.snapshots.get("agentsnap_123", betas=_BETAS)
 
     assert result.status == "completed"
     assert result.data is not None
@@ -449,7 +469,7 @@ def test_get_snapshot(monitors_client, mock_client):
         data=None,
         method="GET",
         params=None,
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -461,7 +481,7 @@ def test_create_and_wait_snapshot(monitors_client, mock_client):
     ]
 
     result = monitors_client.snapshots.create_and_wait(
-        **_SNAPSHOT_KWARGS, poll_interval=1
+        betas=_BETAS, **_SNAPSHOT_KWARGS, poll_interval=1
     )
 
     assert result.status == "completed"
@@ -475,7 +495,9 @@ def test_create_and_wait_snapshot_raises_on_failure(monitors_client, mock_client
     ]
 
     with pytest.raises(AgentMonitorSnapshotFailedError) as excinfo:
-        monitors_client.snapshots.create_and_wait(**_SNAPSHOT_KWARGS, poll_interval=1)
+        monitors_client.snapshots.create_and_wait(
+            betas=_BETAS, **_SNAPSHOT_KWARGS, poll_interval=1
+        )
 
     assert excinfo.value.snapshot.error == "newsfeed unavailable"
 
@@ -485,7 +507,7 @@ def test_poll_until_finished_times_out(monitors_client, mock_client):
 
     with pytest.raises(TimeoutError):
         monitors_client.snapshots.poll_until_finished(
-            "agentsnap_123", poll_interval=1, timeout_ms=5
+            "agentsnap_123", betas=_BETAS, poll_interval=1, timeout_ms=5
         )
 
 
@@ -493,9 +515,10 @@ def test_poll_until_finished_times_out(monitors_client, mock_client):
 async def test_async_create_monitor():
     client = MagicMock()
     client.async_request = AsyncMock(return_value=_make_monitor(status="creating"))
-    monitors = AsyncAgentNamespace(client).monitors
+    monitors = AsyncAgentBetaNamespace(client).monitors
 
     result = await monitors.create(
+        betas=_BETAS,
         cadence="7d",
         entities=[{"name": "Acme Corp", "domain": "acme.com"}],
         fields=[{"name": "ceo", "description": "The company's current CEO"}],
@@ -511,7 +534,7 @@ async def test_async_create_monitor():
         },
         method="POST",
         params=None,
-        headers={},
+        headers=_BETA_HEADERS,
     )
 
 
@@ -536,9 +559,9 @@ async def test_async_list_all_entities_paginates():
             },
         ]
     )
-    monitors = AsyncAgentNamespace(client).monitors
+    monitors = AsyncAgentBetaNamespace(client).monitors
 
-    entities = await monitors.entities.get_all("agentmon_123")
+    entities = await monitors.entities.get_all("agentmon_123", betas=_BETAS)
 
     assert len(entities) == 2
     assert client.async_request.await_count == 2
@@ -553,10 +576,10 @@ async def test_async_create_and_wait_snapshot():
             _make_snapshot(status="completed", data=[]),
         ]
     )
-    monitors = AsyncAgentNamespace(client).monitors
+    monitors = AsyncAgentBetaNamespace(client).monitors
 
     result = await monitors.snapshots.create_and_wait(
-        **_SNAPSHOT_KWARGS, poll_interval=1
+        betas=_BETAS, **_SNAPSHOT_KWARGS, poll_interval=1
     )
 
     assert result.status == "completed"

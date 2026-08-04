@@ -15,6 +15,7 @@ from .async_client import (
     AsyncBetaClient,
 )
 from .monitors import (
+    AGENT_MONITORS_BETA_HEADER,
     AgentMonitor,
     AgentMonitorChange,
     AgentMonitorChangeEntity,
@@ -77,6 +78,7 @@ from .types import (
 __all__ = [
     "AGENT_BETA_HEADER",
     "AGENT_MAX_EFFORT_BETA",
+    "AGENT_MONITORS_BETA_HEADER",
     "BetaClient",
     "AgentNamespace",
     "AgentBetaNamespace",

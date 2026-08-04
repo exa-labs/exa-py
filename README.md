@@ -169,16 +169,17 @@ run = exa.beta.agent.runs.create(
 )
 ```
 
-## Agent Monitors
+## Agent Monitors (Beta)
 
-> Agent Monitors are gated while in preview — contact Exa to enable them for your team.
+Agent Monitors use the beta namespace and require the `agent-monitors-2026-08-04` beta identifier.
 
 An Agent Monitor keeps a table of entities × fields fresh on a cadence: static fields are answered once per entity over the live web, dynamic fields are tracked from news on every refresh.
 
 ```python
 # Create a monitor. Creation is async: it returns with status "creating"
 # and becomes "active" once the first refresh completes.
-monitor = exa.agent.monitors.create(
+monitor = exa.beta.agent.monitors.create(
+    betas=["agent-monitors-2026-08-04"],
     cadence="7d",
     entities=[
         {"name": "Acme Corp", "domain": "acme.com"},
@@ -192,14 +193,21 @@ monitor = exa.agent.monitors.create(
 )
 
 # Page the monitor's current entities and their contents.
-for view in exa.agent.monitors.entities.list_all(monitor.id):
+for view in exa.beta.agent.monitors.entities.list_all(
+    monitor.id, betas=["agent-monitors-2026-08-04"]
+):
     print(view.entity.name, view.contents)
 
 # Follow the content change feed (resume later from the page's next_cursor).
-changes = exa.agent.monitors.changes.list(monitor.id, since="2026-01-01T00:00:00Z")
+changes = exa.beta.agent.monitors.changes.list(
+    monitor.id,
+    betas=["agent-monitors-2026-08-04"],
+    since="2026-01-01T00:00:00Z",
+)
 
 # One-shot stateless snapshot of a past news window — no monitor created.
-snapshot = exa.agent.monitors.snapshots.create_and_wait(
+snapshot = exa.beta.agent.monitors.snapshots.create_and_wait(
+    betas=["agent-monitors-2026-08-04"],
     entities=[{"name": "Acme Corp", "domain": "acme.com"}],
     fields=[{"name": "funding", "description": "New funding rounds", "type": "dynamic"}],
     start_date="2026-01-01",
@@ -208,12 +216,18 @@ snapshot = exa.agent.monitors.snapshots.create_and_wait(
 print(snapshot.data)
 
 # Add entities, inspect refresh progress, clean up.
-exa.agent.monitors.entities.add(
-    monitor.id, entities=[{"name": "Initech", "domain": "initech.com"}]
+exa.beta.agent.monitors.entities.add(
+    monitor.id,
+    betas=["agent-monitors-2026-08-04"],
+    entities=[{"name": "Initech", "domain": "initech.com"}],
 )
-current = exa.agent.monitors.get(monitor.id)
+current = exa.beta.agent.monitors.get(
+    monitor.id, betas=["agent-monitors-2026-08-04"]
+)
 print(current.status, current.refresh, current.usage)
-exa.agent.monitors.delete(monitor.id)
+exa.beta.agent.monitors.delete(
+    monitor.id, betas=["agent-monitors-2026-08-04"]
+)
 ```
 
 ## Async

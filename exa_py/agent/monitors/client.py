@@ -58,6 +58,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         self,
         monitor_id: str,
         *,
+        betas: Sequence[str],
         entities: Sequence[EntityInput],
     ) -> AgentMonitor:
         """Add entities to an existing Agent Monitor.
@@ -66,6 +67,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         completes, then update on the monitor's regular refresh cadence.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             entities: Entities to add, each with a name and a unique domain.
 
@@ -77,20 +79,24 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            monitor = exa.agent.monitors.entities.add(
+            monitor = exa.beta.agent.monitors.entities.add(
                 "agentmon_123",
+                betas=["agent-monitors-2026-08-04"],
                 entities=[{"name": "Initech", "domain": "initech.com"}],
             )
             print(monitor.entity_count)
         """
         payload = {"entities": _serialize_entities(entities)}
-        response = self.request(f"/{monitor_id}/entities", method="POST", data=payload)
+        response = self.request(
+            f"/{monitor_id}/entities", betas=betas, method="POST", data=payload
+        )
         return AgentMonitor.model_validate(response)
 
     def list(
         self,
         monitor_id: str,
         *,
+        betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
@@ -98,6 +104,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         """Page an Agent Monitor's current entities and contents.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             cursor: Pagination cursor from a previous response.
             limit: Maximum number of entities to return.
@@ -112,24 +119,28 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            page = exa.agent.monitors.entities.list("agentmon_123", limit=50)
+            page = exa.beta.agent.monitors.entities.list("agentmon_123", betas=["agent-monitors-2026-08-04"], limit=50)
             for view in page.data:
                 print(view.entity.name, view.contents)
         """
         params = self.build_pagination_params(cursor, limit, since)
-        response = self.request(f"/{monitor_id}/entities", method="GET", params=params)
+        response = self.request(
+            f"/{monitor_id}/entities", betas=betas, method="GET", params=params
+        )
         return ListAgentMonitorEntitiesResponse.model_validate(response)
 
     def list_all(
         self,
         monitor_id: str,
         *,
+        betas: Sequence[str],
         limit: Optional[int] = None,
         since: Optional[str] = None,
     ) -> Iterator[AgentMonitorEntityView]:
         """Iterate through all of a monitor's entities, handling pagination automatically.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
@@ -143,12 +154,18 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            for view in exa.agent.monitors.entities.list_all("agentmon_123"):
+            for view in exa.beta.agent.monitors.entities.list_all("agentmon_123", betas=["agent-monitors-2026-08-04"]):
                 print(view.entity.name)
         """
         cursor = None
         while True:
-            response = self.list(monitor_id, cursor=cursor, limit=limit, since=since)
+            response = self.list(
+                monitor_id,
+                betas=betas,
+                cursor=cursor,
+                limit=limit,
+                since=since,
+            )
             for entity_view in response.data:
                 yield entity_view
             if not response.has_more or not response.next_cursor:
@@ -159,12 +176,14 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         self,
         monitor_id: str,
         *,
+        betas: Sequence[str],
         limit: Optional[int] = None,
         since: Optional[str] = None,
     ) -> list[AgentMonitorEntityView]:
         """Collect all of a monitor's entities into a list.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
@@ -178,10 +197,10 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            entities = exa.agent.monitors.entities.get_all("agentmon_123")
+            entities = exa.beta.agent.monitors.entities.get_all("agentmon_123", betas=["agent-monitors-2026-08-04"])
             print(len(entities))
         """
-        return list(self.list_all(monitor_id, limit=limit, since=since))
+        return list(self.list_all(monitor_id, betas=betas, limit=limit, since=since))
 
 
 class AgentMonitorChangesClient(AgentMonitorsBaseClient):
@@ -191,6 +210,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         self,
         monitor_id: str,
         *,
+        betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
@@ -198,6 +218,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         """Page an Agent Monitor's content change feed since a cursor or timestamp.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             cursor: Pagination cursor from a previous response; resumes the
                 feed from the last served change.
@@ -213,21 +234,25 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            changes = exa.agent.monitors.changes.list(
+            changes = exa.beta.agent.monitors.changes.list(
                 "agentmon_123",
+                betas=["agent-monitors-2026-08-04"],
                 since="2026-01-01T00:00:00Z",
             )
             for change in changes.data:
                 print(change.entity.name, change.field.name, change.content.value)
         """
         params = self.build_pagination_params(cursor, limit, since)
-        response = self.request(f"/{monitor_id}/changes", method="GET", params=params)
+        response = self.request(
+            f"/{monitor_id}/changes", betas=betas, method="GET", params=params
+        )
         return ListAgentMonitorChangesResponse.model_validate(response)
 
     def list_all(
         self,
         monitor_id: str,
         *,
+        betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
@@ -235,6 +260,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         """Iterate through a monitor's change feed, handling pagination automatically.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             cursor: Change-feed cursor to resume from.
             limit: Maximum number of changes to return per page.
@@ -249,11 +275,17 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            for change in exa.agent.monitors.changes.list_all("agentmon_123"):
+            for change in exa.beta.agent.monitors.changes.list_all("agentmon_123", betas=["agent-monitors-2026-08-04"]):
                 print(change.created_at, change.content.value)
         """
         while True:
-            response = self.list(monitor_id, cursor=cursor, limit=limit, since=since)
+            response = self.list(
+                monitor_id,
+                betas=betas,
+                cursor=cursor,
+                limit=limit,
+                since=since,
+            )
             for change in response.data:
                 yield change
             if not response.has_more or not response.next_cursor:
@@ -264,6 +296,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         self,
         monitor_id: str,
         *,
+        betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
@@ -271,6 +304,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         """Collect a monitor's change feed into a list.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             cursor: Change-feed cursor to resume from.
             limit: Maximum number of changes to return per page.
@@ -285,11 +319,17 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            changes = exa.agent.monitors.changes.get_all("agentmon_123")
+            changes = exa.beta.agent.monitors.changes.get_all("agentmon_123", betas=["agent-monitors-2026-08-04"])
             print(len(changes))
         """
         return list(
-            self.list_all(monitor_id, cursor=cursor, limit=limit, since=since)
+            self.list_all(
+                monitor_id,
+                betas=betas,
+                cursor=cursor,
+                limit=limit,
+                since=since,
+            )
         )
 
 
@@ -299,6 +339,7 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
     def create(
         self,
         *,
+        betas: Sequence[str],
         entities: Sequence[EntityInput],
         fields: Sequence[FieldInput],
         start_date: str,
@@ -313,6 +354,7 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
         result carries a warning when static fields are included.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             entities: Entities to snapshot, each with a name and a unique domain.
             fields: Fields to populate; static by default, `type: "dynamic"`
                 fields are populated from news over the window.
@@ -331,7 +373,8 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.agent.monitors.snapshots.create(
+            snapshot = exa.beta.agent.monitors.snapshots.create(
+                betas=["agent-monitors-2026-08-04"],
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
                     {
@@ -355,15 +398,16 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
             payload["startHour"] = start_hour
         if end_hour is not None:
             payload["endHour"] = end_hour
-        response = self.request("/snapshot", method="POST", data=payload)
+        response = self.request("/snapshot", betas=betas, method="POST", data=payload)
         return AgentMonitorSnapshot.model_validate(response)
 
-    def get(self, snapshot_id: str) -> AgentMonitorSnapshot:
+    def get(self, snapshot_id: str, *, betas: Sequence[str]) -> AgentMonitorSnapshot:
         """Poll a snapshot job for its status and, once completed, its result.
 
         Jobs expire and read as 404 after `expires_at`.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             snapshot_id: The ID of the snapshot job.
 
         Returns:
@@ -374,22 +418,24 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.agent.monitors.snapshots.get("agentsnap_123")
+            snapshot = exa.beta.agent.monitors.snapshots.get("agentsnap_123", betas=["agent-monitors-2026-08-04"])
             print(snapshot.status)
         """
-        response = self.request(f"/snapshot/{snapshot_id}", method="GET")
+        response = self.request(f"/snapshot/{snapshot_id}", betas=betas, method="GET")
         return AgentMonitorSnapshot.model_validate(response)
 
     def poll_until_finished(
         self,
         snapshot_id: str,
         *,
+        betas: Sequence[str],
         poll_interval: int = _DEFAULT_SNAPSHOT_POLL_INTERVAL_MS,
         timeout_ms: int = _DEFAULT_SNAPSHOT_POLL_TIMEOUT_MS,
     ) -> AgentMonitorSnapshot:
         """Poll a snapshot job until it reaches a terminal status.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             snapshot_id: The ID of the snapshot job.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
@@ -402,14 +448,14 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.agent.monitors.snapshots.poll_until_finished("agentsnap_123")
+            snapshot = exa.beta.agent.monitors.snapshots.poll_until_finished("agentsnap_123", betas=["agent-monitors-2026-08-04"])
             print(snapshot.status)
         """
         start_time = time.monotonic()
         poll_interval_sec = poll_interval / 1000
 
         while True:
-            snapshot = self.get(snapshot_id)
+            snapshot = self.get(snapshot_id, betas=betas)
             if snapshot.status != "running":
                 return snapshot
 
@@ -423,6 +469,7 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
     def create_and_wait(
         self,
         *,
+        betas: Sequence[str],
         entities: Sequence[EntityInput],
         fields: Sequence[FieldInput],
         start_date: str,
@@ -435,6 +482,7 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
         """Start a snapshot and wait for its result.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             entities: Entities to snapshot, each with a name and a unique domain.
             fields: Fields to populate; static by default, `type: "dynamic"`
                 fields are populated from news over the window.
@@ -458,7 +506,8 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.agent.monitors.snapshots.create_and_wait(
+            snapshot = exa.beta.agent.monitors.snapshots.create_and_wait(
+                betas=["agent-monitors-2026-08-04"],
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
                     {
@@ -473,6 +522,7 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
             print(snapshot.data)
         """
         snapshot = self.create(
+            betas=betas,
             entities=entities,
             fields=fields,
             start_date=start_date,
@@ -483,6 +533,7 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
         if snapshot.status == "running":
             snapshot = self.poll_until_finished(
                 snapshot.id,
+                betas=betas,
                 poll_interval=poll_interval,
                 timeout_ms=timeout_ms,
             )
@@ -505,6 +556,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
     def create(
         self,
         *,
+        betas: Sequence[str],
         cadence: str,
         entities: Sequence[EntityInput],
         fields: Sequence[FieldInput],
@@ -516,6 +568,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
         becomes `active` once its first refresh completes.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             cadence: How often the monitor refreshes, e.g. `"12h"` or `"7d"`
                 (minimum 6h). Also each refresh's news lookback window.
             entities: Entities to track, each with a name and a unique domain.
@@ -533,7 +586,8 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            monitor = exa.agent.monitors.create(
+            monitor = exa.beta.agent.monitors.create(
+                betas=["agent-monitors-2026-08-04"],
                 cadence="7d",
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
@@ -557,13 +611,16 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             if idempotency_key is not None
             else None
         )
-        response = self.request("", method="POST", data=payload, headers=headers)
+        response = self.request(
+            "", betas=betas, method="POST", data=payload, headers=headers
+        )
         return AgentMonitor.model_validate(response)
 
-    def get(self, monitor_id: str) -> AgentMonitor:
+    def get(self, monitor_id: str, *, betas: Sequence[str]) -> AgentMonitor:
         """Get an Agent Monitor by ID, including refresh progress.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
 
         Returns:
@@ -574,21 +631,23 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            monitor = exa.agent.monitors.get("agentmon_123")
+            monitor = exa.beta.agent.monitors.get("agentmon_123", betas=["agent-monitors-2026-08-04"])
             print(monitor.status, monitor.refresh)
         """
-        response = self.request(f"/{monitor_id}", method="GET")
+        response = self.request(f"/{monitor_id}", betas=betas, method="GET")
         return AgentMonitor.model_validate(response)
 
     def list(
         self,
         *,
+        betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ListAgentMonitorsResponse:
         """List the team's Agent Monitors.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             cursor: Pagination cursor from a previous response.
             limit: Maximum number of monitors to return.
 
@@ -600,17 +659,20 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            monitors = exa.agent.monitors.list(limit=10)
+            monitors = exa.beta.agent.monitors.list(betas=["agent-monitors-2026-08-04"], limit=10)
             print([monitor.id for monitor in monitors.data])
         """
         params = self.build_pagination_params(cursor, limit)
-        response = self.request("", method="GET", params=params)
+        response = self.request("", betas=betas, method="GET", params=params)
         return ListAgentMonitorsResponse.model_validate(response)
 
-    def list_all(self, *, limit: Optional[int] = None) -> Iterator[AgentMonitor]:
+    def list_all(
+        self, *, betas: Sequence[str], limit: Optional[int] = None
+    ) -> Iterator[AgentMonitor]:
         """Iterate through all Agent Monitors, handling pagination automatically.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             limit: Maximum number of monitors to return per page.
 
         Yields:
@@ -621,22 +683,25 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            for monitor in exa.agent.monitors.list_all():
+            for monitor in exa.beta.agent.monitors.list_all(betas=["agent-monitors-2026-08-04"]):
                 print(monitor.id)
         """
         cursor = None
         while True:
-            response = self.list(cursor=cursor, limit=limit)
+            response = self.list(betas=betas, cursor=cursor, limit=limit)
             for monitor in response.data:
                 yield monitor
             if not response.has_more or not response.next_cursor:
                 break
             cursor = response.next_cursor
 
-    def get_all(self, *, limit: Optional[int] = None) -> list[AgentMonitor]:
+    def get_all(
+        self, *, betas: Sequence[str], limit: Optional[int] = None
+    ) -> list[AgentMonitor]:
         """Collect all Agent Monitors into a list.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             limit: Maximum number of monitors to return per page.
 
         Returns:
@@ -647,15 +712,16 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            monitors = exa.agent.monitors.get_all()
+            monitors = exa.beta.agent.monitors.get_all(betas=["agent-monitors-2026-08-04"])
             print(len(monitors))
         """
-        return list(self.list_all(limit=limit))
+        return list(self.list_all(betas=betas, limit=limit))
 
-    def delete(self, monitor_id: str) -> DeletedAgentMonitor:
+    def delete(self, monitor_id: str, *, betas: Sequence[str]) -> DeletedAgentMonitor:
         """Delete an Agent Monitor and stop its refreshes.
 
         Args:
+            betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
 
         Returns:
@@ -666,8 +732,8 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            deleted = exa.agent.monitors.delete("agentmon_123")
+            deleted = exa.beta.agent.monitors.delete("agentmon_123", betas=["agent-monitors-2026-08-04"])
             print(deleted.deleted)
         """
-        response = self.request(f"/{monitor_id}", method="DELETE")
+        response = self.request(f"/{monitor_id}", betas=betas, method="DELETE")
         return DeletedAgentMonitor.model_validate(response)
