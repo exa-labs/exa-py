@@ -560,3 +560,19 @@ async def test_async_create_and_wait_snapshot():
     )
 
     assert result.status == "completed"
+
+
+@pytest.mark.asyncio
+async def test_async_request_accepts_202():
+    """POST /agent/monitors/snapshot responds 202; async_request must not raise."""
+    exa = AsyncExa("fake-key")
+    response = MagicMock()
+    response.status_code = 202
+    response.json.return_value = _make_snapshot()
+    http_client = MagicMock()
+    http_client.post = AsyncMock(return_value=response)
+    exa._client = http_client
+
+    result = await exa.async_request("/agent/monitors/snapshot", data={})
+
+    assert result["status"] == "running"

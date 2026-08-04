@@ -2769,7 +2769,7 @@ class AsyncExa(Exa):
             )
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
-        if res.status_code != 200 and res.status_code != 201:
+        if res.status_code >= 400:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
             )
