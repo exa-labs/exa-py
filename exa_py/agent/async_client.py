@@ -18,6 +18,7 @@ from typing import (
 from pydantic import BaseModel
 
 from .async_base import AsyncAgentBaseClient
+from .monitors.async_client import AsyncAgentMonitorsClient
 from .client import (
     _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
     _DEFAULT_POLL_INTERVAL_MS,
@@ -643,9 +644,11 @@ class AsyncAgentNamespace:
     """Asynchronous Agent namespace."""
 
     runs: AsyncAgentRunsClient
+    monitors: AsyncAgentMonitorsClient
 
     def __init__(self, client: Any):
         self.runs = AsyncAgentRunsClient(client)
+        self.monitors = AsyncAgentMonitorsClient(client)
 
 
 class AsyncAgentBetaNamespace(AsyncAgentNamespace):

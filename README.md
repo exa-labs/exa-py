@@ -169,6 +169,53 @@ run = exa.beta.agent.runs.create(
 )
 ```
 
+## Agent Monitors
+
+> Agent Monitors are gated while in preview — contact Exa to enable them for your team.
+
+An Agent Monitor keeps a table of entities × fields fresh on a cadence: static fields are answered once per entity over the live web, dynamic fields are tracked from news on every refresh.
+
+```python
+# Create a monitor. Creation is async: it returns with status "creating"
+# and becomes "active" once the first refresh completes.
+monitor = exa.agent.monitors.create(
+    cadence="7d",
+    entities=[
+        {"name": "Acme Corp", "domain": "acme.com"},
+        {"name": "Globex", "domain": "globex.com"},
+    ],
+    fields=[
+        {"name": "ceo", "description": "The company's current CEO"},  # static by default
+        {"name": "funding", "description": "New funding rounds", "type": "dynamic"},
+    ],
+    idempotency_key="my-monitor-1",  # safe retries: same key returns the same monitor
+)
+
+# Page the monitor's current entities and their contents.
+for view in exa.agent.monitors.entities.list_all(monitor.id):
+    print(view.entity.name, view.contents)
+
+# Follow the content change feed (resume later from the page's next_cursor).
+changes = exa.agent.monitors.changes.list(monitor.id, since="2026-01-01T00:00:00Z")
+
+# One-shot stateless snapshot of a past news window — no monitor created.
+snapshot = exa.agent.monitors.snapshots.create_and_wait(
+    entities=[{"name": "Acme Corp", "domain": "acme.com"}],
+    fields=[{"name": "funding", "description": "New funding rounds", "type": "dynamic"}],
+    start_date="2026-01-01",
+    end_date="2026-01-08",
+)
+print(snapshot.data)
+
+# Add entities, inspect refresh progress, clean up.
+exa.agent.monitors.entities.add(
+    monitor.id, entities=[{"name": "Initech", "domain": "initech.com"}]
+)
+current = exa.agent.monitors.get(monitor.id)
+print(current.status, current.refresh, current.usage)
+exa.agent.monitors.delete(monitor.id)
+```
+
 ## Async
 
 ```python

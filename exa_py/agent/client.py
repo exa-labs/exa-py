@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from exa_py.utils import _convert_schema_input
 
 from .base import AgentBaseClient
+from .monitors.client import AgentMonitorsClient
 from .types import (
     AgentDataSource,
     AgentEvent,
@@ -695,9 +696,11 @@ class AgentNamespace:
     """Synchronous Agent namespace."""
 
     runs: AgentRunsClient
+    monitors: AgentMonitorsClient
 
     def __init__(self, client: Any):
         self.runs = AgentRunsClient(client)
+        self.monitors = AgentMonitorsClient(client)
 
 
 class AgentBetaNamespace(AgentNamespace):
