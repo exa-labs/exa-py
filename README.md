@@ -121,9 +121,7 @@ for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
 
-## Agent API 
-
-The Agent API is available without a beta header.
+## Agent API
 
 ```python
 run = exa.agent.runs.create(
@@ -152,6 +150,21 @@ run = exa.agent.runs.create(
 
 run = exa.agent.runs.poll_until_finished(run.id)
 print(run.output.structured if run.output else None)
+```
+
+For Agent Max, use the beta namespace and pass the beta token explicitly:
+
+```python
+from exa_py import Exa
+from exa_py.agent import AGENT_MAX_EFFORT_BETA
+
+exa = Exa()
+run = exa.beta.agent.runs.create(
+    query="Find all companies building browser automation tools in the United States.",
+    effort="max",
+    budget={"maxCostDollars": 10},
+    betas=[AGENT_MAX_EFFORT_BETA],
+)
 ```
 
 ## Async

@@ -16,6 +16,8 @@ from .async_client import (
 )
 from .types import (
     AGENT_BETA_HEADER,
+    AGENT_MAX_EFFORT_BETA,
+    AgentBudget,
     AgentCostDollars,
     AgentDataSource,
     AgentDataSourceProvider,
@@ -40,6 +42,7 @@ from .types import (
 
 __all__ = [
     "AGENT_BETA_HEADER",
+    "AGENT_MAX_EFFORT_BETA",
     "BetaClient",
     "AgentNamespace",
     "AgentBetaNamespace",
@@ -51,6 +54,7 @@ __all__ = [
     "AsyncAgentRunsClient",
     "AsyncAgentRunEventsClient",
     "AgentCostDollars",
+    "AgentBudget",
     "AgentDataSource",
     "AgentDataSourceProvider",
     "AgentEffort",
