@@ -8,11 +8,12 @@ from pydantic import BaseModel, Field
 
 
 AGENT_BETA_HEADER = "agent-2026-05-07"
+AGENT_MAX_EFFORT_BETA = "agent-max-effort-2026-07-27"
 
 AgentRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
 AgentStopReason = Literal["schema_satisfied", "budget_reached", "error", "cancelled"]
 AgentConfidence = Literal["low", "medium", "high"]
-AgentEffort = Literal["low", "medium", "high", "xhigh", "auto"]
+AgentEffort = Literal["minimal", "low", "medium", "high", "xhigh", "auto", "max"]
 
 AgentDataSourceProvider = str
 """Identifier of an Exa Connect data provider."""
@@ -91,6 +92,22 @@ class AgentError(BaseModel):
     keyword: Optional[str] = None
     expected: Optional[Any] = None
     actual: Optional[Any] = None
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
+
+class AgentBudget(BaseModel):
+    """Per-run spend ceiling for the metered `auto` and `max` efforts."""
+
+    max_cost_dollars: Optional[float] = Field(
+        default=None,
+        alias="maxCostDollars",
+        description=(
+            "Maximum spend for the run in US dollars. Only accepted by the API "
+            "for `auto` and `max`; the server validates the allowed range and "
+            "applies defaults when omitted."
+        ),
+    )
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -177,6 +194,7 @@ class CreateAgentRunParams(BaseModel):
     input: Optional[AgentInput] = None
     output_schema: Optional[Dict[str, Any]] = Field(default=None, alias="outputSchema")
     effort: Optional[AgentEffort] = None
+    budget: Optional[AgentBudget] = None
     previous_run_id: Optional[str] = Field(default=None, alias="previousRunId")
     metadata: Optional[Dict[str, Any]] = None
     data_sources: Optional[List[AgentDataSource]] = Field(default=None, alias="dataSources")

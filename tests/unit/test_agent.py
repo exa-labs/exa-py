@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from exa_py import AsyncExa, Exa
 from exa_py.agent import (
     AGENT_BETA_HEADER,
+    AGENT_MAX_EFFORT_BETA,
     AgentDataSource,
     AgentNamespace,
     AgentRunCancelledError,
@@ -194,6 +195,30 @@ def test_beta_create_agent_run_sends_legacy_betas_as_header(mock_client):
         method="POST",
         params=None,
         headers={"Exa-Beta": AGENT_BETA_HEADER},
+    )
+
+
+def test_beta_create_agent_run_sends_max_effort_and_budget(mock_client):
+    mock_client.request.return_value = _make_run()
+    run_client = BetaClient(mock_client).agent.runs
+
+    run_client.create(
+        betas=[AGENT_MAX_EFFORT_BETA],
+        query="Find recent funding rounds.",
+        effort="max",
+        budget={"maxCostDollars": 10},
+    )
+
+    mock_client.request.assert_called_once_with(
+        "/agent/runs",
+        data={
+            "query": "Find recent funding rounds.",
+            "effort": "max",
+            "budget": {"maxCostDollars": 10},
+        },
+        method="POST",
+        params=None,
+        headers={"Exa-Beta": AGENT_MAX_EFFORT_BETA},
     )
 
 
