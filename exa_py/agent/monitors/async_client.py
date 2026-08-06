@@ -54,12 +54,13 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
             monitor = await exa.beta.agent.monitors.entities.add(
                 "agentmon_123",
-                betas=["agent-monitors-2026-08-04"],
+                betas=[AGENT_MONITORS_BETA_HEADER],
                 entities=[{"name": "Initech", "domain": "initech.com"}],
             )
             print(monitor.entity_count)
@@ -94,10 +95,11 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            page = await exa.beta.agent.monitors.entities.list("agentmon_123", betas=["agent-monitors-2026-08-04"], limit=50)
+            page = await exa.beta.agent.monitors.entities.list("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER], limit=50)
             for view in page.data:
                 print(view.entity.name, view.contents)
         """
@@ -131,10 +133,11 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            async for view in exa.beta.agent.monitors.entities.list_all("agentmon_123", betas=["agent-monitors-2026-08-04"]):
+            async for view in exa.beta.agent.monitors.entities.list_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(view.entity.name)
         """
         while True:
@@ -175,10 +178,11 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            entities = await exa.beta.agent.monitors.entities.get_all("agentmon_123", betas=["agent-monitors-2026-08-04"])
+            entities = await exa.beta.agent.monitors.entities.get_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(len(entities))
         """
         return [
@@ -217,12 +221,13 @@ class AsyncAgentMonitorChangesClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
             changes = await exa.beta.agent.monitors.changes.list(
                 "agentmon_123",
-                betas=["agent-monitors-2026-08-04"],
+                betas=[AGENT_MONITORS_BETA_HEADER],
                 since="2026-01-01T00:00:00Z",
             )
             for change in changes.data:
@@ -258,10 +263,11 @@ class AsyncAgentMonitorChangesClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            async for change in exa.beta.agent.monitors.changes.list_all("agentmon_123", betas=["agent-monitors-2026-08-04"]):
+            async for change in exa.beta.agent.monitors.changes.list_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(change.created_at, change.content.value)
         """
         while True:
@@ -302,10 +308,11 @@ class AsyncAgentMonitorChangesClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            changes = await exa.beta.agent.monitors.changes.get_all("agentmon_123", betas=["agent-monitors-2026-08-04"])
+            changes = await exa.beta.agent.monitors.changes.get_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(len(changes))
         """
         return [
@@ -357,11 +364,12 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
             snapshot = await exa.beta.agent.monitors.snapshots.create(
-                betas=["agent-monitors-2026-08-04"],
+                betas=[AGENT_MONITORS_BETA_HEADER],
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
                     {
@@ -406,10 +414,11 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            snapshot = await exa.beta.agent.monitors.snapshots.get("agentsnap_123", betas=["agent-monitors-2026-08-04"])
+            snapshot = await exa.beta.agent.monitors.snapshots.get("agentsnap_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(snapshot.status)
         """
         response = await self.request(
@@ -438,11 +447,12 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
             snapshot = await exa.beta.agent.monitors.snapshots.poll_until_finished(
-                "agentsnap_123", betas=["agent-monitors-2026-08-04"]
+                "agentsnap_123", betas=[AGENT_MONITORS_BETA_HEADER]
             )
             print(snapshot.status)
         """
@@ -498,11 +508,12 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
             snapshot = await exa.beta.agent.monitors.snapshots.create_and_wait(
-                betas=["agent-monitors-2026-08-04"],
+                betas=[AGENT_MONITORS_BETA_HEADER],
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
                     {
@@ -578,11 +589,12 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
             monitor = await exa.beta.agent.monitors.create(
-                betas=["agent-monitors-2026-08-04"],
+                betas=[AGENT_MONITORS_BETA_HEADER],
                 cadence="7d",
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
@@ -623,10 +635,11 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            monitor = await exa.beta.agent.monitors.get("agentmon_123", betas=["agent-monitors-2026-08-04"])
+            monitor = await exa.beta.agent.monitors.get("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(monitor.status, monitor.refresh)
         """
         response = await self.request(f"/{monitor_id}", betas=betas, method="GET")
@@ -651,10 +664,11 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            monitors = await exa.beta.agent.monitors.list(betas=["agent-monitors-2026-08-04"], limit=10)
+            monitors = await exa.beta.agent.monitors.list(betas=[AGENT_MONITORS_BETA_HEADER], limit=10)
             print([monitor.id for monitor in monitors.data])
         """
         params = self.build_pagination_params(cursor, limit)
@@ -680,10 +694,11 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            async for monitor in exa.beta.agent.monitors.list_all(betas=["agent-monitors-2026-08-04"]):
+            async for monitor in exa.beta.agent.monitors.list_all(betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(monitor.id)
         """
         while True:
@@ -713,10 +728,11 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            monitors = await exa.beta.agent.monitors.get_all(betas=["agent-monitors-2026-08-04"])
+            monitors = await exa.beta.agent.monitors.get_all(betas=[AGENT_MONITORS_BETA_HEADER])
             print(len(monitors))
         """
         return [
@@ -738,10 +754,11 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
 
         Examples:
             from exa_py import AsyncExa
+            from exa_py.agent import AGENT_MONITORS_BETA_HEADER
 
             exa = AsyncExa("EXA_API_KEY")
 
-            deleted = await exa.beta.agent.monitors.delete("agentmon_123", betas=["agent-monitors-2026-08-04"])
+            deleted = await exa.beta.agent.monitors.delete("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(deleted.deleted)
         """
         response = await self.request(f"/{monitor_id}", betas=betas, method="DELETE")

@@ -171,15 +171,19 @@ run = exa.beta.agent.runs.create(
 
 ## Agent Monitors (Beta)
 
-Agent Monitors use the beta namespace and require the `agent-monitors-2026-08-04` beta identifier.
+Agent Monitors use the beta namespace and require the `AGENT_MONITORS_BETA_HEADER` beta identifier (`agent-monitors-2026-08-04`).
 
 An Agent Monitor keeps a table of entities × fields fresh on a cadence: static fields are answered once per entity over the live web, dynamic fields are tracked from news on every refresh.
 
 ```python
+from exa_py.agent import AGENT_MONITORS_BETA_HEADER
+
+betas = [AGENT_MONITORS_BETA_HEADER]
+
 # Create a monitor. Creation is async: it returns with status "creating"
 # and becomes "active" once the first refresh completes.
 monitor = exa.beta.agent.monitors.create(
-    betas=["agent-monitors-2026-08-04"],
+    betas=betas,
     cadence="7d",
     entities=[
         {"name": "Acme Corp", "domain": "acme.com"},
@@ -193,21 +197,19 @@ monitor = exa.beta.agent.monitors.create(
 )
 
 # Page the monitor's current entities and their contents.
-for view in exa.beta.agent.monitors.entities.list_all(
-    monitor.id, betas=["agent-monitors-2026-08-04"]
-):
+for view in exa.beta.agent.monitors.entities.list_all(monitor.id, betas=betas):
     print(view.entity.name, view.contents)
 
 # Follow the content change feed (resume later from the page's next_cursor).
 changes = exa.beta.agent.monitors.changes.list(
     monitor.id,
-    betas=["agent-monitors-2026-08-04"],
+    betas=betas,
     since="2026-01-01T00:00:00Z",
 )
 
 # One-shot stateless snapshot of a past news window — no monitor created.
 snapshot = exa.beta.agent.monitors.snapshots.create_and_wait(
-    betas=["agent-monitors-2026-08-04"],
+    betas=betas,
     entities=[{"name": "Acme Corp", "domain": "acme.com"}],
     fields=[{"name": "funding", "description": "New funding rounds", "type": "dynamic"}],
     start_date="2026-01-01",
@@ -218,16 +220,12 @@ print(snapshot.data)
 # Add entities, inspect refresh progress, clean up.
 exa.beta.agent.monitors.entities.add(
     monitor.id,
-    betas=["agent-monitors-2026-08-04"],
+    betas=betas,
     entities=[{"name": "Initech", "domain": "initech.com"}],
 )
-current = exa.beta.agent.monitors.get(
-    monitor.id, betas=["agent-monitors-2026-08-04"]
-)
+current = exa.beta.agent.monitors.get(monitor.id, betas=betas)
 print(current.status, current.refresh, current.usage)
-exa.beta.agent.monitors.delete(
-    monitor.id, betas=["agent-monitors-2026-08-04"]
-)
+exa.beta.agent.monitors.delete(monitor.id, betas=betas)
 ```
 
 ## Async
