@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from exa_py.utils import _convert_schema_input
 
 from .base import AgentBaseClient
+from .betas import headers_for_betas as _headers_for_betas
 from .monitors.client import AgentMonitorsClient
 from .types import (
     AgentDataSource,
@@ -49,17 +50,6 @@ def _is_pydantic_model(schema: Any) -> bool:
         return isinstance(schema, type) and issubclass(schema, BaseModel)
     except TypeError:
         return False
-
-
-def _headers_for_betas(betas: Optional[Sequence[str]]) -> Optional[Dict[str, str]]:
-    if not betas:
-        return None
-
-    beta_values = [beta for beta in betas if beta]
-    if not beta_values:
-        return None
-
-    return {"Exa-Beta": ",".join(beta_values)}
 
 
 def _ensure_completed_run(run: AgentRun) -> AgentRun:

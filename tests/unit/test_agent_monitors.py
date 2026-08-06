@@ -203,9 +203,16 @@ def test_create_monitor_sends_idempotency_key(monitors_client, mock_client):
 
 def test_empty_beta_list_is_rejected(monitors_client):
     with pytest.raises(
-        ValueError, match="betas must include the Agent Monitors API beta identifier"
+        ValueError, match="betas must include the Agent Monitors beta identifier"
     ):
         monitors_client.get("agentmon_123", betas=[])
+
+
+def test_beta_list_without_monitors_beta_is_rejected(monitors_client):
+    with pytest.raises(
+        ValueError, match="betas must include the Agent Monitors beta identifier"
+    ):
+        monitors_client.get("agentmon_123", betas=["some-other-beta"])
 
 
 def test_get_monitor(monitors_client, mock_client):
@@ -336,6 +343,37 @@ def test_list_entities_with_since(monitors_client, mock_client):
         params={"cursor": "abc", "limit": "50", "since": "2026-01-07T00:00:00Z"},
         headers=_BETA_HEADERS,
     )
+
+
+def test_list_all_monitors_resumes_from_cursor(monitors_client, mock_client):
+    mock_client.request.return_value = {
+        "object": "list",
+        "data": [_make_monitor("agentmon_2")],
+        "hasMore": False,
+        "nextCursor": None,
+    }
+
+    monitors = monitors_client.get_all(betas=_BETAS, cursor="agentmon_1")
+
+    assert [monitor.id for monitor in monitors] == ["agentmon_2"]
+    assert mock_client.request.call_args.kwargs["params"] == {"cursor": "agentmon_1"}
+
+
+def test_list_all_entities_resumes_from_cursor(monitors_client, mock_client):
+    mock_client.request.return_value = {
+        "object": "list",
+        "data": [_make_entity_view()],
+        "hasMore": False,
+        "nextCursor": None,
+        "version": 3,
+    }
+
+    entities = monitors_client.entities.get_all(
+        "agentmon_123", betas=_BETAS, cursor="cursor-2"
+    )
+
+    assert len(entities) == 1
+    assert mock_client.request.call_args.kwargs["params"] == {"cursor": "cursor-2"}
 
 
 def test_list_all_entities_paginates(monitors_client, mock_client):

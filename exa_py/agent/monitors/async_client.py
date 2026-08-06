@@ -112,6 +112,7 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
         monitor_id: str,
         *,
         betas: Sequence[str],
+        cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
     ) -> AsyncIterator[AgentMonitorEntityView]:
@@ -120,6 +121,7 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
+            cursor: Entities cursor to resume from.
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
                 after this ISO-8601 timestamp.
@@ -135,7 +137,6 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
             async for view in exa.beta.agent.monitors.entities.list_all("agentmon_123", betas=["agent-monitors-2026-08-04"]):
                 print(view.entity.name)
         """
-        cursor = None
         while True:
             response = await self.list(
                 monitor_id,
@@ -155,6 +156,7 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
         monitor_id: str,
         *,
         betas: Sequence[str],
+        cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
     ) -> list[AgentMonitorEntityView]:
@@ -163,6 +165,7 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
+            cursor: Entities cursor to resume from.
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
                 after this ISO-8601 timestamp.
@@ -181,7 +184,7 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
         return [
             entity_view
             async for entity_view in self.list_all(
-                monitor_id, betas=betas, limit=limit, since=since
+                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since
             )
         ]
 
@@ -659,12 +662,17 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
         return ListAgentMonitorsResponse.model_validate(response)
 
     async def list_all(
-        self, *, betas: Sequence[str], limit: Optional[int] = None
+        self,
+        *,
+        betas: Sequence[str],
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> AsyncIterator[AgentMonitor]:
         """Iterate through all Agent Monitors, handling pagination automatically.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
+            cursor: Monitors list cursor to resume from.
             limit: Maximum number of monitors to return per page.
 
         Yields:
@@ -678,7 +686,6 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
             async for monitor in exa.beta.agent.monitors.list_all(betas=["agent-monitors-2026-08-04"]):
                 print(monitor.id)
         """
-        cursor = None
         while True:
             response = await self.list(betas=betas, cursor=cursor, limit=limit)
             for monitor in response.data:
@@ -688,12 +695,17 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
             cursor = response.next_cursor
 
     async def get_all(
-        self, *, betas: Sequence[str], limit: Optional[int] = None
+        self,
+        *,
+        betas: Sequence[str],
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> list[AgentMonitor]:
         """Collect all Agent Monitors into a list.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
+            cursor: Monitors list cursor to resume from.
             limit: Maximum number of monitors to return per page.
 
         Returns:
@@ -707,7 +719,10 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
             monitors = await exa.beta.agent.monitors.get_all(betas=["agent-monitors-2026-08-04"])
             print(len(monitors))
         """
-        return [monitor async for monitor in self.list_all(betas=betas, limit=limit)]
+        return [
+            monitor
+            async for monitor in self.list_all(betas=betas, cursor=cursor, limit=limit)
+        ]
 
     async def delete(
         self, monitor_id: str, *, betas: Sequence[str]

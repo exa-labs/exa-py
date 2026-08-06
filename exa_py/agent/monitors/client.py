@@ -134,6 +134,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         monitor_id: str,
         *,
         betas: Sequence[str],
+        cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
     ) -> Iterator[AgentMonitorEntityView]:
@@ -142,6 +143,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
+            cursor: Entities cursor to resume from.
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
                 after this ISO-8601 timestamp.
@@ -157,7 +159,6 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
             for view in exa.beta.agent.monitors.entities.list_all("agentmon_123", betas=["agent-monitors-2026-08-04"]):
                 print(view.entity.name)
         """
-        cursor = None
         while True:
             response = self.list(
                 monitor_id,
@@ -177,6 +178,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         monitor_id: str,
         *,
         betas: Sequence[str],
+        cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
     ) -> list[AgentMonitorEntityView]:
@@ -185,6 +187,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
+            cursor: Entities cursor to resume from.
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
                 after this ISO-8601 timestamp.
@@ -200,7 +203,11 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
             entities = exa.beta.agent.monitors.entities.get_all("agentmon_123", betas=["agent-monitors-2026-08-04"])
             print(len(entities))
         """
-        return list(self.list_all(monitor_id, betas=betas, limit=limit, since=since))
+        return list(
+            self.list_all(
+                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since
+            )
+        )
 
 
 class AgentMonitorChangesClient(AgentMonitorsBaseClient):
@@ -667,12 +674,17 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
         return ListAgentMonitorsResponse.model_validate(response)
 
     def list_all(
-        self, *, betas: Sequence[str], limit: Optional[int] = None
+        self,
+        *,
+        betas: Sequence[str],
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> Iterator[AgentMonitor]:
         """Iterate through all Agent Monitors, handling pagination automatically.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
+            cursor: Monitors list cursor to resume from.
             limit: Maximum number of monitors to return per page.
 
         Yields:
@@ -686,7 +698,6 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             for monitor in exa.beta.agent.monitors.list_all(betas=["agent-monitors-2026-08-04"]):
                 print(monitor.id)
         """
-        cursor = None
         while True:
             response = self.list(betas=betas, cursor=cursor, limit=limit)
             for monitor in response.data:
@@ -696,12 +707,17 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             cursor = response.next_cursor
 
     def get_all(
-        self, *, betas: Sequence[str], limit: Optional[int] = None
+        self,
+        *,
+        betas: Sequence[str],
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> list[AgentMonitor]:
         """Collect all Agent Monitors into a list.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
+            cursor: Monitors list cursor to resume from.
             limit: Maximum number of monitors to return per page.
 
         Returns:
@@ -715,7 +731,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             monitors = exa.beta.agent.monitors.get_all(betas=["agent-monitors-2026-08-04"])
             print(len(monitors))
         """
-        return list(self.list_all(betas=betas, limit=limit))
+        return list(self.list_all(betas=betas, cursor=cursor, limit=limit))
 
     def delete(self, monitor_id: str, *, betas: Sequence[str]) -> DeletedAgentMonitor:
         """Delete an Agent Monitor and stop its refreshes.
