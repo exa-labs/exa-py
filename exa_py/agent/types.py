@@ -12,7 +12,7 @@ AGENT_BETA_HEADER = "agent-2026-05-07"
 AgentRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
 AgentStopReason = Literal["schema_satisfied", "budget_reached", "error", "cancelled"]
 AgentConfidence = Literal["low", "medium", "high"]
-AgentEffort = Literal["low", "medium", "high", "xhigh", "auto"]
+AgentEffort = Literal["minimal", "low", "medium", "high", "xhigh", "auto"]
 
 AgentDataSourceProvider = str
 """Identifier of an Exa Connect data provider."""
