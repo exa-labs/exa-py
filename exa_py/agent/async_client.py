@@ -18,6 +18,7 @@ from typing import (
 from pydantic import BaseModel
 
 from .async_base import AsyncAgentBaseClient
+from .monitors.async_client import AsyncAgentMonitorsClient
 from .client import (
     _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
     _DEFAULT_POLL_INTERVAL_MS,
@@ -649,17 +650,19 @@ class AsyncAgentNamespace:
 
 
 class AsyncAgentBetaNamespace(AsyncAgentNamespace):
-    """Deprecated compatibility wrapper for the asynchronous Agent namespace."""
+    """Asynchronous beta Agent namespace."""
 
     runs: AsyncAgentBetaRunsClient
+    monitors: AsyncAgentMonitorsClient
 
     def __init__(self, client: Any):
         super().__init__(client)
         self.runs = AsyncAgentBetaRunsClient(client)
+        self.monitors = AsyncAgentMonitorsClient(client)
 
 
 class AsyncBetaClient:
-    """Deprecated asynchronous beta namespace."""
+    """Asynchronous beta namespace."""
 
     agent: AsyncAgentBetaNamespace
 

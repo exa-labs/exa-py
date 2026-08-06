@@ -2729,7 +2729,7 @@ class AsyncExa(Exa):
                     headers=request_headers,
                 )
                 res = await self.client.send(request, stream=True)
-                if res.status_code != 200 and res.status_code != 201:
+                if res.status_code >= 400:
                     body = await res.aread()
                     await res.aclose()
                     error_text = body.decode(errors="replace")
@@ -2747,7 +2747,7 @@ class AsyncExa(Exa):
                     "POST", self.base_url + endpoint, json=data, headers=request_headers
                 )
                 res = await self.client.send(request, stream=True)
-                if res.status_code != 200 and res.status_code != 201:
+                if res.status_code >= 400:
                     body = await res.aread()
                     await res.aclose()
                     error_text = body.decode(errors="replace")
@@ -2769,7 +2769,7 @@ class AsyncExa(Exa):
             )
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
-        if res.status_code != 200 and res.status_code != 201:
+        if res.status_code >= 400:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
             )

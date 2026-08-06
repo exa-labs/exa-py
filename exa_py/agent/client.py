@@ -21,6 +21,8 @@ from pydantic import BaseModel
 from exa_py.utils import _convert_schema_input
 
 from .base import AgentBaseClient
+from .betas import headers_for_betas as _headers_for_betas
+from .monitors.client import AgentMonitorsClient
 from .types import (
     AgentDataSource,
     AgentEvent,
@@ -48,17 +50,6 @@ def _is_pydantic_model(schema: Any) -> bool:
         return isinstance(schema, type) and issubclass(schema, BaseModel)
     except TypeError:
         return False
-
-
-def _headers_for_betas(betas: Optional[Sequence[str]]) -> Optional[Dict[str, str]]:
-    if not betas:
-        return None
-
-    beta_values = [beta for beta in betas if beta]
-    if not beta_values:
-        return None
-
-    return {"Exa-Beta": ",".join(beta_values)}
 
 
 def _ensure_completed_run(run: AgentRun) -> AgentRun:
@@ -577,9 +568,7 @@ class AgentBetaRunsClient(AgentRunsClient):
             return stream_agent_events(response)
         return AgentRun.model_validate(response)
 
-    def get(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
-    ) -> AgentRun:
+    def get(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
         response = self.request(
             f"/{run_id}", method="GET", headers=_headers_for_betas(betas)
         )
@@ -615,9 +604,7 @@ class AgentBetaRunsClient(AgentRunsClient):
     ) -> list[AgentRun]:
         return list(self.list_all(betas=betas, limit=limit))
 
-    def cancel(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
-    ) -> AgentRun:
+    def cancel(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
         response = self.request(
             f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas)
         )
@@ -701,17 +688,19 @@ class AgentNamespace:
 
 
 class AgentBetaNamespace(AgentNamespace):
-    """Deprecated compatibility wrapper for the synchronous Agent namespace."""
+    """Synchronous beta Agent namespace."""
 
     runs: AgentBetaRunsClient
+    monitors: AgentMonitorsClient
 
     def __init__(self, client: Any):
         super().__init__(client)
         self.runs = AgentBetaRunsClient(client)
+        self.monitors = AgentMonitorsClient(client)
 
 
 class BetaClient:
-    """Deprecated synchronous beta namespace."""
+    """Synchronous beta namespace."""
 
     agent: AgentBetaNamespace
 
