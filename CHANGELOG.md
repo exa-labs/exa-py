@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.17.0](https://github.com/exa-labs/exa-py/compare/v2.16.2...v2.17.0) (2026-08-06)
+
+
+### Features
+
+* **agent:** add max effort and budgets ([#240](https://github.com/exa-labs/exa-py/issues/240)) ([84d5aae](https://github.com/exa-labs/exa-py/commit/84d5aaed82a1406b389dbbe85762ad7accca251d))
+
 ## [2.16.2](https://github.com/exa-labs/exa-py/compare/v2.16.1...v2.16.2) (2026-07-27)
 
 
