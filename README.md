@@ -179,6 +179,30 @@ exa = AsyncExa(api_key="your-api-key")
 results = await exa.search("async search example", contents={"highlights": True})
 ```
 
+## Timeouts & Cancellation
+
+Requests time out after 600 seconds by default. Set a client-wide timeout, or override it per call:
+
+```python
+from exa_py import Exa
+
+exa = Exa(api_key="your-api-key", timeout=30)
+
+results = exa.search("latest AI developments", timeout=5)
+```
+
+With `AsyncExa`, cancel an in-flight request by cancelling the awaiting task:
+
+```python
+import asyncio
+from exa_py import AsyncExa
+
+exa = AsyncExa(api_key="your-api-key")
+
+task = asyncio.create_task(exa.search("latest AI developments"))
+task.cancel()
+```
+
 ## More
 
 See the [full documentation](https://docs.exa.ai) for all features including websets, filters, and advanced options.
