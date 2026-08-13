@@ -45,12 +45,14 @@ def _make_monitor(monitor_id: str = "agentmon_123", status: str = "active") -> d
                 "id": "agentfield_1",
                 "name": "ceo",
                 "description": "The company's current CEO",
+                "mode": "static",
                 "type": "static",
             },
             {
                 "id": "agentfield_2",
                 "name": "funding",
                 "description": "New funding rounds",
+                "mode": "dynamic",
                 "type": "dynamic",
             },
         ],
@@ -113,7 +115,7 @@ def _make_snapshot(status: str = "running", **extra) -> dict:
 _SNAPSHOT_KWARGS = {
     "entities": [{"name": "Acme Corp", "domain": "acme.com"}],
     "fields": [
-        {"name": "funding", "description": "New funding rounds", "type": "dynamic"}
+        {"name": "funding", "description": "New funding rounds", "mode": "dynamic"}
     ],
     "start_date": "2026-01-01",
     "end_date": "2026-01-08",
@@ -151,7 +153,7 @@ def test_create_monitor(monitors_client, mock_client):
         ],
         fields=[
             {"name": "ceo", "description": "The company's current CEO"},
-            {"name": "funding", "description": "New funding rounds", "type": "dynamic"},
+            {"name": "funding", "description": "New funding rounds", "mode": "dynamic"},
         ],
     )
 
@@ -174,7 +176,7 @@ def test_create_monitor(monitors_client, mock_client):
                 {
                     "name": "funding",
                     "description": "New funding rounds",
-                    "type": "dynamic",
+                    "mode": "dynamic",
                 },
             ],
         },
@@ -471,7 +473,7 @@ def test_create_snapshot(monitors_client, mock_client):
                 {
                     "name": "funding",
                     "description": "New funding rounds",
-                    "type": "dynamic",
+                    "mode": "dynamic",
                 }
             ],
             "startDate": "2026-01-01",

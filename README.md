@@ -190,8 +190,8 @@ monitor = exa.beta.agent.monitors.create(
         {"name": "Globex", "domain": "globex.com"},
     ],
     fields=[
-        {"name": "ceo", "description": "The company's current CEO"},  # static by default
-        {"name": "funding", "description": "New funding rounds", "type": "dynamic"},
+        {"name": "funding", "description": "New funding rounds"},  # dynamic by default
+        {"name": "ceo", "description": "The company's current CEO", "mode": "static"},
     ],
     idempotency_key="my-monitor-1",  # safe retries: same key returns the same monitor
 )
@@ -211,7 +211,7 @@ changes = exa.beta.agent.monitors.changes.list(
 snapshot = exa.beta.agent.monitors.snapshots.create_and_wait(
     betas=betas,
     entities=[{"name": "Acme Corp", "domain": "acme.com"}],
-    fields=[{"name": "funding", "description": "New funding rounds", "type": "dynamic"}],
+    fields=[{"name": "funding", "description": "New funding rounds"}],  # dynamic by default
     start_date="2026-01-01",
     end_date="2026-01-08",
 )

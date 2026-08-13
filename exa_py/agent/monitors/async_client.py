@@ -350,8 +350,9 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             entities: Entities to snapshot, each with a name and a unique domain.
-            fields: Fields to populate; static by default, `type: "dynamic"`
-                fields are populated from news over the window.
+            fields: Fields to populate; dynamic by default (populated from news
+                over the window), `mode: "static"` fields are answered over the
+                live web.
             start_date: Start of the news window, `YYYY-MM-DD` (UTC).
             end_date: End of the news window, `YYYY-MM-DD` (UTC).
             start_hour: Hour of start_date the window starts at, 0-23 UTC;
@@ -375,7 +376,7 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
                     {
                         "name": "funding",
                         "description": "New funding rounds",
-                        "type": "dynamic",
+                        "mode": "dynamic",
                     }
                 ],
                 start_date="2026-01-01",
@@ -489,8 +490,9 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             entities: Entities to snapshot, each with a name and a unique domain.
-            fields: Fields to populate; static by default, `type: "dynamic"`
-                fields are populated from news over the window.
+            fields: Fields to populate; dynamic by default (populated from news
+                over the window), `mode: "static"` fields are answered over the
+                live web.
             start_date: Start of the news window, `YYYY-MM-DD` (UTC).
             end_date: End of the news window, `YYYY-MM-DD` (UTC).
             start_hour: Hour of start_date the window starts at, 0-23 UTC;
@@ -519,7 +521,7 @@ class AsyncAgentMonitorSnapshotsClient(AsyncAgentMonitorsBaseClient):
                     {
                         "name": "funding",
                         "description": "New funding rounds",
-                        "type": "dynamic",
+                        "mode": "dynamic",
                     }
                 ],
                 start_date="2026-01-01",
@@ -578,8 +580,9 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
             cadence: How often the monitor refreshes, e.g. `"12h"` or `"7d"`
                 (minimum 6h). Also each refresh's news lookback window.
             entities: Entities to track, each with a name and a unique domain.
-            fields: Fields to keep fresh; static by default, `type: "dynamic"`
-                fields are tracked from news on every refresh.
+            fields: Fields to keep fresh; dynamic by default (tracked from news
+                on every refresh), `mode: "static"` fields are answered once
+                over the live web.
             idempotency_key: Sent as the `Idempotency-Key` header. A retried
                 create with the same key returns the monitor the first attempt
                 created instead of creating a duplicate.
@@ -602,7 +605,7 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
                     {
                         "name": "funding",
                         "description": "New funding rounds",
-                        "type": "dynamic",
+                        "mode": "dynamic",
                     },
                 ],
             )
