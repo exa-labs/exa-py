@@ -46,14 +46,14 @@ def _make_monitor(monitor_id: str = "agentmon_123", status: str = "active") -> d
                 "name": "ceo",
                 "description": "The company's current CEO",
                 "mode": "static",
-                "type": "static",
+                "type": "string",
             },
             {
                 "id": "agentfield_2",
                 "name": "funding",
                 "description": "New funding rounds",
                 "mode": "dynamic",
-                "type": "dynamic",
+                "type": "string",
             },
         ],
         "entityCount": 2,
@@ -76,7 +76,7 @@ def _make_entity_view() -> dict:
         "contents": {
             "agentfield_1": {
                 "value": "Jane Doe",
-                "sourceUrls": ["https://acme.com/about"],
+                "citations": [{"url": "https://acme.com/about"}],
                 "updatedAt": "2026-01-08T00:00:00.000Z",
             }
         },
@@ -90,7 +90,7 @@ def _make_change() -> dict:
         "field": {"id": "agentfield_2", "name": "funding"},
         "content": {
             "value": "Raised a $30M Series B",
-            "sourceUrls": ["https://news.example.com/acme-series-b"],
+            "citations": [{"url": "https://news.example.com/acme-series-b"}],
             "updatedAt": "2026-01-08T00:00:00.000Z",
         },
         "version": 3,
@@ -154,6 +154,11 @@ def test_create_monitor(monitors_client, mock_client):
         fields=[
             {"name": "ceo", "description": "The company's current CEO"},
             {"name": "funding", "description": "New funding rounds", "mode": "dynamic"},
+            {
+                "name": "headcount",
+                "description": "Current number of employees",
+                "type": "number",
+            },
         ],
     )
 
@@ -177,6 +182,11 @@ def test_create_monitor(monitors_client, mock_client):
                     "name": "funding",
                     "description": "New funding rounds",
                     "mode": "dynamic",
+                },
+                {
+                    "name": "headcount",
+                    "description": "Current number of employees",
+                    "type": "number",
                 },
             ],
         },
@@ -232,6 +242,38 @@ def test_get_monitor(monitors_client, mock_client):
         params=None,
         headers=_BETA_HEADERS,
     )
+
+
+def test_get_monitor_tolerates_legacy_type_only_fields(monitors_client, mock_client):
+    monitor = _make_monitor()
+    for field in monitor["fields"]:
+        del field["mode"]
+    monitor["fields"][0]["type"] = "static"
+    monitor["fields"][1]["type"] = "dynamic"
+    mock_client.request.return_value = monitor
+
+    result = monitors_client.get("agentmon_123", betas=_BETAS)
+
+    assert result.fields[0].mode == "static"
+    assert result.fields[0].type == "static"
+    assert result.fields[1].mode == "dynamic"
+    assert result.fields[1].type == "dynamic"
+
+
+def test_get_monitor_tolerates_missing_mode_and_unknown_value_types(
+    monitors_client, mock_client
+):
+    monitor = _make_monitor()
+    for field in monitor["fields"]:
+        del field["mode"]
+    monitor["fields"][1]["type"] = "currency"
+    mock_client.request.return_value = monitor
+
+    result = monitors_client.get("agentmon_123", betas=_BETAS)
+
+    assert result.fields[0].mode == "dynamic"
+    assert result.fields[0].type == "string"
+    assert result.fields[1].type == "currency"
 
 
 def test_list_monitors(monitors_client, mock_client):
