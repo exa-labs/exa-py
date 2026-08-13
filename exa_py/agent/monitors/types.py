@@ -15,21 +15,26 @@ from pydantic import BaseModel, Field
 AGENT_MONITORS_BETA_HEADER = "agent-monitors-2026-08-04"
 
 AgentMonitorStatus = Literal["creating", "pending_first_refresh", "active"]
-AgentMonitorFieldType = Literal["static", "dynamic"]
+AgentMonitorFieldMode = Literal["static", "dynamic"]
+"""How a field is kept fresh: dynamic (every refresh) or static (answered once)."""
+AgentMonitorFieldType = AgentMonitorFieldMode
+"""Deprecated: renamed to `AgentMonitorFieldMode`."""
 AgentMonitorSnapshotStatus = Literal["running", "completed", "failed"]
 
 
 class AgentMonitorField(BaseModel):
     """A field the monitor keeps fresh for every entity.
 
-    Fields are static (answered once over the live web) unless declared
-    `type: "dynamic"` (tracked from news on every refresh).
+    Fields are dynamic (tracked from news on every refresh) unless declared
+    `mode: "static"` (answered once over the live web).
     """
 
     id: str
     name: str
     description: str
-    type: AgentMonitorFieldType
+    mode: AgentMonitorFieldMode
+    type: AgentMonitorFieldMode
+    """Deprecated: renamed to `mode`; echoes the same value until removed."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -166,11 +171,13 @@ class AgentMonitorEntityParam(BaseModel):
 
 
 class AgentMonitorFieldParam(BaseModel):
-    """A field to keep fresh. Static (the default) unless declared `type: "dynamic"`."""
+    """A field to keep fresh. Dynamic (the default) unless declared `mode: "static"`."""
 
     name: str
     description: str
-    type: Optional[AgentMonitorFieldType] = None
+    mode: Optional[AgentMonitorFieldMode] = None
+    type: Optional[AgentMonitorFieldMode] = None
+    """Deprecated: renamed to `mode`; declare one spelling, not both."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
