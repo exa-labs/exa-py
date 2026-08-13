@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.0](https://github.com/exa-labs/exa-py/compare/v2.17.0...v2.18.0) (2026-08-13)
+
+
+### Features
+
+* add Agent Monitors API support (exa.agent.monitors) ([#244](https://github.com/exa-labs/exa-py/issues/244)) ([a61b834](https://github.com/exa-labs/exa-py/commit/a61b834151d0a696c57fe576cffbce8e921aecd4))
+
 ## [2.17.0](https://github.com/exa-labs/exa-py/compare/v2.16.2...v2.17.0) (2026-08-06)
 
 
