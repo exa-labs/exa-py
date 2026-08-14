@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.18.1](https://github.com/exa-labs/exa-py/compare/v2.18.0...v2.18.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **agent:** treat monitor field type as the cell value type ([a4d0ce7](https://github.com/exa-labs/exa-py/commit/a4d0ce74e6a398692aa6ded8d43cb0183d5b1ffa))
+
+
+### Documentation
+
+* update agent guidelines for release-please ([#250](https://github.com/exa-labs/exa-py/issues/250)) ([87543a4](https://github.com/exa-labs/exa-py/commit/87543a416e00cbde47db50931b260e8337990ccb))
+
 ## [2.18.0](https://github.com/exa-labs/exa-py/compare/v2.17.0...v2.18.0) (2026-08-13)
 
 
