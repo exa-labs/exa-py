@@ -7,9 +7,9 @@ news on every refresh, on the monitor's cadence.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 AGENT_MONITORS_BETA_HEADER = "agent-monitors-2026-08-04"
@@ -17,6 +17,10 @@ AGENT_MONITORS_BETA_HEADER = "agent-monitors-2026-08-04"
 AgentMonitorStatus = Literal["creating", "pending_first_refresh", "active"]
 AgentMonitorFieldMode = Literal["static", "dynamic"]
 """How a field is kept fresh: dynamic (every refresh) or static (answered once)."""
+AgentMonitorFieldValueType = Literal[
+    "string", "number", "boolean", "date", "url", "email", "phone"
+]
+"""The type of a field's cell values."""
 AgentMonitorFieldType = AgentMonitorFieldMode
 """Deprecated: renamed to `AgentMonitorFieldMode`."""
 AgentMonitorSnapshotStatus = Literal["running", "completed", "failed"]
@@ -32,9 +36,21 @@ class AgentMonitorField(BaseModel):
     id: str
     name: str
     description: str
-    mode: AgentMonitorFieldMode
-    type: AgentMonitorFieldMode
-    """Deprecated: renamed to `mode`; echoes the same value until removed."""
+    mode: AgentMonitorFieldMode = "dynamic"
+    """Deprecated: the static/dynamic knob is becoming internal-only."""
+    type: Union[AgentMonitorFieldValueType, str] = "string"
+    """The type of the field's cell values."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_mode_from_legacy_type(cls, data: Any) -> Any:
+        if (
+            isinstance(data, dict)
+            and "mode" not in data
+            and data.get("type") in ("static", "dynamic")
+        ):
+            data = {**data, "mode": data["type"]}
+        return data
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -50,11 +66,22 @@ class AgentMonitorEntity(BaseModel):
     model_config = {"populate_by_name": True, "extra": "allow"}
 
 
+class AgentMonitorCitation(BaseModel):
+    """One grounding citation for a cell value; the Agent API's citation shape."""
+
+    url: str
+    title: Optional[str] = None
+    note: Optional[str] = None
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
+
 class AgentMonitorContent(BaseModel):
     """One cell value: a field's current content for an entity."""
 
     value: Optional[Any] = None
-    source_urls: Optional[List[str]] = Field(default=None, alias="sourceUrls")
+    citations: Optional[List[AgentMonitorCitation]] = None
+    """Grounding for the value, in the Agent API's citation shape."""
     updated_at: str = Field(alias="updatedAt")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
@@ -175,9 +202,14 @@ class AgentMonitorFieldParam(BaseModel):
 
     name: str
     description: str
+    type: Optional[Union[AgentMonitorFieldValueType, str]] = None
+    """The type of the field's cell values; defaults to "string". Cell values
+    are normalized to the declared type best-effort on write, never rejected —
+    but declaring an unsupported type (e.g. "object") is a 400.
+    "static"/"dynamic" are accepted as deprecated aliases of `mode`; declaring
+    both spellings is a 400."""
     mode: Optional[AgentMonitorFieldMode] = None
-    type: Optional[AgentMonitorFieldMode] = None
-    """Deprecated: renamed to `mode`; declare one spelling, not both."""
+    """Deprecated: the static/dynamic knob is becoming internal-only."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
