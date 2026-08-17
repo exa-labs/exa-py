@@ -121,6 +121,44 @@ for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
 
+## Web Search tools
+
+Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Prefer `search()` with no arguments — that uses `type="auto"` and `contents={"highlights": True}`.
+
+```python
+from exa_py import Exa
+from openai import OpenAI
+
+exa = Exa()
+openai_client = OpenAI()
+
+messages = [{"role": "user", "content": "What's the latest on AI chips?"}]
+
+completion = openai_client.chat.completions.create(
+    model="gpt-5.6",
+    messages=messages,
+    tools=[exa.openai.search()],
+)
+
+message = completion.choices[0].message
+messages.append(message)
+messages += exa.openai.handle_tool_calls(message)
+```
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=messages,
+    tools=[exa.anthropic.search()],
+)
+```
+
+For the OpenAI Responses API, use `exa.openai.responses.search()` and the same `handle_tool_calls` helper.
+
 ## Agent API
 
 The Agent API is available without a beta header.
