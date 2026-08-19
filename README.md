@@ -123,7 +123,7 @@ for chunk in exa.stream_answer("Explain quantum computing"):
 
 ## Web Search tools
 
-Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Prefer `search()` with no arguments — that uses `type="auto"` and `contents={"highlights": True}`.
+Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Call `search()` with no arguments to get Exa's recommended settings for agentic search (`type="auto"` and `contents={"highlights": True}`).
 
 ```python
 from exa_py import Exa
