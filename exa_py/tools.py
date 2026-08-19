@@ -304,12 +304,16 @@ class ToolNamespace:
 
         Args:
             **kwargs: Optional search options passed through to ``Exa.search``.
+                ``name`` (default ``"web_search"``) and ``description`` override
+                the advertised tool name and description instead; use a custom
+                ``name`` to avoid clashes with other tools (e.g. Anthropic's
+                built-in ``web_search`` tool).
 
         Returns:
             A registered executable tool specification.
 
         Examples:
-            ``exa.tools.search()``.
+            ``exa.tools.search()`` or ``exa.tools.search(name="exa_web_search")``.
         """
         return _create_search(self._exa, self._registry, False, kwargs)
 
@@ -337,7 +341,10 @@ class OpenAINamespace(ToolNamespace):
             tools: Optional explicit tools to resolve.
 
         Returns:
-            Provider-specific tool result messages.
+            Provider-specific tool result messages. Every tool call is
+            answered: calls whose name matches no resolvable tool produce an
+            ``Error: unknown tool "<name>"`` output so the follow-up request
+            stays valid.
         """
         if _is_responses_input(message):
             return self.responses.handle_tool_calls(message, tools)
@@ -354,6 +361,8 @@ class OpenAINamespace(ToolNamespace):
 
         Returns:
             Tool-role messages suitable for the next Chat Completions request.
+            Calls naming an unresolvable tool get an ``Error: unknown tool
+            "<name>"`` message instead of being dropped.
         """
         registry = self._registry.resolve(tools)
         calls = _value(assistant_message, "tool_calls", []) or []
@@ -363,13 +372,14 @@ class OpenAINamespace(ToolNamespace):
             name = _value(function, "name")
             tool = registry.get(name)
             if tool is None:
-                continue
-            arguments = _value(function, "arguments", "")
+                content = f'Error: unknown tool "{name}"'
+            else:
+                content = tool.run(_json_loads(_value(function, "arguments", "")))
             messages.append(
                 {
                     "role": "tool",
                     "tool_call_id": _value(call, "id"),
-                    "content": tool.run(_json_loads(arguments)),
+                    "content": content,
                 }
             )
         return messages
@@ -380,17 +390,20 @@ class OpenAINamespace(ToolNamespace):
         registry = self._registry.resolve(tools)
         calls = _value(assistant_message, "tool_calls", []) or []
 
-        async def handle(call: Any) -> Optional[dict[str, str]]:
+        async def handle(call: Any) -> dict[str, str]:
             function = _value(call, "function", {})
-            tool = registry.get(_value(function, "name"))
+            name = _value(function, "name")
+            tool = registry.get(name)
             if tool is None:
-                return None
+                content = f'Error: unknown tool "{name}"'
+            else:
+                content = await tool.async_run(
+                    _json_loads(_value(function, "arguments", ""))
+                )
             return {
                 "role": "tool",
                 "tool_call_id": _value(call, "id"),
-                "content": await tool.async_run(
-                    _json_loads(_value(function, "arguments", ""))
-                ),
+                "content": content,
             }
 
         results = await _gather(*(handle(call) for call in calls))
@@ -416,6 +429,9 @@ class OpenAIResponsesNamespace(ToolNamespace):
 
         Returns:
             ``function_call_output`` items for a follow-up Responses request.
+            Every function call is answered: calls naming an unresolvable tool
+            get an ``Error: unknown tool "<name>"`` output instead of being
+            dropped.
         """
         registry = self._registry.resolve(tools)
         items = (
@@ -428,14 +444,17 @@ class OpenAIResponsesNamespace(ToolNamespace):
         for item in items or []:
             if _value(item, "type") != "function_call":
                 continue
-            tool = registry.get(_value(item, "name"))
+            name = _value(item, "name")
+            tool = registry.get(name)
             if tool is None:
-                continue
+                output = f'Error: unknown tool "{name}"'
+            else:
+                output = tool.run(_json_loads(_value(item, "arguments", "")))
             outputs.append(
                 {
                     "type": "function_call_output",
                     "call_id": _value(item, "call_id"),
-                    "output": tool.run(_json_loads(_value(item, "arguments", ""))),
+                    "output": output,
                 }
             )
         return outputs
@@ -454,15 +473,18 @@ class OpenAIResponsesNamespace(ToolNamespace):
         async def handle(item: Any) -> Optional[dict[str, str]]:
             if _value(item, "type") != "function_call":
                 return None
-            tool = registry.get(_value(item, "name"))
+            name = _value(item, "name")
+            tool = registry.get(name)
             if tool is None:
-                return None
+                output = f'Error: unknown tool "{name}"'
+            else:
+                output = await tool.async_run(
+                    _json_loads(_value(item, "arguments", ""))
+                )
             return {
                 "type": "function_call_output",
                 "call_id": _value(item, "call_id"),
-                "output": await tool.async_run(
-                    _json_loads(_value(item, "arguments", ""))
-                ),
+                "output": output,
             }
 
         results = await _gather(*(handle(item) for item in items or []))
@@ -483,21 +505,27 @@ class AnthropicNamespace(ToolNamespace):
             tools: Optional explicit tools to resolve instead of this client's registry.
 
         Returns:
-            Tool-result content blocks for the next Messages request.
+            Tool-result content blocks for the next Messages request. Every
+            tool-use block is answered: blocks naming an unresolvable tool get
+            an ``Error: unknown tool "<name>"`` result instead of being
+            dropped.
         """
         registry = self._registry.resolve(tools)
         results = []
         for block in _value(message, "content", []) or []:
             if _value(block, "type") != "tool_use":
                 continue
-            tool = registry.get(_value(block, "name"))
+            name = _value(block, "name")
+            tool = registry.get(name)
             if tool is None:
-                continue
+                content = f'Error: unknown tool "{name}"'
+            else:
+                content = tool.run(_value(block, "input"))
             results.append(
                 {
                     "type": "tool_result",
                     "tool_use_id": _value(block, "id"),
-                    "content": tool.run(_value(block, "input")),
+                    "content": content,
                 }
             )
         return results
@@ -512,14 +540,17 @@ class AnthropicNamespace(ToolNamespace):
             if _value(block, "type") == "tool_use"
         ]
 
-        async def handle(block: Any) -> Optional[dict[str, Any]]:
-            tool = registry.get(_value(block, "name"))
+        async def handle(block: Any) -> dict[str, Any]:
+            name = _value(block, "name")
+            tool = registry.get(name)
             if tool is None:
-                return None
+                content = f'Error: unknown tool "{name}"'
+            else:
+                content = await tool.async_run(_value(block, "input"))
             return {
                 "type": "tool_result",
                 "tool_use_id": _value(block, "id"),
-                "content": await tool.async_run(_value(block, "input")),
+                "content": content,
             }
 
         results = await _gather(*(handle(block) for block in blocks))
@@ -562,7 +593,9 @@ class AsyncOpenAINamespace(OpenAINamespace, AsyncToolNamespace):
             tools: Optional explicit tools to resolve.
 
         Returns:
-            Tool-role messages for a follow-up request.
+            Tool-role messages for a follow-up request. Calls naming an
+            unresolvable tool get an ``Error: unknown tool "<name>"`` message
+            instead of being dropped.
         """
         if _is_responses_input(message):
             return await self.responses.handle_tool_calls(message, tools)
@@ -592,7 +625,9 @@ class AsyncOpenAIResponsesNamespace(OpenAIResponsesNamespace, AsyncToolNamespace
             tools: Optional explicit tools to resolve.
 
         Returns:
-            ``function_call_output`` items for a follow-up request.
+            ``function_call_output`` items for a follow-up request. Calls
+            naming an unresolvable tool get an ``Error: unknown tool
+            "<name>"`` output instead of being dropped.
         """
         return await self.handle_tool_calls_async(response_or_items, tools)
 
@@ -615,7 +650,9 @@ class AsyncAnthropicNamespace(AnthropicNamespace, AsyncToolNamespace):
             tools: Optional explicit tools to resolve.
 
         Returns:
-            ``tool_result`` blocks for a follow-up request.
+            ``tool_result`` blocks for a follow-up request. Blocks naming an
+            unresolvable tool get an ``Error: unknown tool "<name>"`` result
+            instead of being dropped.
         """
         return await self.handle_tool_use_async(message, tools)
 
@@ -624,6 +661,8 @@ def _create_search(
     exa: Any, registry: _ToolRegistry, asynchronous: bool, kwargs: dict[str, Any]
 ) -> _ToolSpec:
     config = dict(kwargs)
+    name = config.pop("name", "web_search")
+    description = config.pop("description", DEFAULT_SEARCH_DESCRIPTION)
     search_type = config.pop("type", "auto")
     search_num_results = config.pop("num_results", 10)
     search_contents = config.pop("contents", {"highlights": True})
@@ -648,8 +687,8 @@ def _create_search(
 
     spec_class = _AsyncToolSpec if asynchronous else _ToolSpec
     spec = spec_class(
-        name="web_search",
-        description=DEFAULT_SEARCH_DESCRIPTION,
+        name=name,
+        description=description,
         input_model=_SearchInput,
         execute=async_execute if asynchronous else execute,
         registry=registry,

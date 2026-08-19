@@ -157,7 +157,21 @@ response = client.messages.create(
 )
 ```
 
-For the OpenAI Responses API, use `exa.openai.responses.search()` and the same `handle_tool_calls` helper.
+Pass `name` (and optionally `description`) to rename the tool. Anthropic requires tool names to be unique, so a custom name lets the Exa tool run alongside Anthropic's built-in `web_search_20250305` tool:
+
+```python
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=messages,
+    tools=[
+        exa.anthropic.search(name="exa_web_search"),
+        {"type": "web_search_20250305", "name": "web_search", "max_uses": 5},
+    ],
+)
+```
+
+For the OpenAI Responses API, use `exa.openai.responses.search()` and the same `handle_tool_calls` helper. The handlers answer every tool call: calls naming a tool they can't resolve get an `Error: unknown tool "<name>"` output instead of being dropped, so follow-up requests stay valid.
 
 ## Agent API
 

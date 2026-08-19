@@ -104,10 +104,113 @@ def test_handlers_parallel_calls_and_unknown_tools():
     assert outputs == [
         {"role": "tool", "tool_call_id": "1", "content": "Title: Example\nURL: https://example.com\nPublished: N/A\nAuthor: N/A\nHighlights:\na"},
         {"role": "tool", "tool_call_id": "2", "content": "Title: Example\nURL: https://example.com\nPublished: N/A\nAuthor: N/A\nHighlights:\nb"},
+        {"role": "tool", "tool_call_id": "3", "content": 'Error: unknown tool "other"'},
     ]
     assert calls == ["a", "b"]
-    assert exa.openai.handle_tool_calls(message, tools=[]) == []
+    assert exa.openai.handle_tool_calls(message, tools=[]) == [
+        {"role": "tool", "tool_call_id": "1", "content": 'Error: unknown tool "web_search"'},
+        {"role": "tool", "tool_call_id": "2", "content": 'Error: unknown tool "web_search"'},
+        {"role": "tool", "tool_call_id": "3", "content": 'Error: unknown tool "other"'},
+    ]
     assert tool.name == "web_search"
+
+
+def test_custom_name_and_description_propagate():
+    exa = Exa("test")
+    exa.search = lambda query, **kwargs: response(result(highlights=["custom hit"]))
+
+    chat_tool = exa.openai.search(name="exa_web_search", description="Exa search")
+    assert chat_tool["function"]["name"] == "exa_web_search"
+    assert chat_tool["function"]["description"] == "Exa search"
+    assert chat_tool.name == "exa_web_search"
+    assert chat_tool.description == "Exa search"
+    assert chat_tool._exa_spec.definition["name"] == "exa_web_search"
+    assert chat_tool._exa_spec.definition["description"] == "Exa search"
+
+    responses_tool = exa.openai.responses.search(
+        name="exa_web_search", description="Exa search"
+    )
+    assert responses_tool["name"] == "exa_web_search"
+    assert responses_tool["description"] == "Exa search"
+
+    anthropic_tool = exa.anthropic.search(name="exa_web_search", description="Exa search")
+    assert anthropic_tool == {
+        "name": "exa_web_search",
+        "description": "Exa search",
+        "input_schema": anthropic_tool.json_schema,
+    }
+
+    default_tool = exa.openai.search()
+    assert default_tool["function"]["name"] == "web_search"
+
+    outputs = exa.openai.handle_tool_calls(
+        {
+            "tool_calls": [
+                {"id": "1", "function": {"name": "exa_web_search", "arguments": '{"query":"q"}'}},
+                {"id": "2", "function": {"name": "web_search", "arguments": '{"query":"q"}'}},
+            ]
+        }
+    )
+    assert all("custom hit" in output["content"] for output in outputs)
+    assert [output["tool_call_id"] for output in outputs] == ["1", "2"]
+
+
+def test_custom_name_and_description_not_passed_to_search():
+    exa = Exa("test")
+    seen = {}
+
+    def search(query, **kwargs):
+        seen.update(kwargs)
+        return response(result(highlights=["x"]))
+
+    exa.search = search
+    tool = exa.anthropic.search(
+        name="exa_web_search",
+        description="Exa search",
+        num_results=3,
+        category="news",
+    )
+    tool.run({"query": "q"})
+    assert seen["num_results"] == 3
+    assert seen["category"] == "news"
+    assert seen["contents"] == {"highlights": True}
+    assert "name" not in seen
+    assert "description" not in seen
+
+
+def test_unknown_tool_calls_produce_error_outputs():
+    exa = Exa("test")
+    exa.search = lambda query, **kwargs: response(result(highlights=["ok"]))
+    exa.openai.search()
+
+    chat_outputs = exa.openai.handle_tool_calls(
+        {"tool_calls": [{"id": "1", "function": {"name": "missing", "arguments": "{}"}}]}
+    )
+    assert chat_outputs == [
+        {"role": "tool", "tool_call_id": "1", "content": 'Error: unknown tool "missing"'}
+    ]
+
+    responses_outputs = exa.openai.responses.handle_tool_calls(
+        [{"type": "function_call", "name": "missing", "call_id": "c", "arguments": "{}"}]
+    )
+    assert responses_outputs == [
+        {
+            "type": "function_call_output",
+            "call_id": "c",
+            "output": 'Error: unknown tool "missing"',
+        }
+    ]
+
+    anthropic_outputs = exa.anthropic.handle_tool_use(
+        {"content": [{"type": "tool_use", "id": "u", "name": "missing", "input": {}}]}
+    )
+    assert anthropic_outputs == [
+        {
+            "type": "tool_result",
+            "tool_use_id": "u",
+            "content": 'Error: unknown tool "missing"',
+        }
+    ]
 
 
 def test_responses_and_anthropic_tools():
@@ -154,13 +257,44 @@ async def test_async_tools_and_handlers():
     assert isinstance(tool, dict)
     assert await tool.run({"query": "q"})
     outputs = await exa.openai.handle_tool_calls(
-        {"tool_calls": [{"id": "1", "function": {"name": "web_search", "arguments": '{"query":"q"}'}}]}
+        {
+            "tool_calls": [
+                {"id": "1", "function": {"name": "web_search", "arguments": '{"query":"q"}'}},
+                {"id": "2", "function": {"name": "missing", "arguments": "{}"}},
+            ]
+        }
     )
     assert outputs[0]["tool_call_id"] == "1"
+    assert outputs[1] == {
+        "role": "tool",
+        "tool_call_id": "2",
+        "content": 'Error: unknown tool "missing"',
+    }
+
+    responses_outputs = await exa.openai.responses.handle_tool_calls(
+        [{"type": "function_call", "name": "missing", "call_id": "c", "arguments": "{}"}]
+    )
+    assert responses_outputs == [
+        {
+            "type": "function_call_output",
+            "call_id": "c",
+            "output": 'Error: unknown tool "missing"',
+        }
+    ]
 
     anthropic_tool = exa.anthropic.search()
     assert anthropic_tool["name"] == "web_search"
     outputs = await exa.anthropic.handle_tool_use(
-        {"content": [{"type": "tool_use", "id": "u", "name": "web_search", "input": {"query": "q"}}]}
+        {
+            "content": [
+                {"type": "tool_use", "id": "u", "name": "web_search", "input": {"query": "q"}},
+                {"type": "tool_use", "id": "v", "name": "missing", "input": {}},
+            ]
+        }
     )
     assert outputs[0]["tool_use_id"] == "u"
+    assert outputs[1] == {
+        "type": "tool_result",
+        "tool_use_id": "v",
+        "content": 'Error: unknown tool "missing"',
+    }
