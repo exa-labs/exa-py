@@ -141,8 +141,9 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             input: Optional structured input data for the Agent.
             output_schema: Optional JSON schema or Pydantic model for structured output.
             effort: Optional cost and reasoning effort preference. Defaults to auto.
-            budget: Optional per-run spend ceiling for `auto` and `max`; the API
-                validates this field and applies defaults when omitted.
+            budget: Optional per-run budget ceilings (cost for `auto` and `max`,
+                duration for `max` only); the API validates this field and
+                applies defaults when omitted.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
             data_sources: Optional Exa Connect data providers to enable for the run.

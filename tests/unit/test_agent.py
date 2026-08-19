@@ -206,7 +206,7 @@ def test_beta_create_agent_run_sends_max_effort_and_budget(mock_client):
         betas=[AGENT_MAX_EFFORT_BETA],
         query="Find recent funding rounds.",
         effort="max",
-        budget={"maxCostDollars": 10},
+        budget={"maxCostDollars": 10, "maxDurationSeconds": 600},
     )
 
     mock_client.request.assert_called_once_with(
@@ -214,7 +214,7 @@ def test_beta_create_agent_run_sends_max_effort_and_budget(mock_client):
         data={
             "query": "Find recent funding rounds.",
             "effort": "max",
-            "budget": {"maxCostDollars": 10},
+            "budget": {"maxCostDollars": 10, "maxDurationSeconds": 600},
         },
         method="POST",
         params=None,

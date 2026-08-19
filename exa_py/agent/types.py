@@ -11,7 +11,14 @@ AGENT_BETA_HEADER = "agent-2026-05-07"
 AGENT_MAX_EFFORT_BETA = "agent-max-effort-2026-07-27"
 
 AgentRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
-AgentStopReason = Literal["schema_satisfied", "budget_reached", "error", "cancelled"]
+AgentStopReason = Literal[
+    "schema_satisfied",
+    "budget_reached",
+    "time_limit_reached",
+    "timeout_partial",
+    "error",
+    "cancelled",
+]
 AgentConfidence = Literal["low", "medium", "high"]
 AgentEffort = Literal["minimal", "low", "medium", "high", "xhigh", "auto", "max"]
 
@@ -97,7 +104,8 @@ class AgentError(BaseModel):
 
 
 class AgentBudget(BaseModel):
-    """Per-run spend ceiling for the metered `auto` and `max` efforts."""
+    """Per-run budget ceilings for the metered efforts: the cost ceiling applies
+    to `auto` and `max`; the duration ceiling applies to `max` only."""
 
     max_cost_dollars: Optional[float] = Field(
         default=None,
@@ -106,6 +114,16 @@ class AgentBudget(BaseModel):
             "Maximum spend for the run in US dollars. Only accepted by the API "
             "for `auto` and `max`; the server validates the allowed range and "
             "applies defaults when omitted."
+        ),
+    )
+
+    max_duration_seconds: Optional[int] = Field(
+        default=None,
+        alias="maxDurationSeconds",
+        description=(
+            "Best-effort maximum duration for the run in seconds. Only accepted "
+            "by the API for `max`; the server validates the allowed range and "
+            "may take a little additional time to finish gracefully."
         ),
     )
 
