@@ -216,7 +216,7 @@ exa = Exa()
 run = exa.beta.agent.runs.create(
     query="Find all companies building browser automation tools in the United States.",
     effort="max",
-    budget={"maxCostDollars": 10},
+    budget={"maxCostDollars": 10, "maxDurationSeconds": 600},
     betas=[AGENT_MAX_EFFORT_BETA],
 )
 ```
