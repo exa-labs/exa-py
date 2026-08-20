@@ -121,6 +121,58 @@ for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
 
+## Web Search tools
+
+Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Call `web_search()` with no arguments to get Exa's recommended settings for agentic search (`type="auto"` and `contents={"highlights": True}`).
+
+```python
+from exa_py import Exa
+from openai import OpenAI
+
+exa = Exa()
+openai_client = OpenAI()
+
+messages = [{"role": "user", "content": "What's the latest on AI chips?"}]
+
+completion = openai_client.chat.completions.create(
+    model="gpt-5.6",
+    messages=messages,
+    tools=[exa.openai.web_search()],
+)
+
+message = completion.choices[0].message
+messages.append(message)
+messages += exa.openai.handle_tool_calls(message)
+```
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=messages,
+    tools=[exa.anthropic.web_search()],
+)
+```
+
+Pass `name` (and optionally `description`) to rename the tool. Anthropic requires tool names to be unique, so a custom name lets the Exa tool run alongside Anthropic's built-in `web_search_20250305` tool:
+
+```python
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=messages,
+    tools=[
+        exa.anthropic.web_search(name="exa_web_search"),
+        {"type": "web_search_20250305", "name": "web_search", "max_uses": 5},
+    ],
+)
+```
+
+For the OpenAI Responses API, use `exa.openai.responses.web_search()` and the same `handle_tool_calls` helper. The handlers answer every tool call: calls naming a tool they can't resolve get an `Error: unknown tool "<name>"` output instead of being dropped, so follow-up requests stay valid. If you run other tools alongside Exa's, replace those error outputs with your own results before the next request.
+
 ## Agent API
 
 The Agent API is available without a beta header.

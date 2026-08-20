@@ -45,6 +45,15 @@ from .websets.core.base import ExaJSONEncoder
 from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
 from .agent import AgentNamespace, AsyncAgentNamespace, BetaClient, AsyncBetaClient
+from .tools import (
+    AsyncAnthropicNamespace,
+    AsyncOpenAINamespace,
+    AsyncToolNamespace,
+    AnthropicNamespace,
+    OpenAINamespace,
+    ToolNamespace,
+    _ToolRegistry,
+)
 
 
 is_beta = os.getenv("IS_BETA") == "True"
@@ -1464,6 +1473,10 @@ class Exa:
         # Agent clients
         self.agent = AgentNamespace(self)
         self.beta = BetaClient(self)
+        self._tool_registry = _ToolRegistry()
+        self.tools = ToolNamespace(self, self._tool_registry)
+        self.openai = OpenAINamespace(self, self._tool_registry)
+        self.anthropic = AnthropicNamespace(self, self._tool_registry)
 
     def request(
         self,
@@ -2674,6 +2687,10 @@ class AsyncExa(Exa):
         self.agent = AsyncAgentNamespace(self)
         self.beta = AsyncBetaClient(self)
         self._client = None
+        self._tool_registry = _ToolRegistry()
+        self.tools = AsyncToolNamespace(self, self._tool_registry)
+        self.openai = AsyncOpenAINamespace(self, self._tool_registry)
+        self.anthropic = AsyncAnthropicNamespace(self, self._tool_registry)
 
     @property
     def client(self) -> httpx.AsyncClient:
