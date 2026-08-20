@@ -31,6 +31,7 @@ def test_openai_tool_is_wire_safe_and_has_query_only_schema(monkeypatch):
     assert json.loads(json.dumps(tool)) == tool
     assert tool["function"]["parameters"]["required"] == ["query"]
     assert "$schema" not in tool["function"]["parameters"]
+    assert "title" not in tool["function"]["parameters"]
     assert set(tool["function"]["parameters"]["properties"]) == {"query"}
     assert "run" not in json.dumps(tool)
     assert "A fact" in tool.run({"query": "news"})
@@ -113,6 +114,14 @@ def test_handlers_parallel_calls_and_unknown_tools():
         {"role": "tool", "tool_call_id": "3", "content": 'Error: unknown tool "other"'},
     ]
     assert tool.name == "web_search"
+
+    mixed = exa.openai.handle_tool_calls(
+        message,
+        tools=[tool, {"type": "function", "function": {"name": "other"}}],
+    )
+    assert [m["tool_call_id"] for m in mixed] == ["1", "2", "3"]
+    assert "Highlights" in mixed[0]["content"]
+    assert mixed[2]["content"] == 'Error: unknown tool "other"'
 
 
 def test_custom_name_and_description_propagate():

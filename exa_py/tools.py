@@ -53,6 +53,7 @@ def _format_response(response: Any) -> str:
 def _schema(model: type[BaseModel]) -> dict[str, Any]:
     schema = model.model_json_schema()
     schema.pop("$schema", None)
+    schema.pop("title", None)
     return schema
 
 
@@ -190,7 +191,10 @@ class _ToolRegistry:
         resolved = {}
         for tool in tools:
             candidate = getattr(tool, "_exa_spec", None) or tool
-            resolved[candidate.name] = candidate
+            name = getattr(candidate, "name", None)
+            if name is None:
+                continue
+            resolved[name] = candidate
         return resolved
 
 
@@ -812,6 +816,4 @@ ToolSpec = _ToolSpec
 
 
 async def _gather(*awaitables: Awaitable[Optional[dict[str, Any]]]) -> list[Any]:
-    import asyncio
-
     return list(await asyncio.gather(*awaitables))
