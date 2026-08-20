@@ -25,7 +25,7 @@ def result(**kwargs):
 def test_openai_tool_is_wire_safe_and_has_query_only_schema(monkeypatch):
     exa = Exa("test")
     exa.search = lambda query, **kwargs: response(result(highlights=["A fact"]))
-    tool = exa.openai.search()
+    tool = exa.openai.web_search()
 
     assert list(tool) == ["type", "function"]
     assert json.loads(json.dumps(tool)) == tool
@@ -45,7 +45,7 @@ def test_search_defaults_and_configured_options(monkeypatch):
         return response(result(highlights=["x"]))
 
     exa.search = search
-    exa.openai.search(num_results=4, type="auto").run({"query": "q"})
+    exa.openai.web_search(num_results=4, type="auto").run({"query": "q"})
     assert seen["num_results"] == 4
     assert seen["type"] == "auto"
     assert seen["contents"] == {"highlights": True}
@@ -60,7 +60,7 @@ def test_explicit_content_limits():
         return response(result(highlights=["x"]))
 
     exa.search = search
-    tool = exa.openai.search(
+    tool = exa.openai.web_search(
         num_results=2,
         contents={"highlights": {"max_characters": 5000}},
     )
@@ -73,7 +73,7 @@ def test_model_visible_errors():
     exa.search = lambda query, **kwargs: response(
         result(title="Long", highlights=["x" * 200])
     )
-    tool = exa.tools.search()
+    tool = exa.tools.web_search()
     assert "x" * 200 in tool.run({"query": "q"})
     assert tool.execute({"query": "q"}).results[0].title == "Long"
 
@@ -92,7 +92,7 @@ def test_handlers_parallel_calls_and_unknown_tools():
         return response(result(highlights=[query]))
 
     exa.search = search
-    tool = exa.openai.search()
+    tool = exa.openai.web_search()
     message = {
         "tool_calls": [
             {"id": "1", "function": {"name": "web_search", "arguments": '{"query":"a"}'}},
@@ -119,7 +119,7 @@ def test_custom_name_and_description_propagate():
     exa = Exa("test")
     exa.search = lambda query, **kwargs: response(result(highlights=["custom hit"]))
 
-    chat_tool = exa.openai.search(name="exa_web_search", description="Exa search")
+    chat_tool = exa.openai.web_search(name="exa_web_search", description="Exa search")
     assert chat_tool["function"]["name"] == "exa_web_search"
     assert chat_tool["function"]["description"] == "Exa search"
     assert chat_tool.name == "exa_web_search"
@@ -127,20 +127,20 @@ def test_custom_name_and_description_propagate():
     assert chat_tool._exa_spec.definition["name"] == "exa_web_search"
     assert chat_tool._exa_spec.definition["description"] == "Exa search"
 
-    responses_tool = exa.openai.responses.search(
+    responses_tool = exa.openai.responses.web_search(
         name="exa_web_search", description="Exa search"
     )
     assert responses_tool["name"] == "exa_web_search"
     assert responses_tool["description"] == "Exa search"
 
-    anthropic_tool = exa.anthropic.search(name="exa_web_search", description="Exa search")
+    anthropic_tool = exa.anthropic.web_search(name="exa_web_search", description="Exa search")
     assert anthropic_tool == {
         "name": "exa_web_search",
         "description": "Exa search",
         "input_schema": anthropic_tool.json_schema,
     }
 
-    default_tool = exa.openai.search()
+    default_tool = exa.openai.web_search()
     assert default_tool["function"]["name"] == "web_search"
 
     outputs = exa.openai.handle_tool_calls(
@@ -154,34 +154,89 @@ def test_custom_name_and_description_propagate():
     assert all("custom hit" in output["content"] for output in outputs)
     assert [output["tool_call_id"] for output in outputs] == ["1", "2"]
 
+    responses_outputs = exa.openai.responses.handle_tool_calls(
+        [
+            {
+                "type": "function_call",
+                "name": "exa_web_search",
+                "call_id": "c",
+                "arguments": '{"query":"q"}',
+            }
+        ]
+    )
+    assert "custom hit" in responses_outputs[0]["output"]
+
+    anthropic_outputs = exa.anthropic.handle_tool_use(
+        {"content": [{"type": "tool_use", "id": "u", "name": "exa_web_search", "input": {"query": "q"}}]}
+    )
+    assert "custom hit" in anthropic_outputs[0]["content"]
+
 
 def test_custom_name_and_description_not_passed_to_search():
     exa = Exa("test")
     seen = {}
 
     def search(query, **kwargs):
-        seen.update(kwargs)
+        seen["query"] = query
+        seen["kwargs"] = kwargs
         return response(result(highlights=["x"]))
 
     exa.search = search
-    tool = exa.anthropic.search(
+    tool = exa.anthropic.web_search(
         name="exa_web_search",
         description="Exa search",
         num_results=3,
         category="news",
     )
     tool.run({"query": "q"})
-    assert seen["num_results"] == 3
-    assert seen["category"] == "news"
-    assert seen["contents"] == {"highlights": True}
-    assert "name" not in seen
-    assert "description" not in seen
+    assert seen["query"] == "q"
+    assert seen["kwargs"] == {
+        "type": "auto",
+        "num_results": 3,
+        "contents": {"highlights": True},
+        "category": "news",
+    }
+
+
+def test_differently_named_tools_coexist():
+    exa = Exa("test")
+    requests = []
+
+    def search(query, **kwargs):
+        requests.append((query, kwargs))
+        return response(result(highlights=[query]))
+
+    exa.search = search
+    exa.openai.web_search()
+    exa.openai.web_search(name="news_search", category="news", num_results=3)
+
+    outputs = exa.openai.handle_tool_calls(
+        {
+            "tool_calls": [
+                {"id": "1", "function": {"name": "web_search", "arguments": '{"query":"a"}'}},
+                {"id": "2", "function": {"name": "news_search", "arguments": '{"query":"b"}'}},
+            ]
+        }
+    )
+    assert [output["tool_call_id"] for output in outputs] == ["1", "2"]
+    assert requests == [
+        ("a", {"type": "auto", "num_results": 10, "contents": {"highlights": True}}),
+        (
+            "b",
+            {
+                "type": "auto",
+                "num_results": 3,
+                "contents": {"highlights": True},
+                "category": "news",
+            },
+        ),
+    ]
 
 
 def test_unknown_tool_calls_produce_error_outputs():
     exa = Exa("test")
     exa.search = lambda query, **kwargs: response(result(highlights=["ok"]))
-    exa.openai.search()
+    exa.openai.web_search()
 
     chat_outputs = exa.openai.handle_tool_calls(
         {"tool_calls": [{"id": "1", "function": {"name": "missing", "arguments": "{}"}}]}
@@ -216,7 +271,7 @@ def test_unknown_tool_calls_produce_error_outputs():
 def test_responses_and_anthropic_tools():
     exa = Exa("test")
     exa.search = lambda query, **kwargs: response(result(highlights=["ok"]))
-    responses_tool = exa.openai.responses.search()
+    responses_tool = exa.openai.responses.web_search()
     assert responses_tool["type"] == "function"
     assert responses_tool.definition == dict(responses_tool)
     assert "$schema" not in responses_tool["parameters"]
@@ -232,7 +287,7 @@ def test_responses_and_anthropic_tools():
     assert output[0]["type"] == "function_call_output"
     assert exa.openai.responses.handle_tool_calls(response_items) == output
 
-    anthropic_tool = exa.anthropic.search()
+    anthropic_tool = exa.anthropic.web_search()
     assert anthropic_tool == {
         "name": "web_search",
         "description": anthropic_tool.description,
@@ -253,7 +308,7 @@ async def test_async_tools_and_handlers():
         return response(result(highlights=[query]))
 
     exa.search = search
-    tool = exa.openai.search()
+    tool = exa.openai.web_search()
     assert isinstance(tool, dict)
     assert await tool.run({"query": "q"})
     outputs = await exa.openai.handle_tool_calls(
@@ -282,7 +337,7 @@ async def test_async_tools_and_handlers():
         }
     ]
 
-    anthropic_tool = exa.anthropic.search()
+    anthropic_tool = exa.anthropic.web_search()
     assert anthropic_tool["name"] == "web_search"
     outputs = await exa.anthropic.handle_tool_use(
         {

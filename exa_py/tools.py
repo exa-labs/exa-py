@@ -9,13 +9,13 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-DEFAULT_SEARCH_DESCRIPTION = (
+DEFAULT_WEB_SEARCH_DESCRIPTION = (
     "Search the web for up-to-date, relevant information. "
     "Describe the ideal page rather than listing keywords."
 )
 
 
-class _SearchInput(BaseModel):
+class _WebSearchInput(BaseModel):
     query: str = Field(
         description=(
             "Natural language search query. Should be a semantically rich "
@@ -89,7 +89,7 @@ class _ToolSpec:
             The raw Exa response object.
 
         Examples:
-            ``response = exa.tools.search().execute({"query": "AI"})``.
+            ``response = exa.tools.web_search().execute({"query": "AI"})``.
         """
         return self._execute(self.parse_args(args))
 
@@ -103,7 +103,7 @@ class _ToolSpec:
             Formatted output or a model-visible error string.
 
         Examples:
-            ``text = exa.openai.search().run({"query": "AI"})``.
+            ``text = exa.openai.web_search().run({"query": "AI"})``.
         """
         try:
             return self.format(self.execute(args))
@@ -297,7 +297,7 @@ class ToolNamespace:
         self._exa = exa
         self._registry = registry
 
-    def search(self, **kwargs: Any) -> _ToolSpec:
+    def web_search(self, **kwargs: Any) -> _ToolSpec:
         """Create a provider-neutral Exa search tool.
 
         Defaults to ``type="auto"`` and ``contents={"highlights": True}``.
@@ -313,21 +313,21 @@ class ToolNamespace:
             A registered executable tool specification.
 
         Examples:
-            ``exa.tools.search()`` or ``exa.tools.search(name="exa_web_search")``.
+            ``exa.tools.web_search()`` or ``exa.tools.web_search(name="exa_web_search")``.
         """
-        return _create_search(self._exa, self._registry, False, kwargs)
+        return _create_web_search(self._exa, self._registry, False, kwargs)
 
 
 class OpenAINamespace(ToolNamespace):
-    def search(self, **kwargs: Any) -> OpenAITool:
+    def web_search(self, **kwargs: Any) -> OpenAITool:
         """Create an OpenAI Chat Completions web search tool.
 
         Defaults to ``type="auto"`` and ``contents={"highlights": True}``.
 
         Examples:
-            ``tools=[exa.openai.search()]``.
+            ``tools=[exa.openai.web_search()]``.
         """
-        spec = super().search(**kwargs)
+        spec = super().web_search(**kwargs)
         return _openai_tool(spec)
 
     def handle_tool_calls(
@@ -344,7 +344,8 @@ class OpenAINamespace(ToolNamespace):
             Provider-specific tool result messages. Every tool call is
             answered: calls whose name matches no resolvable tool produce an
             ``Error: unknown tool "<name>"`` output so the follow-up request
-            stays valid.
+            stays valid. Callers running mixed toolsets should replace these
+            error outputs with their own results before the next request.
         """
         if _is_responses_input(message):
             return self.responses.handle_tool_calls(message, tools)
@@ -415,8 +416,8 @@ class OpenAINamespace(ToolNamespace):
 
 
 class OpenAIResponsesNamespace(ToolNamespace):
-    def search(self, **kwargs: Any) -> OpenAIResponsesTool:
-        return _responses_tool(super().search(**kwargs))
+    def web_search(self, **kwargs: Any) -> OpenAIResponsesTool:
+        return _responses_tool(super().web_search(**kwargs))
 
     def handle_tool_calls(
         self, response_or_items: Any, tools: Optional[list[_ToolSpec]] = None
@@ -431,7 +432,8 @@ class OpenAIResponsesNamespace(ToolNamespace):
             ``function_call_output`` items for a follow-up Responses request.
             Every function call is answered: calls naming an unresolvable tool
             get an ``Error: unknown tool "<name>"`` output instead of being
-            dropped.
+            dropped. Callers running mixed toolsets should replace these error
+            outputs with their own results before the next request.
         """
         registry = self._registry.resolve(tools)
         items = (
@@ -492,8 +494,8 @@ class OpenAIResponsesNamespace(ToolNamespace):
 
 
 class AnthropicNamespace(ToolNamespace):
-    def search(self, **kwargs: Any) -> Any:
-        return _anthropic_tool(super().search(**kwargs), False)
+    def web_search(self, **kwargs: Any) -> Any:
+        return _anthropic_tool(super().web_search(**kwargs), False)
 
     def handle_tool_use(
         self, message: Any, tools: Optional[list[_ToolSpec]] = None
@@ -508,7 +510,8 @@ class AnthropicNamespace(ToolNamespace):
             Tool-result content blocks for the next Messages request. Every
             tool-use block is answered: blocks naming an unresolvable tool get
             an ``Error: unknown tool "<name>"`` result instead of being
-            dropped.
+            dropped. Callers running mixed toolsets should replace these error
+            outputs with their own results before the next request.
         """
         registry = self._registry.resolve(tools)
         results = []
@@ -560,7 +563,7 @@ class AnthropicNamespace(ToolNamespace):
 class AsyncToolNamespace(ToolNamespace):
     """Provider-neutral tool namespace for ``AsyncExa``."""
 
-    def search(self, **kwargs: Any) -> _AsyncToolSpec:
+    def web_search(self, **kwargs: Any) -> _AsyncToolSpec:
         """Create an asynchronous provider-neutral search tool.
 
         Args:
@@ -570,17 +573,17 @@ class AsyncToolNamespace(ToolNamespace):
             An asynchronous executable tool specification.
 
         Examples:
-            ``tool = async_exa.tools.search()``.
+            ``tool = async_exa.tools.web_search()``.
         """
-        return _create_search(self._exa, self._registry, True, kwargs)
+        return _create_web_search(self._exa, self._registry, True, kwargs)
 
 
 class AsyncOpenAINamespace(OpenAINamespace, AsyncToolNamespace):
     """OpenAI tool namespace for ``AsyncExa``."""
 
-    def search(self, **kwargs: Any) -> AsyncOpenAITool:
+    def web_search(self, **kwargs: Any) -> AsyncOpenAITool:
         return _openai_tool(
-            _create_search(self._exa, self._registry, True, kwargs), asynchronous=True
+            _create_web_search(self._exa, self._registry, True, kwargs), asynchronous=True
         )
 
     async def handle_tool_calls(
@@ -595,7 +598,9 @@ class AsyncOpenAINamespace(OpenAINamespace, AsyncToolNamespace):
         Returns:
             Tool-role messages for a follow-up request. Calls naming an
             unresolvable tool get an ``Error: unknown tool "<name>"`` message
-            instead of being dropped.
+            instead of being dropped. Callers running mixed toolsets should
+            replace these error outputs with their own results before the next
+            request.
         """
         if _is_responses_input(message):
             return await self.responses.handle_tool_calls(message, tools)
@@ -609,9 +614,9 @@ class AsyncOpenAINamespace(OpenAINamespace, AsyncToolNamespace):
 class AsyncOpenAIResponsesNamespace(OpenAIResponsesNamespace, AsyncToolNamespace):
     """OpenAI Responses tool namespace for ``AsyncExa``."""
 
-    def search(self, **kwargs: Any) -> AsyncOpenAIResponsesTool:
+    def web_search(self, **kwargs: Any) -> AsyncOpenAIResponsesTool:
         return _responses_tool(
-            _create_search(self._exa, self._registry, True, kwargs),
+            _create_web_search(self._exa, self._registry, True, kwargs),
             asynchronous=True,
         )
 
@@ -627,7 +632,9 @@ class AsyncOpenAIResponsesNamespace(OpenAIResponsesNamespace, AsyncToolNamespace
         Returns:
             ``function_call_output`` items for a follow-up request. Calls
             naming an unresolvable tool get an ``Error: unknown tool
-            "<name>"`` output instead of being dropped.
+            "<name>"`` output instead of being dropped. Callers running mixed
+            toolsets should replace these error outputs with their own results
+            before the next request.
         """
         return await self.handle_tool_calls_async(response_or_items, tools)
 
@@ -635,9 +642,9 @@ class AsyncOpenAIResponsesNamespace(OpenAIResponsesNamespace, AsyncToolNamespace
 class AsyncAnthropicNamespace(AnthropicNamespace, AsyncToolNamespace):
     """Anthropic tool namespace for ``AsyncExa``."""
 
-    def search(self, **kwargs: Any) -> Any:
+    def web_search(self, **kwargs: Any) -> Any:
         return _anthropic_tool(
-            _create_search(self._exa, self._registry, True, kwargs), True
+            _create_web_search(self._exa, self._registry, True, kwargs), True
         )
 
     async def handle_tool_use(
@@ -652,17 +659,19 @@ class AsyncAnthropicNamespace(AnthropicNamespace, AsyncToolNamespace):
         Returns:
             ``tool_result`` blocks for a follow-up request. Blocks naming an
             unresolvable tool get an ``Error: unknown tool "<name>"`` result
-            instead of being dropped.
+            instead of being dropped. Callers running mixed toolsets should
+            replace these error outputs with their own results before the next
+            request.
         """
         return await self.handle_tool_use_async(message, tools)
 
 
-def _create_search(
+def _create_web_search(
     exa: Any, registry: _ToolRegistry, asynchronous: bool, kwargs: dict[str, Any]
 ) -> _ToolSpec:
     config = dict(kwargs)
     name = config.pop("name", "web_search")
-    description = config.pop("description", DEFAULT_SEARCH_DESCRIPTION)
+    description = config.pop("description", DEFAULT_WEB_SEARCH_DESCRIPTION)
     search_type = config.pop("type", "auto")
     search_num_results = config.pop("num_results", 10)
     search_contents = config.pop("contents", {"highlights": True})
@@ -689,7 +698,7 @@ def _create_search(
     spec = spec_class(
         name=name,
         description=description,
-        input_model=_SearchInput,
+        input_model=_WebSearchInput,
         execute=async_execute if asynchronous else execute,
         registry=registry,
     )

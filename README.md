@@ -123,7 +123,7 @@ for chunk in exa.stream_answer("Explain quantum computing"):
 
 ## Web Search tools
 
-Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Call `search()` with no arguments to get Exa's recommended settings for agentic search (`type="auto"` and `contents={"highlights": True}`).
+Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Call `web_search()` with no arguments to get Exa's recommended settings for agentic search (`type="auto"` and `contents={"highlights": True}`).
 
 ```python
 from exa_py import Exa
@@ -137,7 +137,7 @@ messages = [{"role": "user", "content": "What's the latest on AI chips?"}]
 completion = openai_client.chat.completions.create(
     model="gpt-5.6",
     messages=messages,
-    tools=[exa.openai.search()],
+    tools=[exa.openai.web_search()],
 )
 
 message = completion.choices[0].message
@@ -153,7 +153,7 @@ response = client.messages.create(
     model="claude-sonnet-4-5",
     max_tokens=1024,
     messages=messages,
-    tools=[exa.anthropic.search()],
+    tools=[exa.anthropic.web_search()],
 )
 ```
 
@@ -165,13 +165,13 @@ response = client.messages.create(
     max_tokens=1024,
     messages=messages,
     tools=[
-        exa.anthropic.search(name="exa_web_search"),
+        exa.anthropic.web_search(name="exa_web_search"),
         {"type": "web_search_20250305", "name": "web_search", "max_uses": 5},
     ],
 )
 ```
 
-For the OpenAI Responses API, use `exa.openai.responses.search()` and the same `handle_tool_calls` helper. The handlers answer every tool call: calls naming a tool they can't resolve get an `Error: unknown tool "<name>"` output instead of being dropped, so follow-up requests stay valid.
+For the OpenAI Responses API, use `exa.openai.responses.web_search()` and the same `handle_tool_calls` helper. The handlers answer every tool call: calls naming a tool they can't resolve get an `Error: unknown tool "<name>"` output instead of being dropped, so follow-up requests stay valid. If you run other tools alongside Exa's, replace those error outputs with your own results before the next request.
 
 ## Agent API
 
