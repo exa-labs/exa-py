@@ -1,11 +1,25 @@
 # Claude Code Guidelines for exa-py
 
-## Version Bumping
-Every branch must bump all version references. Version is defined in 3 places:
-- `pyproject.toml` (2 occurrences: `[tool.poetry]` and `[project]`)
-- `setup.py`
+## Releases
 
-After bumping, run `uv lock` to sync `uv.lock`.
+Release Please owns versioning. Never edit versions or `CHANGELOG.md` by hand — the
+versions in `pyproject.toml`, `setup.py`, and `uv.lock` are updated automatically
+(see `release-please-config.json` and `.github/workflows/release-please.yml`).
+
+- Use Conventional Commit titles (`feat:`, `fix:`, `chore:`, …); they determine the
+  next version and the changelog entry.
+- Merges to `master` keep a single Release PR up to date. Merging that PR creates the
+  tag and GitHub Release, which triggers the PyPI publish job.
+
+## Development
+
+```bash
+make test              # uv run pytest tests/
+make test-unit         # tests/unit only
+make test-integration  # tests/integration only
+```
+
+Run `uv lock` after changing dependencies (not for version changes).
 
 ## SDK Documentation Auto-Generation
 
@@ -22,14 +36,16 @@ This SDK uses auto-generated documentation from code. When making modifications,
 - For Pydantic models, use `Field(description="...")` to document fields
 
 ### Adding New Types
-- New classes in `api.py` or `research/models.py` are auto-discovered and documented
+- New classes in the files the generator parses — `api.py`, `research/sync_client.py`,
+  `research/models.py`, `monitors/client.py`, `monitors/types.py` — are auto-discovered
+  and documented
 - Private classes (starting with `_`) are excluded unless explicitly listed in `scripts/gen_config.json`
 - Type aliases (like `Union[...]`) that can't be classes must be added to `manual_types` in the config
 
 ### Generating Documentation
 Run the documentation generator to verify changes:
 ```bash
-python scripts/generate_docs.py > docs/python-sdk-specification.mdx
+uv run python scripts/generate_docs.py > docs/python-sdk-specification.mdx
 ```
 
 ### Config File

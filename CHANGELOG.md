@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.18.1](https://github.com/exa-labs/exa-py/compare/v2.18.0...v2.18.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **agent:** treat monitor field type as the cell value type ([a4d0ce7](https://github.com/exa-labs/exa-py/commit/a4d0ce74e6a398692aa6ded8d43cb0183d5b1ffa))
+
+
+### Documentation
+
+* update agent guidelines for release-please ([#250](https://github.com/exa-labs/exa-py/issues/250)) ([87543a4](https://github.com/exa-labs/exa-py/commit/87543a416e00cbde47db50931b260e8337990ccb))
+
+## [2.18.0](https://github.com/exa-labs/exa-py/compare/v2.17.0...v2.18.0) (2026-08-13)
+
+
+### Features
+
+* add Agent Monitors API support (exa.agent.monitors) ([#244](https://github.com/exa-labs/exa-py/issues/244)) ([a61b834](https://github.com/exa-labs/exa-py/commit/a61b834151d0a696c57fe576cffbce8e921aecd4))
+
+## [2.17.0](https://github.com/exa-labs/exa-py/compare/v2.16.2...v2.17.0) (2026-08-06)
+
+
+### Features
+
+* **agent:** add max effort and budgets ([#240](https://github.com/exa-labs/exa-py/issues/240)) ([84d5aae](https://github.com/exa-labs/exa-py/commit/84d5aaed82a1406b389dbbe85762ad7accca251d))
+
+## [2.16.2](https://github.com/exa-labs/exa-py/compare/v2.16.1...v2.16.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* update Category values and accept str at runtime ([#237](https://github.com/exa-labs/exa-py/issues/237)) ([6677724](https://github.com/exa-labs/exa-py/commit/6677724b05d0f9a3ebdc89ffdf08d3500cf7c983))
+
 ## [2.16.1](https://github.com/exa-labs/exa-py/compare/v2.16.0...v2.16.1) (2026-07-08)
 
 

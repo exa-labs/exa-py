@@ -21,10 +21,13 @@ from pydantic import BaseModel
 from exa_py.utils import _convert_schema_input
 
 from .base import AgentBaseClient
+from .betas import headers_for_betas as _headers_for_betas
+from .monitors.client import AgentMonitorsClient
 from .types import (
     AgentDataSource,
     AgentEvent,
     AgentEffort,
+    AgentBudget,
     AgentInput,
     AgentRun,
     AgentRunCancelledError,
@@ -49,17 +52,6 @@ def _is_pydantic_model(schema: Any) -> bool:
         return False
 
 
-def _headers_for_betas(betas: Optional[Sequence[str]]) -> Optional[Dict[str, str]]:
-    if not betas:
-        return None
-
-    beta_values = [beta for beta in betas if beta]
-    if not beta_values:
-        return None
-
-    return {"Exa-Beta": ",".join(beta_values)}
-
-
 def _ensure_completed_run(run: AgentRun) -> AgentRun:
     if run.status == "failed":
         raise AgentRunFailedError(run)
@@ -75,6 +67,7 @@ def _build_create_payload(
     input: Optional[Union[Dict[str, Any], AgentInput]] = None,
     output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
     effort: Optional[AgentEffort] = None,
+    budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
     previous_run_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
     data_sources: Optional[list[AgentDataSource]] = None,
@@ -95,6 +88,7 @@ def _build_create_payload(
         input=run_input,
         output_schema=schema,
         effort=effort,
+        budget=budget,
         previous_run_id=previous_run_id,
         metadata=metadata,
         data_sources=data_sources,
@@ -155,6 +149,7 @@ class AgentRunsClient(AgentBaseClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -170,6 +165,7 @@ class AgentRunsClient(AgentBaseClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -184,6 +180,7 @@ class AgentRunsClient(AgentBaseClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -197,6 +194,8 @@ class AgentRunsClient(AgentBaseClient):
             input: Optional structured input data for the Agent.
             output_schema: Optional JSON schema or Pydantic model for structured output.
             effort: Optional cost and reasoning effort preference. Defaults to auto.
+            budget: Optional per-run spend ceiling for `auto` and `max`; the API
+                validates this field and applies defaults when omitted.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
             data_sources: Optional Exa Connect data providers to enable for the run.
@@ -221,6 +220,7 @@ class AgentRunsClient(AgentBaseClient):
             input=input,
             output_schema=output_schema,
             effort=effort,
+            budget=budget,
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
@@ -411,6 +411,7 @@ class AgentRunsClient(AgentBaseClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -425,6 +426,8 @@ class AgentRunsClient(AgentBaseClient):
             input: Optional structured input data for the Agent.
             output_schema: Optional JSON schema or Pydantic model for structured output.
             effort: Optional cost and reasoning effort preference. Defaults to auto.
+            budget: Optional per-run spend ceiling for `auto` and `max`; the API
+                validates this field and applies defaults when omitted.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
             data_sources: Optional Exa Connect data providers to enable for the run.
@@ -451,6 +454,7 @@ class AgentRunsClient(AgentBaseClient):
             input=input,
             output_schema=output_schema,
             effort=effort,
+            budget=budget,
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
@@ -503,6 +507,7 @@ class AgentBetaRunsClient(AgentRunsClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -519,6 +524,7 @@ class AgentBetaRunsClient(AgentRunsClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -534,6 +540,7 @@ class AgentBetaRunsClient(AgentRunsClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -545,6 +552,7 @@ class AgentBetaRunsClient(AgentRunsClient):
             input=input,
             output_schema=output_schema,
             effort=effort,
+            budget=budget,
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
@@ -560,9 +568,7 @@ class AgentBetaRunsClient(AgentRunsClient):
             return stream_agent_events(response)
         return AgentRun.model_validate(response)
 
-    def get(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
-    ) -> AgentRun:
+    def get(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
         response = self.request(
             f"/{run_id}", method="GET", headers=_headers_for_betas(betas)
         )
@@ -598,9 +604,7 @@ class AgentBetaRunsClient(AgentRunsClient):
     ) -> list[AgentRun]:
         return list(self.list_all(betas=betas, limit=limit))
 
-    def cancel(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
-    ) -> AgentRun:
+    def cancel(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
         response = self.request(
             f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas)
         )
@@ -646,6 +650,7 @@ class AgentBetaRunsClient(AgentRunsClient):
         input: Optional[Union[Dict[str, Any], AgentInput]] = None,
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
         effort: Optional[AgentEffort] = None,
+        budget: Optional[Union[Dict[str, Any], AgentBudget]] = None,
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
@@ -659,6 +664,7 @@ class AgentBetaRunsClient(AgentRunsClient):
             input=input,
             output_schema=output_schema,
             effort=effort,
+            budget=budget,
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
@@ -682,17 +688,19 @@ class AgentNamespace:
 
 
 class AgentBetaNamespace(AgentNamespace):
-    """Deprecated compatibility wrapper for the synchronous Agent namespace."""
+    """Synchronous beta Agent namespace."""
 
     runs: AgentBetaRunsClient
+    monitors: AgentMonitorsClient
 
     def __init__(self, client: Any):
         super().__init__(client)
         self.runs = AgentBetaRunsClient(client)
+        self.monitors = AgentMonitorsClient(client)
 
 
 class BetaClient:
-    """Deprecated synchronous beta namespace."""
+    """Synchronous beta namespace."""
 
     agent: AgentBetaNamespace
 

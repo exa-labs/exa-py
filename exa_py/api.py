@@ -45,6 +45,15 @@ from .websets.core.base import ExaJSONEncoder
 from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
 from .agent import AgentNamespace, AsyncAgentNamespace, BetaClient, AsyncBetaClient
+from .tools import (
+    AsyncAnthropicNamespace,
+    AsyncOpenAINamespace,
+    AsyncToolNamespace,
+    AnthropicNamespace,
+    OpenAINamespace,
+    ToolNamespace,
+    _ToolRegistry,
+)
 
 
 is_beta = os.getenv("IS_BETA") == "True"
@@ -259,9 +268,8 @@ def _parse_entities(entities_data: Optional[List[dict]]) -> Optional[List]:
 # Category options for search filtering
 Category = Literal[
     "company",
-    "research paper",
     "news",
-    "pdf",
+    "publication",
     "personal site",
     "financial report",
     "people",
@@ -341,7 +349,7 @@ SEARCH_OPTIONS_TYPES = {
         SearchType,
         str,
     ],  # Search type: 'auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant' (Default: auto)
-    "category": [Category],  # A data category to focus on.
+    "category": [str],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "moderation": [bool],  # If true, moderate search results for safety.
     "contents": [dict, bool],  # Options for retrieving page contents
@@ -365,7 +373,7 @@ FIND_SIMILAR_OPTIONS_TYPES = {
     "include_text": [list],
     "exclude_text": [list],
     "exclude_source_domain": [bool],
-    "category": [Category],  # A data category to focus on.
+    "category": [str],  # A data category to focus on.
     "flags": [list],  # Experimental flags array for Exa usage.
     "contents": [dict, bool],  # Options for retrieving page contents
 }
@@ -1465,6 +1473,10 @@ class Exa:
         # Agent clients
         self.agent = AgentNamespace(self)
         self.beta = BetaClient(self)
+        self._tool_registry = _ToolRegistry()
+        self.tools = ToolNamespace(self, self._tool_registry)
+        self.openai = OpenAINamespace(self, self._tool_registry)
+        self.anthropic = AnthropicNamespace(self, self._tool_registry)
 
     def request(
         self,
@@ -1612,7 +1624,8 @@ class Exa:
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
                 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
@@ -2092,7 +2105,8 @@ class Exa:
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags.
 
         Returns:
@@ -2675,6 +2689,10 @@ class AsyncExa(Exa):
         self.agent = AsyncAgentNamespace(self)
         self.beta = AsyncBetaClient(self)
         self._client = None
+        self._tool_registry = _ToolRegistry()
+        self.tools = AsyncToolNamespace(self, self._tool_registry)
+        self.openai = AsyncOpenAINamespace(self, self._tool_registry)
+        self.anthropic = AsyncAnthropicNamespace(self, self._tool_registry)
 
     @property
     def client(self) -> httpx.AsyncClient:
@@ -2730,7 +2748,7 @@ class AsyncExa(Exa):
                     headers=request_headers,
                 )
                 res = await self.client.send(request, stream=True)
-                if res.status_code != 200 and res.status_code != 201:
+                if res.status_code >= 400:
                     body = await res.aread()
                     await res.aclose()
                     error_text = body.decode(errors="replace")
@@ -2748,7 +2766,7 @@ class AsyncExa(Exa):
                     "POST", self.base_url + endpoint, json=data, headers=request_headers
                 )
                 res = await self.client.send(request, stream=True)
-                if res.status_code != 200 and res.status_code != 201:
+                if res.status_code >= 400:
                     body = await res.aread()
                     await res.aclose()
                     error_text = body.decode(errors="replace")
@@ -2770,7 +2788,7 @@ class AsyncExa(Exa):
             )
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
-        if res.status_code != 200 and res.status_code != 201:
+        if res.status_code >= 400:
             raise ValueError(
                 f"Request failed with status code {res.status_code}: {res.text}"
             )
@@ -2824,7 +2842,8 @@ class AsyncExa(Exa):
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             type (SearchType, optional): Search type - 'auto' (default), 'fast',
                 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
@@ -3236,7 +3255,8 @@ class AsyncExa(Exa):
             include_text (List[str], optional): Strings that must appear in the page text.
             exclude_text (List[str], optional): Strings that must not appear in the page text.
             exclude_source_domain (bool, optional): Whether to exclude the source domain.
-            category (Category, optional): Data category to focus on (e.g. 'company', 'news', 'research paper').
+            category (Category, optional): Data category to focus on (e.g.
+                'company', 'news', 'publication').
             flags (List[str], optional): Experimental flags.
 
         Returns:

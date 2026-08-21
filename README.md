@@ -121,7 +121,59 @@ for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
 
-## Agent API 
+## Web Search tools
+
+Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Call `web_search()` with no arguments to get Exa's recommended settings for agentic search (`type="auto"` and `contents={"highlights": True}`).
+
+```python
+from exa_py import Exa
+from openai import OpenAI
+
+exa = Exa()
+openai_client = OpenAI()
+
+messages = [{"role": "user", "content": "What's the latest on AI chips?"}]
+
+completion = openai_client.chat.completions.create(
+    model="gpt-5.6",
+    messages=messages,
+    tools=[exa.openai.web_search()],
+)
+
+message = completion.choices[0].message
+messages.append(message)
+messages += exa.openai.handle_tool_calls(message)
+```
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=messages,
+    tools=[exa.anthropic.web_search()],
+)
+```
+
+Pass `name` (and optionally `description`) to rename the tool. Anthropic requires tool names to be unique, so a custom name lets the Exa tool run alongside Anthropic's built-in `web_search_20250305` tool:
+
+```python
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=messages,
+    tools=[
+        exa.anthropic.web_search(name="exa_web_search"),
+        {"type": "web_search_20250305", "name": "web_search", "max_uses": 5},
+    ],
+)
+```
+
+For the OpenAI Responses API, use `exa.openai.responses.web_search()` and the same `handle_tool_calls` helper. The handlers answer every tool call: calls naming a tool they can't resolve get an `Error: unknown tool "<name>"` output instead of being dropped, so follow-up requests stay valid. If you run other tools alongside Exa's, replace those error outputs with your own results before the next request.
+
+## Agent API
 
 The Agent API is available without a beta header.
 
@@ -152,6 +204,80 @@ run = exa.agent.runs.create(
 
 run = exa.agent.runs.poll_until_finished(run.id)
 print(run.output.structured if run.output else None)
+```
+
+For Agent Max, use the beta namespace and pass the beta token explicitly:
+
+```python
+from exa_py import Exa
+from exa_py.agent import AGENT_MAX_EFFORT_BETA
+
+exa = Exa()
+run = exa.beta.agent.runs.create(
+    query="Find all companies building browser automation tools in the United States.",
+    effort="max",
+    budget={"maxCostDollars": 10},
+    betas=[AGENT_MAX_EFFORT_BETA],
+)
+```
+
+## Agent Monitors (Beta)
+
+Agent Monitors use the beta namespace and require the `AGENT_MONITORS_BETA_HEADER` beta identifier (`agent-monitors-2026-08-04`).
+
+An Agent Monitor keeps a table of entities × fields fresh on a cadence: static fields are answered once per entity over the live web, dynamic fields are tracked from news on every refresh.
+
+```python
+from exa_py.agent import AGENT_MONITORS_BETA_HEADER
+
+betas = [AGENT_MONITORS_BETA_HEADER]
+
+# Create a monitor. Creation is async: it returns with status "creating"
+# and becomes "active" once the first refresh completes.
+monitor = exa.beta.agent.monitors.create(
+    betas=betas,
+    cadence="7d",
+    entities=[
+        {"name": "Acme Corp", "domain": "acme.com"},
+        {"name": "Globex", "domain": "globex.com"},
+    ],
+    fields=[
+        {"name": "funding", "description": "New funding rounds"},  # dynamic by default
+        {"name": "ceo", "description": "The company's current CEO", "mode": "static"},
+    ],
+    idempotency_key="my-monitor-1",  # safe retries: same key returns the same monitor
+)
+
+# Page the monitor's current entities and their contents.
+for view in exa.beta.agent.monitors.entities.list_all(monitor.id, betas=betas):
+    print(view.entity.name, view.contents)
+
+# Follow the content change feed (resume later from the page's next_cursor).
+changes = exa.beta.agent.monitors.changes.list(
+    monitor.id,
+    betas=betas,
+    since="2026-01-01T00:00:00Z",
+)
+
+# One-shot stateless snapshot of a past news window — no monitor created.
+snapshot = exa.beta.agent.monitors.snapshots.create_and_wait(
+    betas=betas,
+    entities=[{"name": "Acme Corp", "domain": "acme.com"}],
+    fields=[{"name": "funding", "description": "New funding rounds"}],  # dynamic by default
+    start_date="2026-01-01",
+    end_date="2026-01-08",
+)
+print(snapshot.data)
+
+# Add entities, inspect refresh progress, clean up.
+exa.beta.agent.monitors.entities.add(
+    monitor.id,
+    betas=betas,
+    entities=[{"name": "Initech", "domain": "initech.com"}],
+)
+current = exa.beta.agent.monitors.get(monitor.id, betas=betas)
+print(current.status, current.refresh, current.usage)
+exa.beta.agent.monitors.delete(monitor.id, betas=betas)
 ```
 
 ## Async
