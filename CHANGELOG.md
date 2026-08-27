@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.19.0](https://github.com/exa-labs/exa-py/compare/v2.18.1...v2.19.0) (2026-08-27)
+
+
+### Features
+
+* **agent:** add graceful Agent run stopping ([76482f9](https://github.com/exa-labs/exa-py/commit/76482f9cb9c2903209c244b9e6ca23b345eabe58))
+* OpenAI and Anthropic Web Search tool helpers ([#246](https://github.com/exa-labs/exa-py/issues/246)) ([f441bf2](https://github.com/exa-labs/exa-py/commit/f441bf2b7556d46c5d0c4a0401ae7432acaf7fd6))
+
 ## [2.18.1](https://github.com/exa-labs/exa-py/compare/v2.18.0...v2.18.1) (2026-08-14)
 
 
