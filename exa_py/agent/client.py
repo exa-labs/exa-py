@@ -24,6 +24,7 @@ from .base import AgentBaseClient
 from .betas import headers_for_betas as _headers_for_betas
 from .monitors.client import AgentMonitorsClient
 from .types import (
+    AGENT_MAX_EFFORT_BETA,
     AgentDataSource,
     AgentEvent,
     AgentEffort,
@@ -607,6 +608,16 @@ class AgentBetaRunsClient(AgentRunsClient):
     def cancel(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
         response = self.request(
             f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas)
+        )
+        return AgentRun.model_validate(response)
+
+    def stop(self, run_id: str, *, betas: Optional[Sequence[str]] = None) -> AgentRun:
+        response = self.request(
+            f"/{run_id}/stop",
+            method="POST",
+            headers=_headers_for_betas(
+                betas if betas is not None else [AGENT_MAX_EFFORT_BETA]
+            ),
         )
         return AgentRun.model_validate(response)
 
