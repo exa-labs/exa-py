@@ -29,6 +29,7 @@ from .client import (
     _headers_for_betas,
 )
 from .types import (
+    AGENT_MAX_EFFORT_BETA,
     AgentDataSource,
     AgentBudget,
     AgentEvent,
@@ -569,6 +570,18 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
     ) -> AgentRun:
         response = await self.request(
             f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas)
+        )
+        return AgentRun.model_validate(response)
+
+    async def stop(
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+    ) -> AgentRun:
+        response = await self.request(
+            f"/{run_id}/stop",
+            method="POST",
+            headers=_headers_for_betas(
+                betas if betas is not None else [AGENT_MAX_EFFORT_BETA]
+            ),
         )
         return AgentRun.model_validate(response)
 
