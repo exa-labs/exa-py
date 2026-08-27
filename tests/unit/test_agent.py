@@ -85,8 +85,6 @@ def test_exa_exposes_agent_run_under_agent_namespace():
     assert not hasattr(exa.agent, "run")
     assert hasattr(exa.beta.agent, "runs")
     assert not hasattr(exa.beta.agent, "run")
-    assert not hasattr(exa.agent.runs, "stop")
-    assert hasattr(exa.beta.agent.runs, "stop")
     assert "betas" not in signature(exa.agent.runs.create).parameters
     assert "betas" in signature(exa.beta.agent.runs.create).parameters
     assert "betas" not in signature(exa.agent.runs.events.list).parameters
@@ -102,8 +100,6 @@ def test_async_exa_exposes_agent_run_under_agent_namespace():
     assert not hasattr(exa.agent, "run")
     assert hasattr(exa.beta.agent, "runs")
     assert not hasattr(exa.beta.agent, "run")
-    assert not hasattr(exa.agent.runs, "stop")
-    assert hasattr(exa.beta.agent.runs, "stop")
     assert "betas" not in signature(exa.agent.runs.create).parameters
     assert "betas" in signature(exa.beta.agent.runs.create).parameters
     assert "betas" not in signature(exa.agent.runs.events.list).parameters
@@ -410,22 +406,6 @@ def test_beta_cancel_and_delete_agent_run_send_legacy_betas_as_header(mock_clien
     assert mock_client.request.call_args_list[1].kwargs["headers"] == {
         "Exa-Beta": AGENT_BETA_HEADER
     }
-
-
-def test_beta_stop_agent_run_uses_max_effort_beta_by_default(mock_client):
-    mock_client.request.return_value = {**_make_run(), "stopReason": "stopped"}
-    run_client = BetaClient(mock_client).agent.runs
-
-    stopped = run_client.stop("agent_run_123")
-
-    assert stopped.stop_reason == "stopped"
-    mock_client.request.assert_called_once_with(
-        "/agent/runs/agent_run_123/stop",
-        data=None,
-        method="POST",
-        params=None,
-        headers={"Exa-Beta": AGENT_MAX_EFFORT_BETA},
-    )
 
 
 def test_stream_create_sets_sse_headers(run_client, mock_client):

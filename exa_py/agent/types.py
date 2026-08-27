@@ -11,9 +11,7 @@ AGENT_BETA_HEADER = "agent-2026-05-07"
 AGENT_MAX_EFFORT_BETA = "agent-max-effort-2026-07-27"
 
 AgentRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
-AgentStopReason = Literal[
-    "schema_satisfied", "budget_reached", "stopped", "error", "cancelled"
-]
+AgentStopReason = Literal["schema_satisfied", "budget_reached", "error", "cancelled"]
 AgentConfidence = Literal["low", "medium", "high"]
 AgentEffort = Literal["minimal", "low", "medium", "high", "xhigh", "auto", "max"]
 
