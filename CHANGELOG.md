@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.20.0](https://github.com/exa-labs/exa-py/compare/v2.19.0...v2.20.0) (2026-09-01)
+
+
+### Features
+
+* **helpers:** get_contents tool helper ([#258](https://github.com/exa-labs/exa-py/issues/258)) ([ebea259](https://github.com/exa-labs/exa-py/commit/ebea259eb195269cc0d6b4df99969437ada3fc3d))
+
 ## [2.19.0](https://github.com/exa-labs/exa-py/compare/v2.18.1...v2.19.0) (2026-08-27)
 
 
