@@ -121,7 +121,7 @@ for chunk in exa.stream_answer("Explain quantum computing"):
     print(chunk, end="", flush=True)
 ```
 
-## Web Search tools
+## Web Search and Contents tools
 
 Use Exa as a `web_search` tool in an OpenAI or Anthropic loop. Call `web_search()` with no arguments to get Exa's recommended settings for agentic search (`type="auto"` and `contents={"highlights": True}`).
 
@@ -167,6 +167,19 @@ response = client.messages.create(
     tools=[
         exa.anthropic.web_search(name="exa_web_search"),
         {"type": "web_search_20250305", "name": "web_search", "max_uses": 5},
+    ],
+)
+```
+
+`get_contents` is available in the same namespaces and lets the model read pages it already has URLs for. It takes a list of URLs and accepts every `Exa.get_contents` option:
+
+```python
+completion = openai_client.chat.completions.create(
+    model="gpt-5.6",
+    messages=messages,
+    tools=[
+        exa.openai.web_search(),
+        exa.openai.get_contents(summary=True, livecrawl="preferred"),
     ],
 )
 ```
