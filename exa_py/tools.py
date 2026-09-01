@@ -14,6 +14,11 @@ DEFAULT_WEB_SEARCH_DESCRIPTION = (
     "Describe the ideal page rather than listing keywords."
 )
 
+DEFAULT_GET_CONTENTS_DESCRIPTION = (
+    "Read the full contents of web pages you already have URLs for, such as "
+    "pages returned by a search or mentioned by the user."
+)
+
 
 class _WebSearchInput(BaseModel):
     query: str = Field(
@@ -24,13 +29,22 @@ class _WebSearchInput(BaseModel):
     )
 
 
+class _GetContentsInput(BaseModel):
+    urls: list[str] = Field(
+        description=(
+            "Absolute URLs of the pages to read, including the scheme. Pass "
+            "several URLs to read them in a single call."
+        )
+    )
+
+
 def _value(result: Any, name: str, default: Any = None) -> Any:
     if isinstance(result, Mapping):
         return result.get(name, default)
     return getattr(result, name, default)
 
 
-def _format_response(response: Any) -> str:
+def _format_results(response: Any, empty_message: str) -> str:
     results = _value(response, "results", []) or []
     formatted = []
     for result in results:
@@ -40,14 +54,25 @@ def _format_response(response: Any) -> str:
             f"Published: {_value(result, 'published_date') or 'N/A'}",
             f"Author: {_value(result, 'author') or 'N/A'}",
         ]
+        summary = _value(result, "summary")
         highlights = _value(result, "highlights")
         text = _value(result, "text")
+        if summary:
+            lines.append(f"Summary: {summary}")
         if highlights:
             lines.append(f"Highlights:\n{chr(10).join(highlights)}")
         elif text:
             lines.append(f"Text: {text}")
         formatted.append("\n".join(lines))
-    return "\n\n---\n\n".join(formatted) or "No search results found."
+    return "\n\n---\n\n".join(formatted) or empty_message
+
+
+def _format_response(response: Any) -> str:
+    return _format_results(response, "No search results found.")
+
+
+def _format_contents_response(response: Any) -> str:
+    return _format_results(response, "No contents found.")
 
 
 def _schema(model: type[BaseModel]) -> dict[str, Any]:
@@ -66,6 +91,7 @@ class _ToolSpec:
         input_model: type[BaseModel],
         execute: Callable[[dict[str, Any]], Any],
         registry: "_ToolRegistry",
+        formatter: Callable[[Any], str] = _format_response,
     ):
         self.name = name
         self.description = description
@@ -73,6 +99,7 @@ class _ToolSpec:
         self.input_schema = _schema(input_model)
         self.json_schema = self.input_schema
         self._execute = execute
+        self._formatter = formatter
         self.definition = {
             "name": name,
             "description": description,
@@ -116,7 +143,7 @@ class _ToolSpec:
         return self.input_model.model_validate(args).model_dump()
 
     def format(self, result: Any) -> str:
-        return _format_response(result)
+        return self._formatter(result)
 
     async def async_run(self, args: Any) -> str:
         """Execute a synchronous tool through an awaitable compatibility method.
@@ -139,6 +166,7 @@ class _AsyncToolSpec(_ToolSpec):
         input_model: type[BaseModel],
         execute: Callable[[dict[str, Any]], Awaitable[Any]],
         registry: "_ToolRegistry",
+        formatter: Callable[[Any], str] = _format_response,
     ):
         super().__init__(
             name=name,
@@ -146,6 +174,7 @@ class _AsyncToolSpec(_ToolSpec):
             input_model=input_model,
             execute=execute,
             registry=registry,
+            formatter=formatter,
         )
 
     async def execute(self, args: Any) -> Any:
@@ -321,6 +350,26 @@ class ToolNamespace:
         """
         return _create_web_search(self._exa, self._registry, False, kwargs)
 
+    def get_contents(self, **kwargs: Any) -> _ToolSpec:
+        """Create a provider-neutral Exa contents tool.
+
+        Inherits ``Exa.get_contents`` defaults, which return page text capped at
+        10,000 characters when no content option is configured.
+
+        Args:
+            **kwargs: Optional contents options passed through to
+                ``Exa.get_contents`` (e.g. ``text``, ``summary``, ``livecrawl``).
+                ``name`` (default ``"get_contents"``) and ``description``
+                override the advertised tool name and description instead.
+
+        Returns:
+            A registered executable tool specification.
+
+        Examples:
+            ``exa.tools.get_contents()`` or ``exa.tools.get_contents(summary=True)``.
+        """
+        return _create_get_contents(self._exa, self._registry, False, kwargs)
+
 
 class OpenAINamespace(ToolNamespace):
     def web_search(self, **kwargs: Any) -> OpenAITool:
@@ -333,6 +382,20 @@ class OpenAINamespace(ToolNamespace):
         """
         spec = super().web_search(**kwargs)
         return _openai_tool(spec)
+
+    def get_contents(self, **kwargs: Any) -> OpenAITool:
+        """Create an OpenAI Chat Completions contents tool.
+
+        Args:
+            **kwargs: Contents options plus ``name`` and ``description``.
+
+        Returns:
+            A wire-safe OpenAI tool with an executable handle.
+
+        Examples:
+            ``tools=[exa.openai.get_contents()]``.
+        """
+        return _openai_tool(super().get_contents(**kwargs))
 
     def handle_tool_calls(
         self, message: Any, tools: Optional[list[_ToolSpec]] = None
@@ -423,6 +486,20 @@ class OpenAIResponsesNamespace(ToolNamespace):
     def web_search(self, **kwargs: Any) -> OpenAIResponsesTool:
         return _responses_tool(super().web_search(**kwargs))
 
+    def get_contents(self, **kwargs: Any) -> OpenAIResponsesTool:
+        """Create an OpenAI Responses contents tool.
+
+        Args:
+            **kwargs: Contents options plus ``name`` and ``description``.
+
+        Returns:
+            A wire-safe OpenAI Responses tool with an executable handle.
+
+        Examples:
+            ``tools=[exa.openai.responses.get_contents()]``.
+        """
+        return _responses_tool(super().get_contents(**kwargs))
+
     def handle_tool_calls(
         self, response_or_items: Any, tools: Optional[list[_ToolSpec]] = None
     ) -> list[dict[str, str]]:
@@ -500,6 +577,20 @@ class OpenAIResponsesNamespace(ToolNamespace):
 class AnthropicNamespace(ToolNamespace):
     def web_search(self, **kwargs: Any) -> Any:
         return _anthropic_tool(super().web_search(**kwargs), False)
+
+    def get_contents(self, **kwargs: Any) -> Any:
+        """Create an Anthropic Messages contents tool.
+
+        Args:
+            **kwargs: Contents options plus ``name`` and ``description``.
+
+        Returns:
+            A wire-safe Anthropic tool with an executable handle.
+
+        Examples:
+            ``tools=[exa.anthropic.get_contents()]``.
+        """
+        return _anthropic_tool(super().get_contents(**kwargs), False)
 
     def handle_tool_use(
         self, message: Any, tools: Optional[list[_ToolSpec]] = None
@@ -581,6 +672,20 @@ class AsyncToolNamespace(ToolNamespace):
         """
         return _create_web_search(self._exa, self._registry, True, kwargs)
 
+    def get_contents(self, **kwargs: Any) -> _AsyncToolSpec:
+        """Create an asynchronous provider-neutral contents tool.
+
+        Args:
+            **kwargs: Contents options and tool options.
+
+        Returns:
+            An asynchronous executable tool specification.
+
+        Examples:
+            ``tool = async_exa.tools.get_contents()``.
+        """
+        return _create_get_contents(self._exa, self._registry, True, kwargs)
+
 
 class AsyncOpenAINamespace(OpenAINamespace, AsyncToolNamespace):
     """OpenAI tool namespace for ``AsyncExa``."""
@@ -588,6 +693,12 @@ class AsyncOpenAINamespace(OpenAINamespace, AsyncToolNamespace):
     def web_search(self, **kwargs: Any) -> AsyncOpenAITool:
         return _openai_tool(
             _create_web_search(self._exa, self._registry, True, kwargs), asynchronous=True
+        )
+
+    def get_contents(self, **kwargs: Any) -> AsyncOpenAITool:
+        return _openai_tool(
+            _create_get_contents(self._exa, self._registry, True, kwargs),
+            asynchronous=True,
         )
 
     async def handle_tool_calls(
@@ -624,6 +735,12 @@ class AsyncOpenAIResponsesNamespace(OpenAIResponsesNamespace, AsyncToolNamespace
             asynchronous=True,
         )
 
+    def get_contents(self, **kwargs: Any) -> AsyncOpenAIResponsesTool:
+        return _responses_tool(
+            _create_get_contents(self._exa, self._registry, True, kwargs),
+            asynchronous=True,
+        )
+
     async def handle_tool_calls(
         self, response_or_items: Any, tools: Optional[list[_ToolSpec]] = None
     ) -> list[dict[str, str]]:
@@ -649,6 +766,11 @@ class AsyncAnthropicNamespace(AnthropicNamespace, AsyncToolNamespace):
     def web_search(self, **kwargs: Any) -> Any:
         return _anthropic_tool(
             _create_web_search(self._exa, self._registry, True, kwargs), True
+        )
+
+    def get_contents(self, **kwargs: Any) -> Any:
+        return _anthropic_tool(
+            _create_get_contents(self._exa, self._registry, True, kwargs), True
         )
 
     async def handle_tool_use(
@@ -707,6 +829,30 @@ def _create_web_search(
         registry=registry,
     )
     return spec
+
+
+def _create_get_contents(
+    exa: Any, registry: _ToolRegistry, asynchronous: bool, kwargs: dict[str, Any]
+) -> _ToolSpec:
+    config = dict(kwargs)
+    name = config.pop("name", "get_contents")
+    description = config.pop("description", DEFAULT_GET_CONTENTS_DESCRIPTION)
+
+    def execute(args: dict[str, Any]) -> Any:
+        return exa.get_contents(args["urls"], **config)
+
+    async def async_execute(args: dict[str, Any]) -> Any:
+        return await exa.get_contents(args["urls"], **config)
+
+    spec_class = _AsyncToolSpec if asynchronous else _ToolSpec
+    return spec_class(
+        name=name,
+        description=description,
+        input_model=_GetContentsInput,
+        execute=async_execute if asynchronous else execute,
+        registry=registry,
+        formatter=_format_contents_response,
+    )
 
 
 def _openai_tool(spec: _ToolSpec, asynchronous: bool = False) -> OpenAITool:

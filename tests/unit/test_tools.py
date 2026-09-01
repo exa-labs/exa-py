@@ -19,6 +19,7 @@ def result(**kwargs):
         author=kwargs.get("author"),
         highlights=kwargs.get("highlights"),
         text=kwargs.get("text"),
+        summary=kwargs.get("summary"),
     )
 
 
@@ -362,3 +363,165 @@ async def test_async_tools_and_handlers():
         "tool_use_id": "v",
         "content": 'Error: unknown tool "missing"',
     }
+
+
+def test_contents_tool_is_wire_safe_and_takes_urls():
+    exa = Exa("test")
+    exa.get_contents = lambda urls, **kwargs: response(result(text="Page text"))
+    tool = exa.openai.get_contents()
+
+    assert list(tool) == ["type", "function"]
+    assert json.loads(json.dumps(tool)) == tool
+    assert tool["function"]["name"] == "get_contents"
+    assert tool["function"]["parameters"]["required"] == ["urls"]
+    assert set(tool["function"]["parameters"]["properties"]) == {"urls"}
+    assert tool["function"]["parameters"]["properties"]["urls"]["type"] == "array"
+    assert "$schema" not in tool["function"]["parameters"]
+    assert "run" not in json.dumps(tool)
+    assert "Text: Page text" in tool.run({"urls": ["https://example.com"]})
+
+
+def test_contents_passes_urls_and_options_through():
+    exa = Exa("test")
+    seen = {}
+
+    def get_contents(urls, **kwargs):
+        seen["urls"] = urls
+        seen["kwargs"] = kwargs
+        return response(result(summary="A summary"))
+
+    exa.get_contents = get_contents
+    tool = exa.tools.get_contents(
+        name="read_pages",
+        description="Read pages",
+        summary=True,
+        livecrawl="preferred",
+    )
+    output = tool.run({"urls": ["https://example.com", "https://exa.ai"]})
+
+    assert seen["urls"] == ["https://example.com", "https://exa.ai"]
+    assert seen["kwargs"] == {"summary": True, "livecrawl": "preferred"}
+    assert "Summary: A summary" in output
+    assert tool.name == "read_pages"
+    assert tool.description == "Read pages"
+
+
+def test_contents_reports_empty_and_failed_results():
+    exa = Exa("test")
+    exa.get_contents = lambda urls, **kwargs: response()
+    tool = exa.tools.get_contents()
+    assert tool.run({"urls": ["https://example.com"]}) == "No contents found."
+    assert "Error:" in tool.run({"urls": "not-a-list"})
+
+    exa.get_contents = lambda urls, **kwargs: (_ for _ in ()).throw(
+        ValueError("upstream")
+    )
+    assert tool.run({"urls": ["https://example.com"]}) == "Error: upstream"
+
+
+def test_contents_and_search_tools_coexist_across_providers():
+    exa = Exa("test")
+    exa.search = lambda query, **kwargs: response(result(highlights=["a fact"]))
+    exa.get_contents = lambda urls, **kwargs: response(result(text="Page text"))
+    exa.openai.web_search()
+    exa.openai.get_contents()
+
+    outputs = exa.openai.handle_tool_calls(
+        {
+            "tool_calls": [
+                {"id": "1", "function": {"name": "web_search", "arguments": '{"query":"q"}'}},
+                {
+                    "id": "2",
+                    "function": {
+                        "name": "get_contents",
+                        "arguments": '{"urls":["https://example.com"]}',
+                    },
+                },
+            ]
+        }
+    )
+    assert "a fact" in outputs[0]["content"]
+    assert "Text: Page text" in outputs[1]["content"]
+
+    responses_tool = exa.openai.responses.get_contents()
+    assert responses_tool["type"] == "function"
+    assert responses_tool["name"] == "get_contents"
+    assert responses_tool.definition == dict(responses_tool)
+
+    anthropic_tool = exa.anthropic.get_contents()
+    assert anthropic_tool == {
+        "name": "get_contents",
+        "description": anthropic_tool.description,
+        "input_schema": anthropic_tool.json_schema,
+    }
+    tool_results = exa.anthropic.handle_tool_use(
+        {
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "u",
+                    "name": "get_contents",
+                    "input": {"urls": ["https://example.com"]},
+                }
+            ]
+        }
+    )
+    assert "Text: Page text" in tool_results[0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_async_contents_tools_and_handlers():
+    exa = AsyncExa("test")
+    seen = {}
+
+    async def get_contents(urls, **kwargs):
+        seen["urls"] = urls
+        return response(result(text="Page text"))
+
+    exa.get_contents = get_contents
+    tool = exa.openai.get_contents()
+    assert "Text: Page text" in await tool.run({"urls": ["https://example.com"]})
+    assert seen["urls"] == ["https://example.com"]
+
+    outputs = await exa.openai.handle_tool_calls(
+        {
+            "tool_calls": [
+                {
+                    "id": "1",
+                    "function": {
+                        "name": "get_contents",
+                        "arguments": '{"urls":["https://example.com"]}',
+                    },
+                }
+            ]
+        }
+    )
+    assert "Text: Page text" in outputs[0]["content"]
+
+    responses_outputs = await exa.openai.responses.handle_tool_calls(
+        [
+            {
+                "type": "function_call",
+                "name": "get_contents",
+                "call_id": "c",
+                "arguments": '{"urls":["https://example.com"]}',
+            }
+        ]
+    )
+    assert "Text: Page text" in responses_outputs[0]["output"]
+
+    anthropic_tool = exa.anthropic.get_contents()
+    assert anthropic_tool["name"] == "get_contents"
+    tool_results = await exa.anthropic.handle_tool_use(
+        {
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "u",
+                    "name": "get_contents",
+                    "input": {"urls": ["https://example.com"]},
+                }
+            ]
+        }
+    )
+    assert "Text: Page text" in tool_results[0]["content"]
