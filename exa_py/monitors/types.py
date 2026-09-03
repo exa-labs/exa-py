@@ -192,7 +192,7 @@ class GroundingEntry(BaseModel):
 
 class SearchMonitorRunOutput(BaseModel):
     results: Optional[List[Dict[str, Any]]] = None
-    content: Optional[Union[str, Dict[str, Any]]] = None
+    content: Optional[Union[str, Dict[str, Any], List[Any]]] = None
     grounding: Optional[List[GroundingEntry]] = None
 
     model_config = {"populate_by_name": True}
