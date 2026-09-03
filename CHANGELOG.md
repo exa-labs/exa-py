@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.21.0](https://github.com/exa-labs/exa-py/compare/v2.20.0...v2.21.0) (2026-09-03)
+
+
+### Features
+
+* add Dynamic Highlights (research preview) via betas param ([#257](https://github.com/exa-labs/exa-py/issues/257)) ([4b06d0e](https://github.com/exa-labs/exa-py/commit/4b06d0e9fd06eb3a85b01b2daf33c007cd55f615))
+
 ## [2.20.0](https://github.com/exa-labs/exa-py/compare/v2.19.0...v2.20.0) (2026-09-01)
 
 
