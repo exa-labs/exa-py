@@ -16,6 +16,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Sequence,
     TypeVar,
     Union,
     get_args,
@@ -45,6 +46,7 @@ from .websets.core.base import ExaJSONEncoder
 from .monitors import SearchMonitorsClient, AsyncSearchMonitorsClient
 from .research import ResearchClient, AsyncResearchClient
 from .agent import AgentNamespace, AsyncAgentNamespace, BetaClient, AsyncBetaClient
+from .agent.betas import headers_for_betas
 from .tools import (
     AsyncAnthropicNamespace,
     AsyncOpenAINamespace,
@@ -60,6 +62,9 @@ is_beta = os.getenv("IS_BETA") == "True"
 
 # Default max characters for text contents
 DEFAULT_MAX_CHARACTERS = 10_000
+
+# Exa-Beta token required for Dynamic Highlights (research preview).
+DYNAMIC_HIGHLIGHTS_BETA = "dynamic-highlights-2026-08-28"
 
 
 def _convert_contents_summary_schema(options: Dict[str, Any]) -> None:
@@ -536,6 +541,11 @@ class HighlightsContentsOptions(TypedDict, total=False):
     Attributes:
         query (str): The query string for highlight generation. Highlights will be biased towards this query.
         max_characters (int): The maximum number of characters to return for highlights. Default: None (server default).
+            Not compatible with dynamic.
+        dynamic (bool): Enable Dynamic Highlights (research preview): allocates one shared context budget
+            across all results instead of a per-document budget; the model sizes the output itself.
+            Not compatible with max_characters. Beta: requires passing
+            ``betas=[DYNAMIC_HIGHLIGHTS_BETA]`` to the request.
         num_sentences (int): DEPRECATED FIELD - do not use in new code. Use max_characters instead.
             Kept only for backward compatibility.
         highlights_per_url (int): DEPRECATED FIELD - do not use in new code. Use max_characters instead.
@@ -544,6 +554,7 @@ class HighlightsContentsOptions(TypedDict, total=False):
 
     query: str
     max_characters: int
+    dynamic: bool
     num_sentences: int  # DEPRECATED FIELD: use max_characters. Do not use in new code.
     highlights_per_url: int  # DEPRECATED FIELD: use max_characters. Do not use in new code.
 
@@ -1599,6 +1610,7 @@ class Exa:
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
+        betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
 
@@ -1642,6 +1654,8 @@ class Exa:
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
+            betas (Sequence[str], optional): Exa-Beta tokens to send with the request
+                (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -1673,6 +1687,7 @@ class Exa:
 
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
         options.pop("stream", None)
+        options.pop("betas", None)
 
         # Handle contents parameter with default behavior
         if contents is False:
@@ -1688,7 +1703,7 @@ class Exa:
         _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
         options = to_camel_case(options, skip_keys=["output_schema", "schema"])
-        data = self.request("/search", options)
+        data = self.request("/search", options, headers=headers_for_betas(betas))
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
         for result in data["results"]:
@@ -1905,6 +1920,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
+        betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[ResultWithText]: ...
 
     @overload
@@ -1921,6 +1937,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
+        betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[ResultWithText]: ...
 
     @overload
@@ -1937,6 +1954,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
+        betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[ResultWithSummary]: ...
 
     @overload
@@ -1954,6 +1972,7 @@ class Exa:
         subpage_target: Optional[Union[str, List[str]]] = None,
         extras: Optional[ExtrasOptions] = None,
         flags: Optional[List[str]] = None,
+        betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[ResultWithTextAndSummary]: ...
 
     def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
@@ -1971,6 +1990,8 @@ class Exa:
             subpage_target (str | List[str], optional): Target subpages to retrieve.
             extras (ExtrasOptions, optional): Options for extra content (links, image_links).
             flags (List[str], optional): Experimental flags.
+            betas (Sequence[str], optional): Exa-Beta tokens to send with the request
+                (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
         Returns:
             SearchResponse[Result]: The response containing the contents of the URLs.
@@ -1991,6 +2012,8 @@ class Exa:
         elif isinstance(urls, list) and len(urls) > 0 and isinstance(urls[0], _Result):
             # Extract URLs from Result objects
             urls = [r.url for r in urls]
+
+        betas = kwargs.pop("betas", None)
 
         options = {"urls": urls}
         for k, v in kwargs.items():
@@ -2016,7 +2039,7 @@ class Exa:
                 summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
         options = to_camel_case(options, ["schema"])
-        data = self.request("/contents", options)
+        data = self.request("/contents", options, headers=headers_for_betas(betas))
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []
         for status in data.get("statuses", []):
@@ -2815,6 +2838,7 @@ class AsyncExa(Exa):
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
+        betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
@@ -2858,6 +2882,8 @@ class AsyncExa(Exa):
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
+            betas (Sequence[str], optional): Exa-Beta tokens to send with the request
+                (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
         Returns:
             SearchResponse: The response containing search results, etc.
@@ -2886,6 +2912,7 @@ class AsyncExa(Exa):
 
         options = {k: v for k, v in locals().items() if k != "self" and v is not None}
         options.pop("stream", None)
+        options.pop("betas", None)
 
         # Handle contents parameter with default behavior
         if contents is False:
@@ -2901,7 +2928,7 @@ class AsyncExa(Exa):
         _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
         options = to_camel_case(options, skip_keys=["output_schema", "schema"])
-        data = await self.async_request("/search", options)
+        data = await self.async_request("/search", options, headers=headers_for_betas(betas))
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
         for result in data["results"]:
@@ -3119,6 +3146,8 @@ class AsyncExa(Exa):
             subpage_target (str | List[str], optional): Target subpages to retrieve.
             extras (ExtrasOptions, optional): Options for extra content (links, image_links).
             flags (List[str], optional): Experimental flags.
+            betas (Sequence[str], optional): Exa-Beta tokens to send with the request
+                (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
         Returns:
             SearchResponse[Result]: The response containing the contents of the URLs.
@@ -3139,6 +3168,8 @@ class AsyncExa(Exa):
         elif isinstance(urls, list) and len(urls) > 0 and isinstance(urls[0], _Result):
             # Extract URLs from Result objects
             urls = [r.url for r in urls]
+
+        betas = kwargs.pop("betas", None)
 
         options = {"urls": urls}
         for k, v in kwargs.items():
@@ -3164,7 +3195,7 @@ class AsyncExa(Exa):
                 summary_opts["schema"] = _convert_schema_input(summary_opts["schema"])
 
         options = to_camel_case(options, ["schema"])
-        data = await self.async_request("/contents", options)
+        data = await self.async_request("/contents", options, headers=headers_for_betas(betas))
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         statuses = []
         for status in data.get("statuses", []):
