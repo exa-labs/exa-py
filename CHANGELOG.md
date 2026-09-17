@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.0](https://github.com/exa-labs/exa-py/compare/v2.21.0...v2.22.0) (2026-09-17)
+
+
+### Features
+
+* add snapshot_as_of option ([#263](https://github.com/exa-labs/exa-py/issues/263)) ([1de57c0](https://github.com/exa-labs/exa-py/commit/1de57c0effb2be3a6de5ee375b97998db97aa375))
+
 ## [2.21.0](https://github.com/exa-labs/exa-py/compare/v2.20.0...v2.21.0) (2026-09-03)
 
 
