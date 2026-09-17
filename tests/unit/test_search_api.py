@@ -112,6 +112,57 @@ def test_find_similar_deprecated_offline():
         assert mock_request.call_args[0][0] == "/findSimilar"
 
 
+def test_get_contents_snapshot_as_of_offline():
+    """get_contents sends snapshotAsOf top-level and surfaces snapshotAt."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "https://x",
+                "id": "1",
+                "title": "Test",
+                "text": "body",
+                "snapshotAt": "2026-09-14T00:00:00.000Z",
+            }
+        ],
+        "statuses": [{"id": "https://x", "status": "success", "source": "cached"}],
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.get_contents(
+            ["https://x"], snapshot_as_of="2026-09-15T00:00:00Z", text=True
+        )
+
+        body = mock_request.call_args[0][1]
+        assert body["snapshotAsOf"] == "2026-09-15T00:00:00Z"
+        assert resp.results[0].snapshot_at == "2026-09-14T00:00:00.000Z"
+
+
+def test_search_snapshot_as_of_nested_in_contents_offline():
+    """search nests contents.snapshot_as_of as contents.snapshotAsOf."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [
+            {
+                "url": "http://example.com",
+                "id": "1",
+                "title": "Test",
+                "snapshotAt": "2026-08-15T00:00:00.000Z",
+            }
+        ],
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search(
+            "test query",
+            contents={"snapshot_as_of": "2026-08-16T00:00:00Z", "highlights": True},
+        )
+
+        body = mock_request.call_args[0][1]
+        assert body["contents"]["snapshotAsOf"] == "2026-08-16T00:00:00Z"
+        assert resp.results[0].snapshot_at == "2026-08-15T00:00:00.000Z"
+
+
 def test_search_accepts_additional_queries_offline():
     """Test that search method accepts additional_queries parameter for deep search.
 

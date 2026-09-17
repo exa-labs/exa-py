@@ -396,6 +396,7 @@ CONTENTS_OPTIONS_TYPES = {
     "livecrawl_timeout": [int],
     "livecrawl": [LIVECRAWL_OPTIONS],
     "max_age_hours": [int],
+    "snapshot_as_of": [str],
     "filter_empty_results": [bool],
     "flags": [list],  # We allow flags to be passed here too
 }
@@ -596,6 +597,7 @@ class ContentsOptions(TypedDict, total=False):
         max_age_hours (int): Maximum age of cached content in hours. If content is older, it will be
             fetched fresh. Special values: 0 = always fetch fresh content,
             -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days.
+        snapshot_as_of (str): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
         subpages (int): Number of subpages to crawl.
         subpage_target (str | List[str]): Target subpage path(s) to crawl.
         extras (ExtrasOptions): Additional extraction options (links, images).
@@ -608,6 +610,7 @@ class ContentsOptions(TypedDict, total=False):
     livecrawl: LIVECRAWL_OPTIONS
     livecrawl_timeout: int
     max_age_hours: int
+    snapshot_as_of: str
     subpages: int
     subpage_target: Union[str, List[str]]
     extras: ExtrasOptions
@@ -770,6 +773,7 @@ class _Result:
         extras (Dict, optional): Additional metadata; e.g. links, images.
         entities (List[Entity], optional): Structured entity data for company or person searches.
         crawl_date (str, optional): The date the page was last crawled (if available).
+        snapshot_at (str, optional): Crawl instant of the stored version served for a snapshotAsOf request.
     """
 
     url: str
@@ -784,6 +788,7 @@ class _Result:
     extras: Optional[Dict] = None
     entities: Optional[List[Entity]] = None
     crawl_date: Optional[str] = None
+    snapshot_at: Optional[str] = None
 
     def __init__(
         self,
@@ -799,6 +804,7 @@ class _Result:
         extras=None,
         entities=None,
         crawl_date=None,
+        snapshot_at=None,
     ):
         self.url = url
         self.id = id
@@ -812,6 +818,7 @@ class _Result:
         self.extras = extras
         self.entities = entities
         self.crawl_date = crawl_date
+        self.snapshot_at = snapshot_at
 
     def __str__(self):
         result = (
@@ -826,6 +833,7 @@ class _Result:
             f"Extras: {self.extras}\n"
             f"Subpages: {self.subpages}\n"
             f"Crawl Date: {self.crawl_date}\n"
+            f"Snapshot At: {self.snapshot_at}\n"
         )
         if self.entities:
             entities_str = "\n".join(
@@ -867,6 +875,7 @@ class Result(_Result):
         extras=None,
         entities=None,
         crawl_date=None,
+        snapshot_at=None,
         text=None,
         summary=None,
         highlights=None,
@@ -885,6 +894,7 @@ class Result(_Result):
             extras,
             entities,
             crawl_date,
+            snapshot_at,
         )
         self.text = text
         self.summary = summary
@@ -926,6 +936,7 @@ class ResultWithText(_Result):
         extras=None,
         entities=None,
         crawl_date=None,
+        snapshot_at=None,
         text="",
     ):
         super().__init__(
@@ -941,6 +952,7 @@ class ResultWithText(_Result):
             extras,
             entities,
             crawl_date,
+            snapshot_at,
         )
         self.text = text
 
@@ -974,6 +986,7 @@ class ResultWithSummary(_Result):
         extras=None,
         entities=None,
         crawl_date=None,
+        snapshot_at=None,
         summary="",
     ):
         super().__init__(
@@ -989,6 +1002,7 @@ class ResultWithSummary(_Result):
             extras,
             entities,
             crawl_date,
+            snapshot_at,
         )
         self.summary = summary
 
@@ -1024,6 +1038,7 @@ class ResultWithTextAndSummary(_Result):
         extras=None,
         entities=None,
         crawl_date=None,
+        snapshot_at=None,
         text="",
         summary="",
     ):
@@ -1040,6 +1055,7 @@ class ResultWithTextAndSummary(_Result):
             extras,
             entities,
             crawl_date,
+            snapshot_at,
         )
         self.text = text
         self.summary = summary
@@ -1721,6 +1737,7 @@ class Exa:
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -1868,6 +1885,7 @@ class Exa:
                 "livecrawl",
                 "livecrawl_timeout",
                 "max_age_hours",
+                "snapshot_as_of",
                 "extras",
             ],
             "contents",
@@ -1891,6 +1909,7 @@ class Exa:
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -1915,6 +1934,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1932,6 +1952,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1949,6 +1970,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1967,6 +1989,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -1985,6 +2008,7 @@ class Exa:
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
                 it will be fetched fresh. Special values: 0 = always fetch fresh content,
                 -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
+            snapshot_as_of (str, optional): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
             subpage_target (str | List[str], optional): Target subpages to retrieve.
@@ -2066,6 +2090,7 @@ class Exa:
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -2175,6 +2200,7 @@ class Exa:
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -2214,6 +2240,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -2245,6 +2272,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -2276,6 +2304,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -2307,6 +2336,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -2339,6 +2369,7 @@ class Exa:
         livecrawl_timeout: Optional[int] = None,
         livecrawl: Optional[LIVECRAWL_OPTIONS] = None,
         max_age_hours: Optional[int] = None,
+        snapshot_as_of: Optional[str] = None,
         filter_empty_results: Optional[bool] = None,
         subpages: Optional[int] = None,
         subpage_target: Optional[Union[str, List[str]]] = None,
@@ -2392,6 +2423,7 @@ class Exa:
                 "livecrawl",
                 "livecrawl_timeout",
                 "max_age_hours",
+                "snapshot_as_of",
                 "extras",
             ],
             "contents",
@@ -2415,6 +2447,7 @@ class Exa:
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -2946,6 +2979,7 @@ class AsyncExa(Exa):
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -3092,6 +3126,7 @@ class AsyncExa(Exa):
                 "livecrawl",
                 "livecrawl_timeout",
                 "max_age_hours",
+                "snapshot_as_of",
                 "extras",
             ],
             "contents",
@@ -3115,6 +3150,7 @@ class AsyncExa(Exa):
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -3141,6 +3177,7 @@ class AsyncExa(Exa):
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
                 it will be fetched fresh. Special values: 0 = always fetch fresh content,
                 -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
+            snapshot_as_of (str, optional): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
             subpage_target (str | List[str], optional): Target subpages to retrieve.
@@ -3222,6 +3259,7 @@ class AsyncExa(Exa):
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -3337,6 +3375,7 @@ class AsyncExa(Exa):
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
@@ -3398,6 +3437,7 @@ class AsyncExa(Exa):
                 "livecrawl",
                 "livecrawl_timeout",
                 "max_age_hours",
+                "snapshot_as_of",
                 "extras",
             ],
             "contents",
@@ -3421,6 +3461,7 @@ class AsyncExa(Exa):
                     subpages=snake_result.get("subpages"),
                     extras=snake_result.get("extras"),
                     crawl_date=snake_result.get("crawl_date"),
+                    snapshot_at=snake_result.get("snapshot_at"),
                     text=snake_result.get("text"),
                     summary=snake_result.get("summary"),
                     highlights=snake_result.get("highlights"),
