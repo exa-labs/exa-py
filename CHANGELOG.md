@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.1](https://github.com/exa-labs/exa-py/compare/v2.22.0...v2.22.1) (2026-09-18)
+
+
+### Documentation
+
+* [exa-py] recommend relevance-sized highlights for AI context ([#262](https://github.com/exa-labs/exa-py/issues/262)) ([0e4f8bb](https://github.com/exa-labs/exa-py/commit/0e4f8bb3d5454500a09aec1ab6191397265d683b))
+
 ## [2.22.0](https://github.com/exa-labs/exa-py/compare/v2.21.0...v2.22.0) (2026-09-17)
 
 
