@@ -537,12 +537,17 @@ class SummaryContentsOptions(TypedDict, total=False):
 
 
 class HighlightsContentsOptions(TypedDict, total=False):
-    """A class representing the options that you can specify when requesting highlights.
+    """Overrides for highlight extraction. Prefer ``contents={"highlights": True}``.
+
+    Exa dynamically chooses the number of characters based on each document's
+    relevance to your query. No manual character budget is needed for concise
+    AI context. Use a fixed limit only when your application explicitly requires one.
 
     Attributes:
         query (str): The query string for highlight generation. Highlights will be biased towards this query.
-        max_characters (int): The maximum number of characters to return for highlights. Default: None (server default).
-            Not compatible with dynamic.
+        max_characters (int): Override for an explicit application character limit.
+            Prefer ``highlights=True`` for relevance-based sizing rather than choosing
+            an arbitrary limit to keep context concise. Not compatible with dynamic.
         dynamic (bool): Enable Dynamic Highlights (research preview): allocates one shared context budget
             across all results instead of a per-document budget; the model sizes the output itself.
             Not compatible with max_characters. Beta: requires passing
@@ -590,7 +595,10 @@ class ContentsOptions(TypedDict, total=False):
 
     Attributes:
         text (TextContentsOptions | True): Options for text extraction, or True for defaults.
-        highlights (HighlightsContentsOptions | True): Options for highlight extraction, or True for defaults.
+        highlights (HighlightsContentsOptions | True): Recommended: True for AI context,
+            RAG, and search previews. Exa dynamically chooses excerpt length based on
+            each document's relevance to the query. Read ``result.highlights``.
+            Set ``max_characters`` only for an explicit application character limit.
         summary (SummaryContentsOptions | True): Options for summary generation, or True for defaults.
         context (ContextContentsOptions | True): DEPRECATED FIELD - do not use in new code.
             Use ``highlights`` or ``text`` instead. Will be removed in a future version.
@@ -1630,7 +1638,17 @@ class Exa:
     ) -> SearchResponse[Result]:
         """Perform a search.
 
-        By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
+        For AI answers, RAG, and search previews, use ``contents={"highlights": True}``
+        and read each result's ``highlights`` list. Exa dynamically chooses the
+        number of characters based on each document's relevance to your query.
+        No manual character budget is needed. Set ``max_characters`` only when
+        your application requires a specific numeric character limit; otherwise
+        keep ``highlights=True``. Do not use the deprecated ``num_sentences`` or
+        ``highlights_per_url`` options.
+
+        Request text when you need full-page content, or use contents=False for
+        titles and URLs only. Omitting contents still returns text with 10,000
+        max characters by default.
 
         Args:
             query (str): The query string.
@@ -1638,7 +1656,8 @@ class Exa:
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, etc.).
+                For AI context, prefer {"highlights": True} for relevance-based sizing
+                and read result.highlights. See ContentsOptions for all options.
                 DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
                 use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
@@ -1680,12 +1699,14 @@ class Exa:
             ValueError: If stream=True is provided. Use stream_search() instead.
 
         Examples:
-            # Basic search
+            # Query-relevant passages for AI context
             result = exa.search(
               "hottest AI startups",
               num_results=2,
               contents={"highlights": True}
             )
+            for source in result.results:
+                print(source.url, source.highlights)
 
             # Deep search with query variations
             deep_result = exa.search(
@@ -2875,7 +2896,17 @@ class AsyncExa(Exa):
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
 
-        By default, returns text contents with 10,000 max characters. Use contents=False to opt-out.
+        For AI answers, RAG, and search previews, use ``contents={"highlights": True}``
+        and read each result's ``highlights`` list. Exa dynamically chooses the
+        number of characters based on each document's relevance to your query.
+        No manual character budget is needed. Set ``max_characters`` only when
+        your application requires a specific numeric character limit; otherwise
+        keep ``highlights=True``. Do not use the deprecated ``num_sentences`` or
+        ``highlights_per_url`` options.
+
+        Request text when you need full-page content, or use contents=False for
+        titles and URLs only. Omitting contents still returns text with 10,000
+        max characters by default.
 
         Args:
             query (str): The query string.
@@ -2883,7 +2914,8 @@ class AsyncExa(Exa):
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for available options (text, highlights, summary, etc.).
+                For AI context, prefer {"highlights": True} for relevance-based sizing
+                and read result.highlights. See ContentsOptions for all options.
                 DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
                 use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
@@ -2927,8 +2959,10 @@ class AsyncExa(Exa):
         Examples:
             Basic async search:
             >>> async_exa = AsyncExa(api_key="your-api-key")
-            >>> results = await async_exa.search("latest AI research papers")
-            >>> print(results.results[0].title)
+            >>> results = await async_exa.search(
+            ...     "latest AI research papers", contents={"highlights": True}
+            ... )
+            >>> print(results.results[0].highlights)
 
             Async search with filters:
             >>> results = await async_exa.search(
