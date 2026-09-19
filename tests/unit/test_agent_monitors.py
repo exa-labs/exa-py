@@ -7,8 +7,8 @@ from exa_py.agent import (
     AgentMonitor,
     AgentMonitorChangesClient,
     AgentMonitorEntitiesClient,
-    AgentMonitorSnapshotFailedError,
-    AgentMonitorSnapshotsClient,
+    AgentMonitorBacktestFailedError,
+    AgentMonitorBacktestsClient,
     AgentMonitorsClient,
     AgentBetaNamespace,
     AsyncAgentMonitorsClient,
@@ -98,27 +98,27 @@ def _make_change() -> dict:
     }
 
 
-def _make_snapshot(status: str = "running", **extra) -> dict:
-    snapshot = {
-        "id": "agentsnap_123",
-        "object": "agent_monitor.snapshot",
+def _make_backtest(status: str = "running", **extra) -> dict:
+    backtest = {
+        "id": "agentbacktest_123",
+        "object": "agent_monitor.backtest",
         "status": status,
         "startTime": "2026-01-01T00:00:00.000Z",
         "endTime": "2026-01-08T00:00:00.000Z",
         "createdAt": "2026-01-09T00:00:00.000Z",
         "expiresAt": "2026-01-10T00:00:00.000Z",
     }
-    snapshot.update(extra)
-    return snapshot
+    backtest.update(extra)
+    return backtest
 
 
-_SNAPSHOT_KWARGS = {
+_BACKTEST_KWARGS = {
     "entities": [{"name": "Acme Corp", "domain": "acme.com"}],
     "fields": [
-        {"name": "funding", "description": "New funding rounds", "mode": "dynamic"}
+        {"name": "funding", "description": "New funding rounds"}
     ],
-    "start_date": "2026-01-01",
-    "end_date": "2026-01-08",
+    "start_time": "2026-01-01T00:00:00Z",
+    "end_time": "2026-01-08T00:00:00Z",
 }
 
 
@@ -128,7 +128,7 @@ def test_exa_exposes_monitors_only_under_beta_agent_namespace():
     assert isinstance(exa.beta.agent.monitors, AgentMonitorsClient)
     assert isinstance(exa.beta.agent.monitors.entities, AgentMonitorEntitiesClient)
     assert isinstance(exa.beta.agent.monitors.changes, AgentMonitorChangesClient)
-    assert isinstance(exa.beta.agent.monitors.snapshots, AgentMonitorSnapshotsClient)
+    assert isinstance(exa.beta.agent.monitors.backtests, AgentMonitorBacktestsClient)
 
 
 def test_async_exa_exposes_monitors_only_under_beta_agent_namespace():
@@ -499,28 +499,24 @@ def test_list_all_changes_resumes_from_cursor(monitors_client, mock_client):
     assert second_call.kwargs["params"] == {"cursor": "change-cursor-2"}
 
 
-def test_create_snapshot(monitors_client, mock_client):
-    mock_client.request.return_value = _make_snapshot()
+def test_create_backtest(monitors_client, mock_client):
+    mock_client.request.return_value = _make_backtest()
 
-    result = monitors_client.snapshots.create(
-        betas=_BETAS, **_SNAPSHOT_KWARGS, end_hour=12
-    )
+    result = monitors_client.backtests.create(betas=_BETAS, **_BACKTEST_KWARGS)
 
     assert result.status == "running"
     mock_client.request.assert_called_once_with(
-        "/agent/monitors/snapshot",
+        "/agent/monitors/backtest",
         data={
             "entities": [{"name": "Acme Corp", "domain": "acme.com"}],
             "fields": [
                 {
                     "name": "funding",
                     "description": "New funding rounds",
-                    "mode": "dynamic",
                 }
             ],
-            "startDate": "2026-01-01",
-            "endDate": "2026-01-08",
-            "endHour": 12,
+            "startTime": "2026-01-01T00:00:00Z",
+            "endTime": "2026-01-08T00:00:00Z",
         },
         method="POST",
         params=None,
@@ -528,26 +524,36 @@ def test_create_snapshot(monitors_client, mock_client):
     )
 
 
-def test_get_snapshot(monitors_client, mock_client):
-    mock_client.request.return_value = _make_snapshot(
+def test_get_backtest(monitors_client, mock_client):
+    mock_client.request.return_value = _make_backtest(
         status="completed",
         data=[
             {
                 "name": "Acme Corp",
-                "fields": {"funding": "Raised a $30M Series B"},
-                "sourceUrls": ["https://news.example.com/acme-series-b"],
+                "contents": {
+                    "funding": {
+                        "value": "Raised a $30M Series B",
+                        "citations": [
+                            {"url": "https://news.example.com/acme-series-b"}
+                        ],
+                    }
+                },
             }
         ],
         warnings=[],
     )
 
-    result = monitors_client.snapshots.get("agentsnap_123", betas=_BETAS)
+    result = monitors_client.backtests.get("agentbacktest_123", betas=_BETAS)
 
     assert result.status == "completed"
     assert result.data is not None
-    assert result.data[0].fields["funding"] == "Raised a $30M Series B"
+    assert result.data[0].contents["funding"].value == "Raised a $30M Series B"
+    assert (
+        result.data[0].contents["funding"].citations[0].url
+        == "https://news.example.com/acme-series-b"
+    )
     mock_client.request.assert_called_once_with(
-        "/agent/monitors/snapshot/agentsnap_123",
+        "/agent/monitors/backtest/agentbacktest_123",
         data=None,
         method="GET",
         params=None,
@@ -555,41 +561,41 @@ def test_get_snapshot(monitors_client, mock_client):
     )
 
 
-def test_create_and_wait_snapshot(monitors_client, mock_client):
+def test_create_and_wait_backtest(monitors_client, mock_client):
     mock_client.request.side_effect = [
-        _make_snapshot(),
-        _make_snapshot(),
-        _make_snapshot(status="completed", data=[]),
+        _make_backtest(),
+        _make_backtest(),
+        _make_backtest(status="completed", data=[]),
     ]
 
-    result = monitors_client.snapshots.create_and_wait(
-        betas=_BETAS, **_SNAPSHOT_KWARGS, poll_interval=1
+    result = monitors_client.backtests.create_and_wait(
+        betas=_BETAS, **_BACKTEST_KWARGS, poll_interval=1
     )
 
     assert result.status == "completed"
     assert mock_client.request.call_count == 3
 
 
-def test_create_and_wait_snapshot_raises_on_failure(monitors_client, mock_client):
+def test_create_and_wait_backtest_raises_on_failure(monitors_client, mock_client):
     mock_client.request.side_effect = [
-        _make_snapshot(),
-        _make_snapshot(status="failed", error="newsfeed unavailable"),
+        _make_backtest(),
+        _make_backtest(status="failed", error="newsfeed unavailable"),
     ]
 
-    with pytest.raises(AgentMonitorSnapshotFailedError) as excinfo:
-        monitors_client.snapshots.create_and_wait(
-            betas=_BETAS, **_SNAPSHOT_KWARGS, poll_interval=1
+    with pytest.raises(AgentMonitorBacktestFailedError) as excinfo:
+        monitors_client.backtests.create_and_wait(
+            betas=_BETAS, **_BACKTEST_KWARGS, poll_interval=1
         )
 
-    assert excinfo.value.snapshot.error == "newsfeed unavailable"
+    assert excinfo.value.backtest.error == "newsfeed unavailable"
 
 
 def test_poll_until_finished_times_out(monitors_client, mock_client):
-    mock_client.request.return_value = _make_snapshot()
+    mock_client.request.return_value = _make_backtest()
 
     with pytest.raises(TimeoutError):
-        monitors_client.snapshots.poll_until_finished(
-            "agentsnap_123", betas=_BETAS, poll_interval=1, timeout_ms=5
+        monitors_client.backtests.poll_until_finished(
+            "agentbacktest_123", betas=_BETAS, poll_interval=1, timeout_ms=5
         )
 
 
@@ -650,18 +656,18 @@ async def test_async_list_all_entities_paginates():
 
 
 @pytest.mark.asyncio
-async def test_async_create_and_wait_snapshot():
+async def test_async_create_and_wait_backtest():
     client = MagicMock()
     client.async_request = AsyncMock(
         side_effect=[
-            _make_snapshot(),
-            _make_snapshot(status="completed", data=[]),
+            _make_backtest(),
+            _make_backtest(status="completed", data=[]),
         ]
     )
     monitors = AsyncAgentBetaNamespace(client).monitors
 
-    result = await monitors.snapshots.create_and_wait(
-        betas=_BETAS, **_SNAPSHOT_KWARGS, poll_interval=1
+    result = await monitors.backtests.create_and_wait(
+        betas=_BETAS, **_BACKTEST_KWARGS, poll_interval=1
     )
 
     assert result.status == "completed"
@@ -669,15 +675,15 @@ async def test_async_create_and_wait_snapshot():
 
 @pytest.mark.asyncio
 async def test_async_request_accepts_202():
-    """POST /agent/monitors/snapshot responds 202; async_request must not raise."""
+    """POST /agent/monitors/backtest responds 202; async_request must not raise."""
     exa = AsyncExa("fake-key")
     response = MagicMock()
     response.status_code = 202
-    response.json.return_value = _make_snapshot()
+    response.json.return_value = _make_backtest()
     http_client = MagicMock()
     http_client.post = AsyncMock(return_value=response)
     exa._client = http_client
 
-    result = await exa.async_request("/agent/monitors/snapshot", data={})
+    result = await exa.async_request("/agent/monitors/backtest", data={})
 
     assert result["status"] == "running"

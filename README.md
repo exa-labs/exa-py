@@ -272,15 +272,15 @@ changes = exa.beta.agent.monitors.changes.list(
     since="2026-01-01T00:00:00Z",
 )
 
-# One-shot stateless snapshot of a past news window — no monitor created.
-snapshot = exa.beta.agent.monitors.snapshots.create_and_wait(
+# One-shot backtest of a past news window — no monitor persists.
+backtest = exa.beta.agent.monitors.backtests.create_and_wait(
     betas=betas,
     entities=[{"name": "Acme Corp", "domain": "acme.com"}],
-    fields=[{"name": "funding", "description": "New funding rounds"}],  # dynamic by default
-    start_date="2026-01-01",
-    end_date="2026-01-08",
+    fields=[{"name": "funding", "description": "New funding rounds"}],
+    start_time="2026-01-01T00:00:00Z",
+    end_time="2026-01-08T00:00:00Z",
 )
-print(snapshot.data)
+print(backtest.data)
 
 # Add entities, inspect refresh progress, clean up.
 exa.beta.agent.monitors.entities.add(
