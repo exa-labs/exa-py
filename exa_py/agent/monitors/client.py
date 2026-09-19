@@ -12,16 +12,16 @@ from .types import (
     AgentMonitorEntityParam,
     AgentMonitorEntityView,
     AgentMonitorFieldParam,
-    AgentMonitorSnapshot,
-    AgentMonitorSnapshotFailedError,
+    AgentMonitorBacktest,
+    AgentMonitorBacktestFailedError,
     DeletedAgentMonitor,
     ListAgentMonitorChangesResponse,
     ListAgentMonitorEntitiesResponse,
     ListAgentMonitorsResponse,
 )
 
-_DEFAULT_SNAPSHOT_POLL_INTERVAL_MS = 2000
-_DEFAULT_SNAPSHOT_POLL_TIMEOUT_MS = 3600000
+_DEFAULT_BACKTEST_POLL_INTERVAL_MS = 2000
+_DEFAULT_BACKTEST_POLL_TIMEOUT_MS = 3600000
 
 EntityInput = Union[Dict[str, Any], AgentMonitorEntityParam]
 FieldInput = Union[Dict[str, Any], AgentMonitorFieldParam]
@@ -45,10 +45,10 @@ def _serialize_fields(fields: Sequence[FieldInput]) -> list[Dict[str, Any]]:
     ]
 
 
-def _ensure_completed_snapshot(snapshot: AgentMonitorSnapshot) -> AgentMonitorSnapshot:
-    if snapshot.status == "failed":
-        raise AgentMonitorSnapshotFailedError(snapshot)
-    return snapshot
+def _ensure_completed_backtest(backtest: AgentMonitorBacktest) -> AgentMonitorBacktest:
+    if backtest.status == "failed":
+        raise AgentMonitorBacktestFailedError(backtest)
+    return backtest
 
 
 class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
@@ -347,8 +347,8 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         )
 
 
-class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
-    """Synchronous client for stateless Agent Monitor snapshot jobs."""
+class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
+    """Synchronous client for one-shot Agent Monitor backtest jobs."""
 
     def create(
         self,
@@ -356,32 +356,23 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
         betas: Sequence[str],
         entities: Sequence[EntityInput],
         fields: Sequence[FieldInput],
-        start_date: str,
-        end_date: str,
-        start_hour: Optional[int] = None,
-        end_hour: Optional[int] = None,
-    ) -> AgentMonitorSnapshot:
-        """Start an async, stateless snapshot of entities x fields over a past news window.
+        start_time: str,
+        end_time: str,
+    ) -> AgentMonitorBacktest:
+        """Start an async backtest of entities x fields over a past news window.
 
-        No monitor is created. The window bounds dynamic fields only; static
-        fields return present values answered over the live web, and the
-        result carries a warning when static fields are included.
+        The backtest runs one ordinary monitor refresh over the requested
+        window, then tears down its temporary monitor.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
-            entities: Entities to snapshot, each with a name and a unique domain.
-            fields: Fields to populate; dynamic by default (populated from news
-                over the window), `mode: "static"` fields are answered over the
-                live web.
-            start_date: Start of the news window, `YYYY-MM-DD` (UTC).
-            end_date: End of the news window, `YYYY-MM-DD` (UTC).
-            start_hour: Hour of start_date the window starts at, 0-23 UTC;
-                omitted means midnight.
-            end_hour: Hour of end_date the window ends at, 0-23 UTC; omitted
-                means midnight.
+            entities: Entities to backtest, each with a name and a unique domain.
+            fields: Fields to populate from news over the window.
+            start_time: Start of the news window as an ISO-8601 UTC timestamp.
+            end_time: End of the news window as an ISO-8601 UTC timestamp.
 
         Returns:
-            The running snapshot job; poll it with `get` or use `create_and_wait`.
+            The running backtest job; poll it with `get` or use `create_and_wait`.
 
         Examples:
             from exa_py import Exa
@@ -389,45 +380,40 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.beta.agent.monitors.snapshots.create(
+            backtest = exa.beta.agent.monitors.backtests.create(
                 betas=[AGENT_MONITORS_BETA_HEADER],
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
                     {
                         "name": "funding",
                         "description": "New funding rounds",
-                        "mode": "dynamic",
                     }
                 ],
-                start_date="2026-01-01",
-                end_date="2026-01-08",
+                start_time="2026-01-01T00:00:00Z",
+                end_time="2026-01-08T00:00:00Z",
             )
-            print(snapshot.id, snapshot.status)
+            print(backtest.id, backtest.status)
         """
         payload: Dict[str, Any] = {
             "entities": _serialize_entities(entities),
             "fields": _serialize_fields(fields),
-            "startDate": start_date,
-            "endDate": end_date,
+            "startTime": start_time,
+            "endTime": end_time,
         }
-        if start_hour is not None:
-            payload["startHour"] = start_hour
-        if end_hour is not None:
-            payload["endHour"] = end_hour
-        response = self.request("/snapshot", betas=betas, method="POST", data=payload)
-        return AgentMonitorSnapshot.model_validate(response)
+        response = self.request("/backtest", betas=betas, method="POST", data=payload)
+        return AgentMonitorBacktest.model_validate(response)
 
-    def get(self, snapshot_id: str, *, betas: Sequence[str]) -> AgentMonitorSnapshot:
-        """Poll a snapshot job for its status and, once completed, its result.
+    def get(self, backtest_id: str, *, betas: Sequence[str]) -> AgentMonitorBacktest:
+        """Poll a backtest job for its status and, once completed, its result.
 
         Jobs expire and read as 404 after `expires_at`.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
-            snapshot_id: The ID of the snapshot job.
+            backtest_id: The ID of the backtest job.
 
         Returns:
-            The snapshot job, with result data once completed.
+            The backtest job, with result data once completed.
 
         Examples:
             from exa_py import Exa
@@ -435,30 +421,30 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.beta.agent.monitors.snapshots.get("agentsnap_123", betas=[AGENT_MONITORS_BETA_HEADER])
-            print(snapshot.status)
+            backtest = exa.beta.agent.monitors.backtests.get("agentbacktest_123", betas=[AGENT_MONITORS_BETA_HEADER])
+            print(backtest.status)
         """
-        response = self.request(f"/snapshot/{snapshot_id}", betas=betas, method="GET")
-        return AgentMonitorSnapshot.model_validate(response)
+        response = self.request(f"/backtest/{backtest_id}", betas=betas, method="GET")
+        return AgentMonitorBacktest.model_validate(response)
 
     def poll_until_finished(
         self,
-        snapshot_id: str,
+        backtest_id: str,
         *,
         betas: Sequence[str],
-        poll_interval: int = _DEFAULT_SNAPSHOT_POLL_INTERVAL_MS,
-        timeout_ms: int = _DEFAULT_SNAPSHOT_POLL_TIMEOUT_MS,
-    ) -> AgentMonitorSnapshot:
-        """Poll a snapshot job until it reaches a terminal status.
+        poll_interval: int = _DEFAULT_BACKTEST_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_BACKTEST_POLL_TIMEOUT_MS,
+    ) -> AgentMonitorBacktest:
+        """Poll a backtest job until it reaches a terminal status.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
-            snapshot_id: The ID of the snapshot job.
+            backtest_id: The ID of the backtest job.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
 
         Returns:
-            The terminal snapshot job (completed or failed).
+            The terminal backtest job (completed or failed).
 
         Examples:
             from exa_py import Exa
@@ -466,20 +452,20 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.beta.agent.monitors.snapshots.poll_until_finished("agentsnap_123", betas=[AGENT_MONITORS_BETA_HEADER])
-            print(snapshot.status)
+            backtest = exa.beta.agent.monitors.backtests.poll_until_finished("agentbacktest_123", betas=[AGENT_MONITORS_BETA_HEADER])
+            print(backtest.status)
         """
         start_time = time.monotonic()
         poll_interval_sec = poll_interval / 1000
 
         while True:
-            snapshot = self.get(snapshot_id, betas=betas)
-            if snapshot.status != "running":
-                return snapshot
+            backtest = self.get(backtest_id, betas=betas)
+            if backtest.status != "running":
+                return backtest
 
             if (time.monotonic() - start_time) * 1000 > timeout_ms:
                 raise TimeoutError(
-                    f"Agent monitor snapshot {snapshot_id} did not complete within {timeout_ms}ms"
+                    f"Agent monitor backtest {backtest_id} did not complete within {timeout_ms}ms"
                 )
 
             time.sleep(poll_interval_sec)
@@ -490,35 +476,27 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
         betas: Sequence[str],
         entities: Sequence[EntityInput],
         fields: Sequence[FieldInput],
-        start_date: str,
-        end_date: str,
-        start_hour: Optional[int] = None,
-        end_hour: Optional[int] = None,
-        poll_interval: int = _DEFAULT_SNAPSHOT_POLL_INTERVAL_MS,
-        timeout_ms: int = _DEFAULT_SNAPSHOT_POLL_TIMEOUT_MS,
-    ) -> AgentMonitorSnapshot:
-        """Start a snapshot and wait for its result.
+        start_time: str,
+        end_time: str,
+        poll_interval: int = _DEFAULT_BACKTEST_POLL_INTERVAL_MS,
+        timeout_ms: int = _DEFAULT_BACKTEST_POLL_TIMEOUT_MS,
+    ) -> AgentMonitorBacktest:
+        """Start a backtest and wait for its result.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
-            entities: Entities to snapshot, each with a name and a unique domain.
-            fields: Fields to populate; dynamic by default (populated from news
-                over the window), `mode: "static"` fields are answered over the
-                live web.
-            start_date: Start of the news window, `YYYY-MM-DD` (UTC).
-            end_date: End of the news window, `YYYY-MM-DD` (UTC).
-            start_hour: Hour of start_date the window starts at, 0-23 UTC;
-                omitted means midnight.
-            end_hour: Hour of end_date the window ends at, 0-23 UTC; omitted
-                means midnight.
+            entities: Entities to backtest, each with a name and a unique domain.
+            fields: Fields to populate from news over the window.
+            start_time: Start of the news window as an ISO-8601 UTC timestamp.
+            end_time: End of the news window as an ISO-8601 UTC timestamp.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
 
         Returns:
-            The completed snapshot job.
+            The completed backtest job.
 
         Raises:
-            AgentMonitorSnapshotFailedError: If the snapshot job fails.
+            AgentMonitorBacktestFailedError: If the backtest job fails.
 
         Examples:
             from exa_py import Exa
@@ -526,38 +504,35 @@ class AgentMonitorSnapshotsClient(AgentMonitorsBaseClient):
 
             exa = Exa("EXA_API_KEY")
 
-            snapshot = exa.beta.agent.monitors.snapshots.create_and_wait(
+            backtest = exa.beta.agent.monitors.backtests.create_and_wait(
                 betas=[AGENT_MONITORS_BETA_HEADER],
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
                     {
                         "name": "funding",
                         "description": "New funding rounds",
-                        "mode": "dynamic",
                     }
                 ],
-                start_date="2026-01-01",
-                end_date="2026-01-08",
+                start_time="2026-01-01T00:00:00Z",
+                end_time="2026-01-08T00:00:00Z",
             )
-            print(snapshot.data)
+            print(backtest.data)
         """
-        snapshot = self.create(
+        backtest = self.create(
             betas=betas,
             entities=entities,
             fields=fields,
-            start_date=start_date,
-            end_date=end_date,
-            start_hour=start_hour,
-            end_hour=end_hour,
+            start_time=start_time,
+            end_time=end_time,
         )
-        if snapshot.status == "running":
-            snapshot = self.poll_until_finished(
-                snapshot.id,
+        if backtest.status == "running":
+            backtest = self.poll_until_finished(
+                backtest.id,
                 betas=betas,
                 poll_interval=poll_interval,
                 timeout_ms=timeout_ms,
             )
-        return _ensure_completed_snapshot(snapshot)
+        return _ensure_completed_backtest(backtest)
 
 
 class AgentMonitorsClient(AgentMonitorsBaseClient):
@@ -565,13 +540,13 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
 
     entities: AgentMonitorEntitiesClient
     changes: AgentMonitorChangesClient
-    snapshots: AgentMonitorSnapshotsClient
+    backtests: AgentMonitorBacktestsClient
 
     def __init__(self, client: Any):
         super().__init__(client)
         self.entities = AgentMonitorEntitiesClient(client)
         self.changes = AgentMonitorChangesClient(client)
-        self.snapshots = AgentMonitorSnapshotsClient(client)
+        self.backtests = AgentMonitorBacktestsClient(client)
 
     def create(
         self,
