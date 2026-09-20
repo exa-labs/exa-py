@@ -23,7 +23,7 @@ AgentMonitorFieldValueType = Literal[
 """The type of a field's cell values."""
 AgentMonitorFieldType = AgentMonitorFieldMode
 """Deprecated: renamed to `AgentMonitorFieldMode`."""
-AgentMonitorSnapshotStatus = Literal["running", "completed", "failed"]
+AgentMonitorBacktestStatus = Literal["running", "completed", "failed"]
 
 
 class AgentMonitorField(BaseModel):
@@ -254,26 +254,34 @@ class DeletedAgentMonitor(BaseModel):
     model_config = {"populate_by_name": True, "extra": "allow"}
 
 
-class AgentMonitorSnapshotEntity(BaseModel):
-    """One entity's snapshot result: populated field values plus the news sources read."""
+class AgentMonitorBacktestContent(BaseModel):
+    """One backtest cell: a value and its grounding citations."""
 
-    name: str
-    fields: Dict[str, str]
-    """Populated values by field name; fields with no update are absent."""
-    source_urls: List[str] = Field(alias="sourceUrls")
+    value: Any
+    citations: List[AgentMonitorCitation]
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
 
-class AgentMonitorSnapshotFailedEntity(BaseModel):
+class AgentMonitorBacktestEntity(BaseModel):
+    """One entity's backtest result, with populated cells keyed by field name."""
+
+    name: str
+    contents: Dict[str, AgentMonitorBacktestContent]
+    """Populated cells by field name; fields with no update are absent."""
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
+
+class AgentMonitorBacktestFailedEntity(BaseModel):
     name: str
     reason: str
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
 
-class AgentMonitorSnapshot(BaseModel):
-    """A snapshot job.
+class AgentMonitorBacktest(BaseModel):
+    """A backtest job.
 
     `create` returns it as `running`, and `get` polls it to `completed`
     (result fields present) or `failed`. Jobs expire and read as 404 after
@@ -282,33 +290,33 @@ class AgentMonitorSnapshot(BaseModel):
 
     id: str
     object: Optional[str] = None
-    status: AgentMonitorSnapshotStatus
+    status: AgentMonitorBacktestStatus
     start_time: str = Field(alias="startTime")
-    """The snapshotted news window, echoed back as normalized ISO-8601 timestamps."""
+    """The backtested news window, echoed back as normalized ISO-8601 timestamps."""
     end_time: str = Field(alias="endTime")
     created_at: str = Field(alias="createdAt")
     expires_at: str = Field(alias="expiresAt")
-    data: Optional[List[AgentMonitorSnapshotEntity]] = None
-    failed_entities: Optional[List[AgentMonitorSnapshotFailedEntity]] = Field(
+    data: Optional[List[AgentMonitorBacktestEntity]] = None
+    failed_entities: Optional[List[AgentMonitorBacktestFailedEntity]] = Field(
         default=None, alias="failedEntities"
     )
     warnings: Optional[List[str]] = None
-    """Caveats about how the snapshot was computed, e.g. static fields ignoring the window."""
+    """Caveats about how the backtest was computed."""
     error: Optional[str] = None
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
 
-class AgentMonitorSnapshotFailedError(RuntimeError):
-    """Raised when create_and_wait reaches a failed Agent Monitor snapshot."""
+class AgentMonitorBacktestFailedError(RuntimeError):
+    """Raised when create_and_wait reaches a failed Agent Monitor backtest."""
 
-    snapshot: AgentMonitorSnapshot
+    backtest: AgentMonitorBacktest
 
-    def __init__(self, snapshot: AgentMonitorSnapshot):
+    def __init__(self, backtest: AgentMonitorBacktest):
         message = (
-            snapshot.error
-            if snapshot.error is not None
-            else f"Agent monitor snapshot {snapshot.id} failed"
+            backtest.error
+            if backtest.error is not None
+            else f"Agent monitor backtest {backtest.id} failed"
         )
         super().__init__(message)
-        self.snapshot = snapshot
+        self.backtest = backtest
