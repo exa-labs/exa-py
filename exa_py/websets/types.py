@@ -314,6 +314,7 @@ class ImportStatus(Enum):
     processing = 'processing'
     completed = 'completed'
     failed = 'failed'
+    canceled = 'canceled'
 
 
 class ImportFailedReason(Enum):
@@ -989,6 +990,7 @@ class MonitorRunStatus(Enum):
     running = 'running'
     completed = 'completed'
     canceled = 'canceled'
+    failed = 'failed'
 
 
 class MonitorStatus(Enum):
@@ -1899,6 +1901,7 @@ class WebsetSearchCanceledEvent(ExaBaseModel):
 class WebsetSearchCanceledReason(Enum):
     webset_deleted = 'webset_deleted'
     webset_canceled = 'webset_canceled'
+    out_of_credits = 'out_of_credits'
 
 
 class WebsetSearchCompletedEvent(ExaBaseModel):
@@ -1935,6 +1938,7 @@ class WebsetSearchStatus(Enum):
     """
 
     created = 'created'
+    pending = 'pending'
     running = 'running'
     completed = 'completed'
     canceled = 'canceled'
@@ -2058,6 +2062,7 @@ class WebsetStatus(Enum):
     """
 
     idle = 'idle'
+    pending = 'pending'
     running = 'running'
     paused = 'paused'
 
