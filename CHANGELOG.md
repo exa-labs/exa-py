@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.22.1](https://github.com/exa-labs/exa-py/compare/v2.22.0...v2.22.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* update agent monitors to backtest API ([#266](https://github.com/exa-labs/exa-py/issues/266)) ([dd4e3b5](https://github.com/exa-labs/exa-py/commit/dd4e3b501c4c346d7c99dc81c6ca2bc75ab685a1))
+
+
+### Documentation
+
+* [exa-py] recommend relevance-sized highlights for AI context ([#262](https://github.com/exa-labs/exa-py/issues/262)) ([0e4f8bb](https://github.com/exa-labs/exa-py/commit/0e4f8bb3d5454500a09aec1ab6191397265d683b))
+
 ## [2.22.0](https://github.com/exa-labs/exa-py/compare/v2.21.0...v2.22.0) (2026-09-17)
 
 
