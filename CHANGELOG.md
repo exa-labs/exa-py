@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.2](https://github.com/exa-labs/exa-py/compare/v2.22.1...v2.22.2) (2026-09-21)
+
+
+### Bug Fixes
+
+* **websets:** add missing enum values ([#267](https://github.com/exa-labs/exa-py/issues/267)) ([138f4ed](https://github.com/exa-labs/exa-py/commit/138f4ede484e98f1bbd68b08c138a098066dc985))
+
 ## [2.22.1](https://github.com/exa-labs/exa-py/compare/v2.22.0...v2.22.1) (2026-09-20)
 
 
