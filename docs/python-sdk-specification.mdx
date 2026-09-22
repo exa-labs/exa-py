@@ -97,6 +97,7 @@ deep_result = exa.search(
 | flags | Optional[List[str]] | Experimental flags for Exa usage. | None |
 | moderation | Optional[bool] | If True, the search results will be moderated for safety. | None |
 | user_location | Optional[str] | Two-letter ISO country code of the user (e.g. US). | None |
+| objective | Optional[str] | Goal for this search turn; say which documents should rank first, which should be excluded, and what specific facts or figures to pull from them. Use for multi-turn research to improve result quality and reduce token usage. | None |
 | additional_queries | Optional[List[str]] | Alternative query formulations for deep search to skip automatic LLM-based query expansion. Max 5 queries. Only applicable when type is 'deep-lite', 'deep', or 'deep-reasoning'. Example: ["machine learning", "ML algorithms", "neural networks"] | None |
 | system_prompt | Optional[str] | Instructions that guide both the search process and the final returned result. Use this to prefer certain sources, emphasize novelty, avoid duplicates, or constrain the response style. Supported for all search types. | None |
 | output_schema | Optional[[DeepOutputSchema](#deepoutputschema)] | Search output schema for structured synthesis. When provided, the API returns synthesized output in ``output``. Use ``{"type": "text", "description": ...}`` for plain text output or ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON. For object schemas, max nesting depth is 2 and max total properties is 10. Supported for all search types. | None |
