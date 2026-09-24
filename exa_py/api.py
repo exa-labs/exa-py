@@ -2748,6 +2748,8 @@ class Exa:
 
 
 class AsyncExa(Exa):
+    research: AsyncResearchClient
+
     def __init__(
         self,
         api_key: Optional[str] = None,
