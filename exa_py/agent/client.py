@@ -195,7 +195,7 @@ class AgentRunsClient(AgentBaseClient):
             input: Optional structured input data for the Agent.
             output_schema: Optional JSON schema or Pydantic model for structured output.
             effort: Optional cost and reasoning effort preference. Defaults to auto.
-            budget: Optional per-run spend ceiling for `auto` and `max`; the API
+            budget: Optional per-run spend ceiling for `auto` and `ultra`; the API
                 validates this field and applies defaults when omitted.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
@@ -344,6 +344,22 @@ class AgentRunsClient(AgentBaseClient):
         response = self.request(f"/{run_id}/cancel", method="POST")
         return AgentRun.model_validate(response)
 
+    def stop(self, run_id: str) -> AgentRun:
+        """Stop a running Agent run, completing it early with the results gathered so far.
+
+        Only supported for `ultra` effort runs.
+
+        Examples:
+            from exa_py import Exa
+
+            exa = Exa("EXA_API_KEY")
+
+            run = exa.agent.runs.stop("agent_run_123")
+            print(run.stop_reason)
+        """
+        response = self.request(f"/{run_id}/stop", method="POST")
+        return AgentRun.model_validate(response)
+
     def delete(self, run_id: str) -> DeletedAgentRun:
         """Delete an Agent run.
 
@@ -427,7 +443,7 @@ class AgentRunsClient(AgentBaseClient):
             input: Optional structured input data for the Agent.
             output_schema: Optional JSON schema or Pydantic model for structured output.
             effort: Optional cost and reasoning effort preference. Defaults to auto.
-            budget: Optional per-run spend ceiling for `auto` and `max`; the API
+            budget: Optional per-run spend ceiling for `auto` and `ultra`; the API
                 validates this field and applies defaults when omitted.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.

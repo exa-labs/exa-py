@@ -219,18 +219,16 @@ run = exa.agent.runs.poll_until_finished(run.id)
 print(run.output.structured if run.output else None)
 ```
 
-For Agent Max, use the beta namespace and pass the beta token explicitly:
+For Agent Ultra, set `effort="ultra"`:
 
 ```python
 from exa_py import Exa
-from exa_py.agent import AGENT_MAX_EFFORT_BETA
 
 exa = Exa()
-run = exa.beta.agent.runs.create(
+run = exa.agent.runs.create(
     query="Find all companies building browser automation tools in the United States.",
-    effort="max",
+    effort="ultra",
     budget={"maxCostDollars": 10},
-    betas=[AGENT_MAX_EFFORT_BETA],
 )
 ```
 

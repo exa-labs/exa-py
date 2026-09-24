@@ -12,10 +12,17 @@ AGENT_MAX_EFFORT_BETA = "agent-max-effort-2026-07-27"
 
 AgentRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
 AgentStopReason = Literal[
-    "schema_satisfied", "budget_reached", "stopped", "error", "cancelled"
+    "schema_satisfied",
+    "budget_reached",
+    "time_limit_reached",
+    "stopped",
+    "error",
+    "cancelled",
 ]
 AgentConfidence = Literal["low", "medium", "high"]
-AgentEffort = Literal["minimal", "low", "medium", "high", "xhigh", "auto", "max"]
+AgentEffort = Literal[
+    "minimal", "low", "medium", "high", "xhigh", "auto", "ultra", "max"
+]
 
 AgentDataSourceProvider = str
 """Identifier of an Exa Connect data provider."""
@@ -99,15 +106,23 @@ class AgentError(BaseModel):
 
 
 class AgentBudget(BaseModel):
-    """Per-run spend ceiling for the metered `auto` and `max` efforts."""
+    """Per-run spend ceiling for the metered `auto` and `ultra` efforts."""
 
     max_cost_dollars: Optional[float] = Field(
         default=None,
         alias="maxCostDollars",
         description=(
             "Maximum spend for the run in US dollars. Only accepted by the API "
-            "for `auto` and `max`; the server validates the allowed range and "
+            "for `auto` and `ultra`; the server validates the allowed range and "
             "applies defaults when omitted."
+        ),
+    )
+    max_duration_seconds: Optional[int] = Field(
+        default=None,
+        alias="maxDurationSeconds",
+        description=(
+            "Soft wall-clock ceiling in seconds (300-10,800). "
+            "Only accepted for `ultra`."
         ),
     )
 
