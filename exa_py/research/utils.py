@@ -156,6 +156,9 @@ def stream_sse_events(
 ) -> Generator[ResearchEvent, None, None]:
     """Stream SSE events from a requests Response.
 
+    The response is closed when iteration ends, fails, or the generator is closed.
+    Close the generator explicitly when abandoning it before exhaustion.
+
     Args:
         response: The streaming response object.
 
@@ -164,33 +167,39 @@ def stream_sse_events(
     """
     event_lines = []
 
-    for line in response.iter_lines():
-        if not line:
-            # Empty line signals end of event
-            if event_lines:
-                raw_event = parse_sse_event_raw(event_lines)
-                if raw_event:
-                    event = parse_research_event(raw_event)
-                    if event:
-                        yield event
-                event_lines = []
-        else:
-            decoded_line = line.decode("utf-8") if isinstance(line, bytes) else line
-            event_lines.append(decoded_line)
+    try:
+        for line in response.iter_lines():
+            if not line:
+                # Empty line signals end of event
+                if event_lines:
+                    raw_event = parse_sse_event_raw(event_lines)
+                    if raw_event:
+                        event = parse_research_event(raw_event)
+                        if event:
+                            yield event
+                    event_lines = []
+            else:
+                decoded_line = line.decode("utf-8") if isinstance(line, bytes) else line
+                event_lines.append(decoded_line)
 
-    # Handle any remaining lines
-    if event_lines:
-        raw_event = parse_sse_event_raw(event_lines)
-        if raw_event:
-            event = parse_research_event(raw_event)
-            if event:
-                yield event
+        # Handle any remaining lines
+        if event_lines:
+            raw_event = parse_sse_event_raw(event_lines)
+            if raw_event:
+                event = parse_research_event(raw_event)
+                if event:
+                    yield event
+    finally:
+        response.close()
 
 
 async def async_stream_sse_events(
     response: httpx.Response,
 ) -> AsyncGenerator[ResearchEvent, None]:
     """Stream SSE events from an httpx Response.
+
+    The response is closed when iteration ends, fails, or the generator is closed.
+    Await the generator's aclose() when abandoning it before exhaustion.
 
     Args:
         response: The async streaming response object.
@@ -200,23 +209,26 @@ async def async_stream_sse_events(
     """
     event_lines = []
 
-    async for line in response.aiter_lines():
-        if not line:
-            # Empty line signals end of event
-            if event_lines:
-                raw_event = parse_sse_event_raw(event_lines)
-                if raw_event:
-                    event = parse_research_event(raw_event)
-                    if event:
-                        yield event
-                event_lines = []
-        else:
-            event_lines.append(line)
+    try:
+        async for line in response.aiter_lines():
+            if not line:
+                # Empty line signals end of event
+                if event_lines:
+                    raw_event = parse_sse_event_raw(event_lines)
+                    if raw_event:
+                        event = parse_research_event(raw_event)
+                        if event:
+                            yield event
+                    event_lines = []
+            else:
+                event_lines.append(line)
 
-    # Handle any remaining lines
-    if event_lines:
-        raw_event = parse_sse_event_raw(event_lines)
-        if raw_event:
-            event = parse_research_event(raw_event)
-            if event:
-                yield event
+        # Handle any remaining lines
+        if event_lines:
+            raw_event = parse_sse_event_raw(event_lines)
+            if raw_event:
+                event = parse_research_event(raw_event)
+                if event:
+                    yield event
+    finally:
+        await response.aclose()
