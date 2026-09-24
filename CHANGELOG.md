@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.0](https://github.com/exa-labs/exa-py/compare/v2.22.2...v2.23.0) (2026-09-24)
+
+
+### Features
+
+* **agent:** add ultra effort, maxDurationSeconds, and stop ([#270](https://github.com/exa-labs/exa-py/issues/270)) ([78d7679](https://github.com/exa-labs/exa-py/commit/78d76792b434c39f115b7a222c9af1dc6eab6cbb))
+
 ## [2.22.2](https://github.com/exa-labs/exa-py/compare/v2.22.1...v2.22.2) (2026-09-21)
 
 
