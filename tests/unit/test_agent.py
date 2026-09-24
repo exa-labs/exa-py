@@ -85,8 +85,9 @@ def test_exa_exposes_agent_run_under_agent_namespace():
     assert not hasattr(exa.agent, "run")
     assert hasattr(exa.beta.agent, "runs")
     assert not hasattr(exa.beta.agent, "run")
-    assert not hasattr(exa.agent.runs, "stop")
+    assert hasattr(exa.agent.runs, "stop")
     assert hasattr(exa.beta.agent.runs, "stop")
+    assert "betas" not in signature(exa.agent.runs.stop).parameters
     assert "betas" not in signature(exa.agent.runs.create).parameters
     assert "betas" in signature(exa.beta.agent.runs.create).parameters
     assert "betas" not in signature(exa.agent.runs.events.list).parameters
@@ -102,8 +103,9 @@ def test_async_exa_exposes_agent_run_under_agent_namespace():
     assert not hasattr(exa.agent, "run")
     assert hasattr(exa.beta.agent, "runs")
     assert not hasattr(exa.beta.agent, "run")
-    assert not hasattr(exa.agent.runs, "stop")
+    assert hasattr(exa.agent.runs, "stop")
     assert hasattr(exa.beta.agent.runs, "stop")
+    assert "betas" not in signature(exa.agent.runs.stop).parameters
     assert "betas" not in signature(exa.agent.runs.create).parameters
     assert "betas" in signature(exa.beta.agent.runs.create).parameters
     assert "betas" not in signature(exa.agent.runs.events.list).parameters
@@ -226,6 +228,28 @@ def test_beta_create_agent_run_sends_max_effort_and_budget(mock_client):
     )
 
 
+def test_create_agent_run_sends_ultra_effort_and_budget(run_client, mock_client):
+    mock_client.request.return_value = _make_run()
+
+    run_client.create(
+        query="Find recent funding rounds.",
+        effort="ultra",
+        budget={"maxCostDollars": 10, "maxDurationSeconds": 1800},
+    )
+
+    mock_client.request.assert_called_once_with(
+        "/agent/runs",
+        data={
+            "query": "Find recent funding rounds.",
+            "effort": "ultra",
+            "budget": {"maxCostDollars": 10.0, "maxDurationSeconds": 1800},
+        },
+        method="POST",
+        params=None,
+        headers={},
+    )
+
+
 def test_beta_create_agent_run_omits_header_for_empty_betas(mock_client):
     mock_client.request.return_value = _make_run()
     run_client = BetaClient(mock_client).agent.runs
@@ -308,6 +332,18 @@ def test_get_cancel_and_delete_agent_run_paths(run_client, mock_client):
     assert mock_client.request.call_args_list[1].kwargs["method"] == "POST"
     assert mock_client.request.call_args_list[2].args == ("/agent/runs/agent_run_123",)
     assert mock_client.request.call_args_list[2].kwargs["method"] == "DELETE"
+
+
+def test_stop_agent_run_uses_no_beta_header(run_client, mock_client):
+    mock_client.request.return_value = {**_make_run(), "stopReason": "stopped"}
+
+    stopped = run_client.stop("agent_run_123")
+
+    assert stopped.stop_reason == "stopped"
+    call = mock_client.request.call_args_list[0]
+    assert call.args == ("/agent/runs/agent_run_123/stop",)
+    assert call.kwargs["method"] == "POST"
+    assert call.kwargs["headers"] == {}
 
 
 def test_list_agent_runs(run_client, mock_client):
