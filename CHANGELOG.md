@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.0](https://github.com/exa-labs/exa-py/compare/v2.23.0...v2.24.0) (2026-09-30)
+
+
+### Features
+
+* add search objective and ask the model for it in the web_search tool ([#272](https://github.com/exa-labs/exa-py/issues/272)) ([c79b7b3](https://github.com/exa-labs/exa-py/commit/c79b7b3af70b549edc4f25a6761eedb977e55fb7))
+
 ## [2.23.0](https://github.com/exa-labs/exa-py/compare/v2.22.2...v2.23.0) (2026-09-24)
 
 
