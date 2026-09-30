@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from exa_py import AsyncExa, Exa
+from exa_py.tools import SEARCH_OBJECTIVE_TOOL_DESCRIPTION
 
 
 def response(*results):
@@ -23,19 +24,139 @@ def result(**kwargs):
     )
 
 
-def test_openai_tool_is_wire_safe_and_has_query_only_schema(monkeypatch):
+def test_openai_tool_is_wire_safe_and_has_query_and_objective_schema(monkeypatch):
     exa = Exa("test")
     exa.search = lambda query, **kwargs: response(result(highlights=["A fact"]))
     tool = exa.openai.web_search()
 
     assert list(tool) == ["type", "function"]
     assert json.loads(json.dumps(tool)) == tool
-    assert tool["function"]["parameters"]["required"] == ["query"]
+    assert tool["function"]["parameters"]["required"] == ["query", "objective"]
     assert "$schema" not in tool["function"]["parameters"]
     assert "title" not in tool["function"]["parameters"]
-    assert set(tool["function"]["parameters"]["properties"]) == {"query"}
+    assert "description" not in tool["function"]["parameters"]
+    assert set(tool["function"]["parameters"]["properties"]) == {"query", "objective"}
     assert "run" not in json.dumps(tool)
     assert "A fact" in tool.run({"query": "news"})
+
+
+@pytest.mark.parametrize("client_class", [Exa, AsyncExa])
+def test_web_search_schema_advertises_objective_as_required(client_class):
+    # Must stay byte-identical to the Exa MCP server's objective description.
+    assert SEARCH_OBJECTIVE_TOOL_DESCRIPTION == (
+        "Goal for this search turn; say which documents should rank first, which "
+        "should be excluded, and what specific facts or figures to pull from them."
+    )
+    exa = client_class("test")
+    schemas = [
+        exa.tools.web_search().input_schema,
+        exa.openai.web_search()["function"]["parameters"],
+        exa.openai.responses.web_search()["parameters"],
+        exa.anthropic.web_search()["input_schema"],
+    ]
+    for schema in schemas:
+        assert schema["required"] == ["query", "objective"]
+        assert schema["properties"]["objective"] == {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": SEARCH_OBJECTIVE_TOOL_DESCRIPTION,
+            "title": "Objective",
+        }
+
+
+def test_web_search_forwards_objective_only_when_provided():
+    exa = Exa("test")
+    seen = []
+
+    def search(query, **kwargs):
+        seen.append(kwargs)
+        return response(result(highlights=["x"]))
+
+    exa.search = search
+    tool = exa.tools.web_search()
+
+    tool.run({"query": "q", "objective": "Compare H100 pricing for a cost report"})
+    tool.run({"query": "q"})
+    tool.run({"query": "q", "objective": None})
+    empty = tool.run({"query": "q", "objective": ""})
+
+    assert seen[0]["objective"] == "Compare H100 pricing for a cost report"
+    assert "objective" not in seen[1]
+    assert "objective" not in seen[2]
+    assert empty.startswith("Error:") and "objective" in empty
+    assert len(seen) == 3
+
+    exa.openai.handle_tool_calls(
+        {
+            "tool_calls": [
+                {
+                    "id": "1",
+                    "function": {
+                        "name": "web_search",
+                        "arguments": '{"query":"q","objective":"From chat"}',
+                    },
+                }
+            ]
+        }
+    )
+    assert seen[-1]["objective"] == "From chat"
+
+
+def test_model_objective_overrides_configured_objective():
+    exa = Exa("test")
+    seen = []
+
+    def search(query, **kwargs):
+        seen.append(kwargs)
+        return response(result(highlights=["x"]))
+
+    exa.search = search
+    tool = exa.anthropic.web_search(objective="Configured goal")
+
+    tool.run({"query": "q", "objective": "Model goal"})
+    tool.run({"query": "q"})
+
+    assert seen[0]["objective"] == "Model goal"
+    assert seen[1]["objective"] == "Configured goal"
+
+
+@pytest.mark.asyncio
+async def test_async_web_search_forwards_objective_only_when_provided():
+    exa = AsyncExa("test")
+    seen = []
+
+    async def search(query, **kwargs):
+        seen.append(kwargs)
+        return response(result(highlights=["x"]))
+
+    exa.search = search
+    tool = exa.tools.web_search()
+
+    await tool.run({"query": "q", "objective": "Compare H100 pricing"})
+    await tool.run({"query": "q"})
+    await tool.run({"query": "q", "objective": None})
+    empty = await tool.run({"query": "q", "objective": ""})
+
+    assert seen[0]["objective"] == "Compare H100 pricing"
+    assert "objective" not in seen[1]
+    assert "objective" not in seen[2]
+    assert empty.startswith("Error:") and "objective" in empty
+    assert len(seen) == 3
+
+    await exa.anthropic.handle_tool_use(
+        {
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "u",
+                    "name": "web_search",
+                    "input": {"query": "q", "objective": "From Anthropic"},
+                }
+            ]
+        }
+    )
+    assert seen[-1]["objective"] == "From Anthropic"
 
 
 def test_search_defaults_and_configured_options(monkeypatch):

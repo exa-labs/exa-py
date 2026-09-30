@@ -433,6 +433,40 @@ def test_stream_search_streams_openai_style_chunks_offline():
         assert options["outputSchema"]["type"] == "text"
 
 
+def test_search_forwards_objective_offline():
+    """Test search sends objective in the /search body only when provided."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Test"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.search(
+            "H100 cloud pricing",
+            objective="Compare H100 cloud pricing across providers for a cost report.",
+        )
+        options = mock_request.call_args[0][1]
+        assert (
+            options["objective"]
+            == "Compare H100 cloud pricing across providers for a cost report."
+        )
+
+        exa.search("H100 cloud pricing")
+        assert "objective" not in mock_request.call_args[0][1]
+
+
+def test_stream_search_forwards_objective_offline():
+    """Test stream_search sends objective in the /search body."""
+    exa = Exa(API_KEY)
+
+    with patch.object(
+        exa, "request", return_value=_FakeStreamResponse([])
+    ) as mock_request:
+        exa.stream_search("streaming query", objective="Draft a cost report")
+        assert mock_request.call_args[0][1]["objective"] == "Draft a cost report"
+
+
 @pytest.mark.asyncio
 async def test_async_search_accepts_deepv3_params_offline():
     """Test async deep-reasoning search accepts output_schema params."""
@@ -614,6 +648,44 @@ async def test_async_stream_search_streams_openai_style_chunks_offline():
         assert options["type"] == "auto"
         assert options["systemPrompt"] == "Be concise"
         assert options["outputSchema"]["type"] == "text"
+
+
+@pytest.mark.asyncio
+async def test_async_search_forwards_objective_offline():
+    """Test async search sends objective in the /search body only when provided."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Async Result"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_async_request:
+        await ax.search(
+            "H100 cloud pricing",
+            objective="Compare H100 cloud pricing across providers for a cost report.",
+        )
+        options = mock_async_request.call_args[0][1]
+        assert (
+            options["objective"]
+            == "Compare H100 cloud pricing across providers for a cost report."
+        )
+
+        await ax.search("H100 cloud pricing")
+        assert "objective" not in mock_async_request.call_args[0][1]
+
+
+@pytest.mark.asyncio
+async def test_async_stream_search_forwards_objective_offline():
+    """Test async stream_search sends objective in the /search body."""
+    ax = AsyncExa(API_KEY)
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=_FakeAsyncStreamResponse([]))
+    ) as mock_async_request:
+        await ax.stream_search("streaming query", objective="Draft a cost report")
+        assert mock_async_request.call_args[0][1]["objective"] == "Draft a cost report"
 
 
 @pytest.mark.asyncio

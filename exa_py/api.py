@@ -363,6 +363,7 @@ SEARCH_OPTIONS_TYPES = {
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep-lite/deep/deep-reasoning.
     "system_prompt": [str],  # Instructions for search planning and final synthesis across all search types.
     "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
+    "objective": [str],  # The broader goal the search serves, beyond the query itself (max 4096 chars).
     "stream": [bool],  # If true, stream back OpenAI-style chat completion chunks.
 }
 
@@ -1634,6 +1635,7 @@ class Exa:
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
+        objective: Optional[str] = None,
         betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
@@ -1689,6 +1691,11 @@ class Exa:
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
+            objective (str, optional): The broader goal this search serves: the task the
+                caller is working on, beyond the query itself. When an agent picks the query
+                as one step of a larger task, pass the goal of that step: which documents
+                should rank first, which should be excluded, and what to pull from them.
+                Up to 4096 characters.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
@@ -1798,6 +1805,7 @@ class Exa:
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
+        objective: Optional[str] = None,
     ) -> StreamSearchResponse:
         """Generate a streaming search response.
 
@@ -1825,6 +1833,8 @@ class Exa:
             additional_queries (List[str], optional): Alternative query formulations for deep search.
             system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
             output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
+            objective (str, optional): The broader goal this search serves: the task the caller
+                is working on, beyond the query itself.
 
         Returns:
             StreamSearchResponse: An iterator yielding OpenAI-style streaming chunks with
@@ -2892,6 +2902,7 @@ class AsyncExa(Exa):
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
+        objective: Optional[str] = None,
         betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
@@ -2947,6 +2958,11 @@ class AsyncExa(Exa):
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
+            objective (str, optional): The broader goal this search serves: the task the
+                caller is working on, beyond the query itself. When an agent picks the query
+                as one step of a larger task, pass the goal of that step: which documents
+                should rank first, which should be excluded, and what to pull from them.
+                Up to 4096 characters.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
@@ -3053,6 +3069,7 @@ class AsyncExa(Exa):
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
+        objective: Optional[str] = None,
     ) -> AsyncStreamSearchResponse:
         """Generate a streaming search response asynchronously.
 
@@ -3080,6 +3097,8 @@ class AsyncExa(Exa):
             additional_queries (List[str], optional): Alternative query formulations for deep search.
             system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
             output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
+            objective (str, optional): The broader goal this search serves: the task the caller
+                is working on, beyond the query itself.
 
         Returns:
             AsyncStreamSearchResponse: An async iterator yielding OpenAI-style streaming chunks.
