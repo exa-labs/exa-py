@@ -7,7 +7,7 @@ import json
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 DEFAULT_WEB_SEARCH_DESCRIPTION = (
     "Search the web for up-to-date, relevant information. "
@@ -19,13 +19,52 @@ DEFAULT_GET_CONTENTS_DESCRIPTION = (
     "pages returned by a search or mentioned by the user."
 )
 
+# The /search API's recommended tool-parameter wording for ``objective``, kept
+# byte-identical to the Exa MCP server's web search tool.
+SEARCH_OBJECTIVE_TOOL_DESCRIPTION = (
+    "Goal for this search turn; say which documents should rank first, which "
+    "should be excluded, and what specific facts or figures to pull from them."
+)
+
+# /search rejects longer objectives.
+_MAX_OBJECTIVE_LENGTH = 4096
+
+
+def _advertise_required(schema: dict[str, Any], *names: str) -> None:
+    """List optional fields as required in a model's advertised JSON schema.
+
+    Models then fill the fields in on every call, while validation still
+    accepts a missing or ``None`` value from existing programmatic callers.
+    """
+    required = schema.setdefault("required", [])
+    for name in names:
+        field = schema["properties"][name]
+        variants = [v for v in field.pop("anyOf", []) if v.get("type") != "null"]
+        if len(variants) == 1:
+            field.update(variants[0])
+        elif variants:
+            field["anyOf"] = variants
+        field.pop("default", None)
+        if name not in required:
+            required.append(name)
+
 
 class _WebSearchInput(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra=lambda schema: _advertise_required(schema, "objective")
+    )
+
     query: str = Field(
         description=(
             "Natural language search query. Should be a semantically rich "
             "description of the ideal page, not just keywords."
         )
+    )
+    objective: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=_MAX_OBJECTIVE_LENGTH,
+        description=SEARCH_OBJECTIVE_TOOL_DESCRIPTION,
     )
 
 
@@ -333,7 +372,9 @@ class ToolNamespace:
     def web_search(self, **kwargs: Any) -> _ToolSpec:
         """Create a provider-neutral Exa search tool.
 
-        Defaults to ``type="auto"`` and ``contents={"highlights": True}``.
+        Defaults to ``type="auto"`` and ``contents={"highlights": True}``. The
+        tool asks the model for a ``query`` and an ``objective`` on every call;
+        a model-supplied ``objective`` overrides a configured one.
 
         Args:
             **kwargs: Optional search options passed through to ``Exa.search``.
@@ -802,13 +843,19 @@ def _create_web_search(
     search_num_results = config.pop("num_results", 10)
     search_contents = config.pop("contents", {"highlights": True})
 
+    def search_kwargs(args: dict[str, Any]) -> dict[str, Any]:
+        options = dict(config)
+        if args.get("objective") is not None:
+            options["objective"] = args["objective"]
+        return options
+
     def execute(args: dict[str, Any]) -> Any:
         return exa.search(
             args["query"],
             type=search_type,
             num_results=search_num_results,
             contents=search_contents,
-            **config,
+            **search_kwargs(args),
         )
 
     async def async_execute(args: dict[str, Any]) -> Any:
@@ -817,7 +864,7 @@ def _create_web_search(
             type=search_type,
             num_results=search_num_results,
             contents=search_contents,
-            **config,
+            **search_kwargs(args),
         )
 
     spec_class = _AsyncToolSpec if asynchronous else _ToolSpec

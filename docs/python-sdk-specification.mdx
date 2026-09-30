@@ -100,6 +100,7 @@ deep_result = exa.search(
 | additional_queries | Optional[List[str]] | Alternative query formulations for deep search to skip automatic LLM-based query expansion. Max 5 queries. Only applicable when type is 'deep-lite', 'deep', or 'deep-reasoning'. Example: ["machine learning", "ML algorithms", "neural networks"] | None |
 | system_prompt | Optional[str] | Instructions that guide both the search process and the final returned result. Use this to prefer certain sources, emphasize novelty, avoid duplicates, or constrain the response style. Supported for all search types. | None |
 | output_schema | Optional[[DeepOutputSchema](#deepoutputschema)] | Search output schema for structured synthesis. When provided, the API returns synthesized output in ``output``. Use ``{"type": "text", "description": ...}`` for plain text output or ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON. For object schemas, max nesting depth is 2 and max total properties is 10. Supported for all search types. | None |
+| objective | Optional[str] | The broader goal this search serves: the task the caller is working on, beyond the query itself. When an agent picks the query as one step of a larger task, pass the goal of that step: which documents should rank first, which should be excluded, and what to pull from them. Up to 4096 characters. | None |
 | betas | Optional[Sequence[str]] | Exa-Beta tokens to send with the request (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights). | None |
 
 ### Return Example
@@ -143,6 +144,7 @@ deep_result = exa.search(
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 
 ## `find_similar` Method
 
@@ -224,6 +226,7 @@ similar_results = exa.search(
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 
 ## `get_contents` Method
 
@@ -279,6 +282,7 @@ contents = exa.get_contents([
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 
 ## `answer` Method
 
@@ -1306,6 +1310,7 @@ A class representing the base fields of a search result.
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 
 #### `Result`
 
@@ -1325,6 +1330,7 @@ A class representing a search result with optional text, summary, and highlights
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 | text | Optional[str] | The text content of the page. |
 | summary | Optional[str] | A summary of the page content. |
 | highlights | Optional[List[str]] | Relevant sentences from the page. |
@@ -1348,6 +1354,7 @@ A class representing a search result with text present.
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 | text | str | The text of the search result page. |
 
 #### `ResultWithSummary`
@@ -1368,6 +1375,7 @@ A class representing a search result with summary present.
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 | summary | str | - |
 
 #### `ResultWithTextAndSummary`
@@ -1388,6 +1396,7 @@ A class representing a search result with text and summary present.
 | extras | Optional[Dict] | Additional metadata; e.g. links, images. |
 | entities | Optional[List[[Entity](#entity)]] | Structured entity data for company or person searches. |
 | crawl_date | Optional[str] | The date the page was last crawled (if available). |
+| snapshot_at | Optional[str] | Crawl instant of the stored version served for a snapshotAsOf request. |
 | text | str | - |
 | summary | str | - |
 
