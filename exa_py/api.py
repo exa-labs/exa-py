@@ -364,6 +364,7 @@ SEARCH_OPTIONS_TYPES = {
     "system_prompt": [str],  # Instructions for search planning and final synthesis across all search types.
     "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
     "objective": [str],  # The broader goal the search serves, beyond the query itself (max 4096 chars).
+    "metadata": [dict],  # Caller-defined metadata to associate with the search request.
     "stream": [bool],  # If true, stream back OpenAI-style chat completion chunks.
 }
 
@@ -1636,6 +1637,7 @@ class Exa:
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
         objective: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search.
@@ -1696,6 +1698,8 @@ class Exa:
                 as one step of a larger task, pass the goal of that step: which documents
                 should rank first, which should be excluded, and what to pull from them.
                 Up to 4096 characters.
+            metadata (Dict[str, Any], optional): Caller-defined metadata to associate with
+                the search request. Metadata keys are sent unchanged.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
@@ -1746,7 +1750,9 @@ class Exa:
 
         _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
+        options = to_camel_case(
+            options, skip_keys=["output_schema", "schema", "metadata"]
+        )
         data = self.request("/search", options, headers=headers_for_betas(betas))
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -1806,6 +1812,7 @@ class Exa:
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
         objective: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> StreamSearchResponse:
         """Generate a streaming search response.
 
@@ -1835,6 +1842,8 @@ class Exa:
             output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
             objective (str, optional): The broader goal this search serves: the task the caller
                 is working on, beyond the query itself.
+            metadata (Dict[str, Any], optional): Caller-defined metadata to associate with
+                the search request. Metadata keys are sent unchanged.
 
         Returns:
             StreamSearchResponse: An iterator yielding OpenAI-style streaming chunks with
@@ -1860,7 +1869,7 @@ class Exa:
             options["contents"] = contents
 
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "metadata"])
         options["stream"] = True
         raw_response = self.request("/search", options)
         return StreamSearchResponse(raw_response)
@@ -2903,6 +2912,7 @@ class AsyncExa(Exa):
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
         objective: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         betas: Optional[Sequence[str]] = None,
     ) -> SearchResponse[Result]:
         """Perform a search with a prompt-engineered query to retrieve relevant results.
@@ -2963,6 +2973,8 @@ class AsyncExa(Exa):
                 as one step of a larger task, pass the goal of that step: which documents
                 should rank first, which should be excluded, and what to pull from them.
                 Up to 4096 characters.
+            metadata (Dict[str, Any], optional): Caller-defined metadata to associate with
+                the search request. Metadata keys are sent unchanged.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
@@ -3010,7 +3022,9 @@ class AsyncExa(Exa):
 
         _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
+        options = to_camel_case(
+            options, skip_keys=["output_schema", "schema", "metadata"]
+        )
         data = await self.async_request("/search", options, headers=headers_for_betas(betas))
         cost_dollars = parse_cost_dollars(data.get("costDollars"))
         results = []
@@ -3070,6 +3084,7 @@ class AsyncExa(Exa):
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
         objective: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> AsyncStreamSearchResponse:
         """Generate a streaming search response asynchronously.
 
@@ -3099,6 +3114,8 @@ class AsyncExa(Exa):
             output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
             objective (str, optional): The broader goal this search serves: the task the caller
                 is working on, beyond the query itself.
+            metadata (Dict[str, Any], optional): Caller-defined metadata to associate with
+                the search request. Metadata keys are sent unchanged.
 
         Returns:
             AsyncStreamSearchResponse: An async iterator yielding OpenAI-style streaming chunks.
@@ -3123,7 +3140,7 @@ class AsyncExa(Exa):
             options["contents"] = contents
 
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "metadata"])
         options["stream"] = True
         raw_response = await self.async_request("/search", options)
         return AsyncStreamSearchResponse(raw_response)

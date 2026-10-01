@@ -467,6 +467,33 @@ def test_stream_search_forwards_objective_offline():
         assert mock_request.call_args[0][1]["objective"] == "Draft a cost report"
 
 
+def test_search_forwards_metadata_offline():
+    """Test search sends metadata without changing caller-defined keys."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Test"}],
+    }
+    metadata = {"request_id": "req_123", "experimentGroup": "control"}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.search("metadata query", metadata=metadata)
+
+        assert mock_request.call_args[0][1]["metadata"] == metadata
+
+
+def test_stream_search_forwards_metadata_offline():
+    """Test stream_search sends metadata without changing caller-defined keys."""
+    exa = Exa(API_KEY)
+    metadata = {"request_id": "req_123", "experimentGroup": "control"}
+
+    with patch.object(
+        exa, "request", return_value=_FakeStreamResponse([])
+    ) as mock_request:
+        exa.stream_search("streaming query", metadata=metadata)
+
+        assert mock_request.call_args[0][1]["metadata"] == metadata
+
+
 @pytest.mark.asyncio
 async def test_async_search_accepts_deepv3_params_offline():
     """Test async deep-reasoning search accepts output_schema params."""
@@ -686,6 +713,37 @@ async def test_async_stream_search_forwards_objective_offline():
     ) as mock_async_request:
         await ax.stream_search("streaming query", objective="Draft a cost report")
         assert mock_async_request.call_args[0][1]["objective"] == "Draft a cost report"
+
+
+@pytest.mark.asyncio
+async def test_async_search_forwards_metadata_offline():
+    """Test async search sends metadata without changing caller-defined keys."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Test"}],
+    }
+    metadata = {"request_id": "req_123", "experimentGroup": "control"}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_async_request:
+        await ax.search("metadata query", metadata=metadata)
+
+        assert mock_async_request.call_args[0][1]["metadata"] == metadata
+
+
+@pytest.mark.asyncio
+async def test_async_stream_search_forwards_metadata_offline():
+    """Test async stream_search sends metadata without changing caller-defined keys."""
+    ax = AsyncExa(API_KEY)
+    metadata = {"request_id": "req_123", "experimentGroup": "control"}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=_FakeAsyncStreamResponse([]))
+    ) as mock_async_request:
+        await ax.stream_search("streaming query", metadata=metadata)
+
+        assert mock_async_request.call_args[0][1]["metadata"] == metadata
 
 
 @pytest.mark.asyncio
