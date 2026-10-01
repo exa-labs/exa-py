@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.25.0](https://github.com/exa-labs/exa-py/compare/v2.24.0...v2.25.0) (2026-10-01)
+
+
+### Features
+
+* add raw search body overrides ([#275](https://github.com/exa-labs/exa-py/issues/275)) ([af58de6](https://github.com/exa-labs/exa-py/commit/af58de6d64bd9cf9110b70f6b6c442f84b440316))
+
 ## [2.24.0](https://github.com/exa-labs/exa-py/compare/v2.23.0...v2.24.0) (2026-09-30)
 
 
