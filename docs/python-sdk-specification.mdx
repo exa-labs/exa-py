@@ -102,6 +102,7 @@ deep_result = exa.search(
 | output_schema | Optional[[DeepOutputSchema](#deepoutputschema)] | Search output schema for structured synthesis. When provided, the API returns synthesized output in ``output``. Use ``{"type": "text", "description": ...}`` for plain text output or ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON. For object schemas, max nesting depth is 2 and max total properties is 10. Supported for all search types. | None |
 | objective | Optional[str] | The broader goal this search serves: the task the caller is working on, beyond the query itself. When an agent picks the query as one step of a larger task, pass the goal of that step: which documents should rank first, which should be excluded, and what to pull from them. Up to 4096 characters. | None |
 | betas | Optional[Sequence[str]] | Exa-Beta tokens to send with the request (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights). | None |
+| extra_body | Optional[Dict[str, Any]] | Per-call body overrides, except stream. | None |
 
 ### Return Example
 

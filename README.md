@@ -93,6 +93,14 @@ Deep search variants that also support `additional_queries`:
 - `deep`
 - `deep-reasoning`
 
+### Raw body fields
+
+Use `extra_body` for per-call search body overrides.
+
+```python
+result = exa.search("AI research", extra_body={"futureField": True})
+```
+
 ## Contents
 
 ```python
