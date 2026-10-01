@@ -337,6 +337,7 @@ For object schemas, the API enforces max nesting depth 2 and max 10 total proper
 
 SEARCH_OPTIONS_TYPES = {
     "query": [str],  # The query string.
+    "objective": [str],  # Goal for this search turn.
     "num_results": [int],  # Number of results (Default: 10, Max for basic: 10).
     "include_domains": [
         list
@@ -1643,6 +1644,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
+        objective: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
@@ -1691,6 +1693,9 @@ class Exa:
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            objective (str, optional): Goal for this search turn; say which documents should rank first,
+                which should be excluded, and what specific facts or figures to pull from them.
+                Use for multi-turn research to improve result quality and reduce token usage.
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep-lite', 'deep', or 'deep-reasoning'.
@@ -1820,6 +1825,7 @@ class Exa:
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
+        objective: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
@@ -1850,6 +1856,9 @@ class Exa:
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            objective (str, optional): Goal for this search turn; say which documents should rank first,
+                which should be excluded, and what specific facts or figures to pull from them.
+                Use for multi-turn research to improve result quality and reduce token usage.
             additional_queries (List[str], optional): Alternative query formulations for deep search.
             system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
             output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
@@ -2933,6 +2942,7 @@ class AsyncExa(Exa):
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
+        objective: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
@@ -2981,6 +2991,9 @@ class AsyncExa(Exa):
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            objective (str, optional): Goal for this search turn; say which documents should rank first,
+                which should be excluded, and what specific facts or figures to pull from them.
+                Use for multi-turn research to improve result quality and reduce token usage.
             additional_queries (List[str], optional): Alternative query formulations for deep search to skip
                 automatic LLM-based query expansion. Max 5 queries. Only applicable when type is
                 'deep-lite', 'deep', or 'deep-reasoning'.
@@ -3107,6 +3120,7 @@ class AsyncExa(Exa):
         flags: Optional[List[str]] = None,
         moderation: Optional[bool] = None,
         user_location: Optional[str] = None,
+        objective: Optional[str] = None,
         additional_queries: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
         output_schema: Optional[DeepOutputSchema] = None,
@@ -3137,6 +3151,9 @@ class AsyncExa(Exa):
             flags (List[str], optional): Experimental flags for Exa usage.
             moderation (bool, optional): If True, the search results will be moderated for safety.
             user_location (str, optional): Two-letter ISO country code of the user (e.g. US).
+            objective (str, optional): Goal for this search turn; say which documents should rank first,
+                which should be excluded, and what specific facts or figures to pull from them.
+                Use for multi-turn research to improve result quality and reduce token usage.
             additional_queries (List[str], optional): Alternative query formulations for deep search.
             system_prompt (str, optional): Instructions that guide the search process and streamed synthesis.
             output_schema (DeepOutputSchema, optional): Search output schema for structured synthesis.
