@@ -205,7 +205,7 @@ class TestTriggerResponse:
 
 class TestSearchMonitorRunOutputContent:
     """Runs configured with an outputSchema return ``output.content`` as a
-    structured object, so the field must accept both ``str`` and ``dict``."""
+    structured object/list, so the field must accept ``str``, ``dict``, and ``list``."""
 
     def _make_run_with_content(self, content) -> dict:
         run = _make_run("run_1")
@@ -225,6 +225,17 @@ class TestSearchMonitorRunOutputContent:
         assert run.output is not None
         assert run.output.content == "plain text"
 
+    def test_get_run_with_structured_list_content(self, monitors_client, mock_client):
+        # Issue #208: schema output can be a list of objects; typing as str-only breaks list().
+        structured_list = [
+            {"title": "First hit", "url": "https://example.com/1"},
+            {"title": "Second hit", "url": "https://example.com/2"},
+        ]
+        mock_client.request.return_value = self._make_run_with_content(structured_list)
+        run = monitors_client.runs.get("sm_123", "run_1")
+        assert run.output is not None
+        assert run.output.content == structured_list
+
     def test_list_runs_with_structured_content(self, monitors_client, mock_client):
         structured = {"summary": "AI breakthroughs"}
         mock_client.request.return_value = {
@@ -234,3 +245,13 @@ class TestSearchMonitorRunOutputContent:
         }
         runs = monitors_client.runs.list("sm_123")
         assert runs.data[0].output.content == structured
+
+    def test_list_runs_with_structured_list_content(self, monitors_client, mock_client):
+        structured_list = [{"id": "anthropic", "score": 0.99}]
+        mock_client.request.return_value = {
+            "data": [self._make_run_with_content(structured_list)],
+            "hasMore": False,
+            "nextCursor": None,
+        }
+        runs = monitors_client.runs.list("sm_123")
+        assert runs.data[0].output.content == structured_list
