@@ -1656,8 +1656,9 @@ class Exa:
         Set ``max_characters`` only when your application requires a specific limit.
 
         Supply ``objective`` to improve search quality and token efficiency.
-        Describe the goal for this search turn: which documents should rank first,
-        which should be excluded, and what specific facts or figures to pull from them.
+        Describe the larger task you're working on and the goal for this search turn.
+        Say which documents should rank first, which should be excluded, and what
+        specific facts or figures to pull from them.
 
         Request text when you need full-page content, or use contents=False for
         titles and URLs only. Omitting contents still returns text with 10,000
@@ -2951,8 +2952,9 @@ class AsyncExa(Exa):
         Set ``max_characters`` only when your application requires a specific limit.
 
         Supply ``objective`` to improve search quality and token efficiency.
-        Describe the goal for this search turn: which documents should rank first,
-        which should be excluded, and what specific facts or figures to pull from them.
+        Describe the larger task you're working on and the goal for this search turn.
+        Say which documents should rank first, which should be excluded, and what
+        specific facts or figures to pull from them.
 
         Request text when you need full-page content, or use contents=False for
         titles and URLs only. Omitting contents still returns text with 10,000
