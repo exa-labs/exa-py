@@ -86,7 +86,7 @@ deep_result = exa.search(
 | --------- | ---- | ----------- | ------- |
 | query | str | The query string. | Required |
 | stream | Optional[bool] | If True, stream the synthesized search response. Use ``stream_search(...)`` instead of ``search(..., stream=True)``. | `False` |
-| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for all options. DEPRECATED FIELD WARNING: ``contents.context`` is deprecated; use ``highlights`` or ``text`` instead. | None |
+| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. For AI context, prefer `{"highlights": True}` for relevance-based sizing and read result.highlights. See [ContentsOptions](#contentsoptions) for all options. DEPRECATED FIELD WARNING: ``contents.context`` is deprecated; use ``highlights`` or ``text`` instead. | None |
 | num_results | Optional[int] | Number of search results to return. Default 10. | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
 | exclude_domains | Optional[List[str]] | Domains to exclude from the search. | None |

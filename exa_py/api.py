@@ -1670,7 +1670,8 @@ class Exa:
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for all options.
+                For AI context, prefer {"highlights": True} for relevance-based sizing
+                and read result.highlights. See ContentsOptions for all options.
                 DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
                 use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
@@ -2963,7 +2964,8 @@ class AsyncExa(Exa):
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                See ContentsOptions for all options.
+                For AI context, prefer {"highlights": True} for relevance-based sizing
+                and read result.highlights. See ContentsOptions for all options.
                 DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
                 use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
