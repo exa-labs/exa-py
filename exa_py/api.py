@@ -1650,15 +1650,14 @@ class Exa:
         betas: Optional[Sequence[str]] = None,
         extra_body: Optional[Dict[str, Any]] = None,
     ) -> SearchResponse[Result]:
-        """Perform a search.
-
-        For AI answers, RAG, and search previews, use ``contents={"highlights": True}``
+        """For optimal token efficiency, use ``contents={"highlights": True}``
         and read each result's ``highlights`` list. Exa dynamically chooses the
         number of characters based on each document's relevance to your query.
-        No manual character budget is needed. Set ``max_characters`` only when
-        your application requires a specific numeric character limit; otherwise
-        keep ``highlights=True``. Do not use the deprecated ``num_sentences`` or
-        ``highlights_per_url`` options.
+        Set ``max_characters`` only when your application requires a specific limit.
+
+        Supply ``objective`` to improve search quality and token efficiency.
+        Describe the goal for this search turn: which documents should rank first,
+        which should be excluded, and what specific facts or figures to pull from them.
 
         Request text when you need full-page content, or use contents=False for
         titles and URLs only. Omitting contents still returns text with 10,000
@@ -1671,8 +1670,7 @@ class Exa:
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                For AI context, prefer {"highlights": True} for relevance-based sizing
-                and read result.highlights. See ContentsOptions for all options.
+                See ContentsOptions for all options.
                 DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
                 use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
@@ -1704,11 +1702,8 @@ class Exa:
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
-            objective (str, optional): The broader goal this search serves: the task the
-                caller is working on, beyond the query itself. When an agent picks the query
-                as one step of a larger task, pass the goal of that step: which documents
-                should rank first, which should be excluded, and what to pull from them.
-                Up to 4096 characters.
+            objective (str, optional): The goal for this search turn, as described
+                above. Up to 4096 characters.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
@@ -1723,7 +1718,12 @@ class Exa:
             result = exa.search(
               "hottest AI startups",
               num_results=2,
-              contents={"highlights": True}
+              contents={"highlights": True},
+              objective=(
+                  "Compare AI startups for an investment brief. Prioritize recent "
+                  "funding announcements, exclude opinion pieces, and extract "
+                  "funding amounts and target markets."
+              ),
             )
             for source in result.results:
                 print(source.url, source.highlights)
@@ -2940,15 +2940,14 @@ class AsyncExa(Exa):
         betas: Optional[Sequence[str]] = None,
         extra_body: Optional[Dict[str, Any]] = None,
     ) -> SearchResponse[Result]:
-        """Perform a search with a prompt-engineered query to retrieve relevant results.
-
-        For AI answers, RAG, and search previews, use ``contents={"highlights": True}``
+        """For optimal token efficiency, use ``contents={"highlights": True}``
         and read each result's ``highlights`` list. Exa dynamically chooses the
         number of characters based on each document's relevance to your query.
-        No manual character budget is needed. Set ``max_characters`` only when
-        your application requires a specific numeric character limit; otherwise
-        keep ``highlights=True``. Do not use the deprecated ``num_sentences`` or
-        ``highlights_per_url`` options.
+        Set ``max_characters`` only when your application requires a specific limit.
+
+        Supply ``objective`` to improve search quality and token efficiency.
+        Describe the goal for this search turn: which documents should rank first,
+        which should be excluded, and what specific facts or figures to pull from them.
 
         Request text when you need full-page content, or use contents=False for
         titles and URLs only. Omitting contents still returns text with 10,000
@@ -2961,8 +2960,7 @@ class AsyncExa(Exa):
                 Use ``stream_search(...)`` instead of ``search(..., stream=True)``.
             contents (ContentsOptions | False, optional): Options for retrieving page contents.
                 Defaults to {"text": {"maxCharacters": 10000}}. Use False to disable contents.
-                For AI context, prefer {"highlights": True} for relevance-based sizing
-                and read result.highlights. See ContentsOptions for all options.
+                See ContentsOptions for all options.
                 DEPRECATED FIELD WARNING: ``contents.context`` is deprecated;
                 use ``highlights`` or ``text`` instead.
             num_results (int, optional): Number of search results to return. Default 10.
@@ -2994,11 +2992,8 @@ class AsyncExa(Exa):
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
-            objective (str, optional): The broader goal this search serves: the task the
-                caller is working on, beyond the query itself. When an agent picks the query
-                as one step of a larger task, pass the goal of that step: which documents
-                should rank first, which should be excluded, and what to pull from them.
-                Up to 4096 characters.
+            objective (str, optional): The goal for this search turn, as described
+                above. Up to 4096 characters.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
@@ -3012,7 +3007,12 @@ class AsyncExa(Exa):
             Basic async search:
             >>> async_exa = AsyncExa(api_key="your-api-key")
             >>> results = await async_exa.search(
-            ...     "latest AI research papers", contents={"highlights": True}
+            ...     "latest AI research papers",
+            ...     contents={"highlights": True},
+            ...     objective=(
+            ...         "Compare recent language model architectures for a literature review. "
+            ...         "Prioritize original papers, exclude surveys, and extract benchmark results."
+            ...     ),
             ... )
             >>> print(results.results[0].highlights)
 
