@@ -4,7 +4,7 @@
 
 The official Python SDK for [Exa](https://exa.ai), the web search API for AI.
 
-**[Documentation](https://docs.exa.ai)** | **[Dashboard](https://dashboard.exa.ai)**
+**[Documentation](https://exa.ai/docs)** | **[Dashboard](https://dashboard.exa.ai)**
 
 ## Install
 
@@ -105,7 +105,7 @@ result = exa.search("AI research", extra_body={"futureField": True})
 
 ```python
 results = exa.get_contents(
-    ["https://docs.exa.ai"],
+    ["https://exa.ai/docs"],
     text=True
 )
 ```
@@ -311,4 +311,4 @@ results = await exa.search("async search example", contents={"highlights": True}
 
 ## More
 
-See the [full documentation](https://docs.exa.ai) for all features including websets, filters, and advanced options.
+See the [full documentation](https://exa.ai/docs) for all features including websets, filters, and advanced options.

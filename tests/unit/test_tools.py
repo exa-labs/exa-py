@@ -488,7 +488,13 @@ async def test_async_tools_and_handlers():
 
 def test_contents_tool_is_wire_safe_and_takes_urls():
     exa = Exa("test")
-    exa.get_contents = lambda urls, **kwargs: response(result(text="Page text"))
+    seen = {}
+
+    def get_contents(urls, **kwargs):
+        seen["kwargs"] = kwargs
+        return response(result(text="Page text"))
+
+    exa.get_contents = get_contents
     tool = exa.openai.get_contents()
 
     assert list(tool) == ["type", "function"]
@@ -500,6 +506,7 @@ def test_contents_tool_is_wire_safe_and_takes_urls():
     assert "$schema" not in tool["function"]["parameters"]
     assert "run" not in json.dumps(tool)
     assert "Text: Page text" in tool.run({"urls": ["https://example.com"]})
+    assert seen["kwargs"] == {}
 
 
 def test_contents_passes_urls_and_options_through():
