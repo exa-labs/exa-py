@@ -1724,9 +1724,10 @@ class Exa:
               num_results=2,
               contents={"highlights": True},
               objective=(
-                  "Compare AI startups for an investment brief. Prioritize recent "
-                  "funding announcements, exclude opinion pieces, and extract "
-                  "funding amounts and target markets."
+                  "I'm preparing an investment brief on AI startups. For this search "
+                  "turn, identify recently funded companies to investigate further. "
+                  "Rank funding announcements first, exclude opinion pieces, and "
+                  "pull funding amounts and target markets."
               ),
             )
             for source in result.results:
@@ -3018,8 +3019,10 @@ class AsyncExa(Exa):
             ...     "latest AI research papers",
             ...     contents={"highlights": True},
             ...     objective=(
-            ...         "Compare recent language model architectures for a literature review. "
-            ...         "Prioritize original papers, exclude surveys, and extract benchmark results."
+            ...         "I'm writing a literature review of language model architectures. "
+            ...         "For this search turn, gather evidence to compare their performance. "
+            ...         "Rank original research papers first, exclude surveys, and pull "
+            ...         "benchmark results and evaluation settings."
             ...     ),
             ... )
             >>> print(results.results[0].highlights)
