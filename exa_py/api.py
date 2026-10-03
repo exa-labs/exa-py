@@ -1702,8 +1702,11 @@ class Exa:
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
-            objective (str, optional): The goal for this search turn, as described
-                above. Up to 4096 characters.
+            objective (str, optional): The broader goal this search serves: the task the
+                caller is working on, beyond the query itself. When an agent picks the query
+                as one step of a larger task, pass the goal of that step: which documents
+                should rank first, which should be excluded, and what to pull from them.
+                Up to 4096 characters.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
@@ -2992,8 +2995,11 @@ class AsyncExa(Exa):
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
                 Supported for all search types.
-            objective (str, optional): The goal for this search turn, as described
-                above. Up to 4096 characters.
+            objective (str, optional): The broader goal this search serves: the task the
+                caller is working on, beyond the query itself. When an agent picks the query
+                as one step of a larger task, pass the goal of that step: which documents
+                should rank first, which should be excluded, and what to pull from them.
+                Up to 4096 characters.
             betas (Sequence[str], optional): Exa-Beta tokens to send with the request
                 (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights).
 
