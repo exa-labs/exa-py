@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.25.1](https://github.com/exa-labs/exa-py/compare/v2.25.0...v2.25.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* sync exa-py ([#278](https://github.com/exa-labs/exa-py/issues/278)) ([525e004](https://github.com/exa-labs/exa-py/commit/525e004f635d208b3c1d6bb73319473fa41b7a03))
+
 ## [2.25.0](https://github.com/exa-labs/exa-py/compare/v2.24.0...v2.25.0) (2026-10-01)
 
 
