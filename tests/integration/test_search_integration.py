@@ -152,3 +152,36 @@ class TestCompanyCategorySearch:
 
         # Company entity should have name property
         assert entity.properties.name is not None
+
+
+class TestPeopleCategorySearch:
+    """Test suite for people category search with entities."""
+
+    @pytest.mark.timeout(15)
+    def test_returns_work_history_date_ranges_for_people_search(self, exa):
+        """Verify work history dates map the API's ``from``/``to`` fields."""
+        response = exa.search(
+            "software engineer at Exa AI",
+            category="people",
+            num_results=5,
+            contents=False,
+        )
+
+        people = [
+            entity
+            for result in response.results
+            for entity in (result.entities or [])
+            if entity.type == "person"
+        ]
+        assert people, "No person entities found"
+
+        dates = [
+            entry.dates
+            for person in people
+            for entry in (person.properties.work_history or [])
+            if entry.dates is not None
+        ]
+        assert dates, "No work history entries with dates found"
+        # A current role has no end date, so only some ranges carry `to`.
+        assert all(date_range.from_date for date_range in dates)
+        assert any(date_range.to_date for date_range in dates)

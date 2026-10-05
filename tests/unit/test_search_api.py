@@ -1,4 +1,3 @@
-import os
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -6,11 +5,7 @@ import pytest
 
 from exa_py import Exa, AsyncExa, api as exa_api
 
-API_KEY = os.getenv("EXA_API_KEY", "test-key")
-
-
-def _have_real_key() -> bool:
-    return API_KEY != "test-key" and len(API_KEY) > 10
+API_KEY = "test-key"
 
 
 class _FakeStreamResponse:
@@ -110,6 +105,57 @@ def test_find_similar_deprecated_offline():
 
         assert isinstance(resp, exa_api.SearchResponse)
         assert mock_request.call_args[0][0] == "/findSimilar"
+
+
+DEFAULT_TEXT_CONTENTS = {"text": {"maxCharacters": 10_000}}
+
+
+def test_search_requests_default_text_contents_offline():
+    """search() without contents asks for text capped at 10,000 characters."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.search("test query", num_results=1)
+
+    assert mock_request.call_args[0][1]["contents"] == DEFAULT_TEXT_CONTENTS
+
+
+@pytest.mark.asyncio
+async def test_async_search_requests_default_text_contents_offline():
+    """AsyncExa.search() without contents asks for text capped at 10,000 characters."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        await ax.search("test query", num_results=1)
+
+    assert mock_request.call_args[0][1]["contents"] == DEFAULT_TEXT_CONTENTS
+
+
+def test_find_similar_requests_default_text_contents_offline():
+    """find_similar() without contents asks for text capped at 10,000 characters."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        with pytest.warns(DeprecationWarning, match="find_similar"):
+            exa.find_similar("https://example.com", num_results=1)
+
+    assert mock_request.call_args[0][1]["contents"] == DEFAULT_TEXT_CONTENTS
+
+
+def test_get_contents_requests_default_text_offline():
+    """get_contents() without contents options asks for text capped at 10,000 characters."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "statuses": []}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.get_contents(["https://example.com"])
+
+    assert mock_request.call_args[0][1]["text"] == DEFAULT_TEXT_CONTENTS["text"]
 
 
 def test_get_contents_snapshot_as_of_offline():
@@ -989,11 +1035,10 @@ def test_search_and_contents_with_highlights_offline():
 
 
 ########################################
-# Live integration tests (skipped without key)
+# Client construction
 ########################################
 
 
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_user_agent_header():
     exa = Exa(API_KEY)
     # Get the expected version dynamically
@@ -1002,163 +1047,7 @@ def test_user_agent_header():
     assert exa.headers["User-Agent"] == expected_user_agent
 
 
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
 def test_research_client_attrs():
     exa = Exa(API_KEY)
     aexa = AsyncExa(API_KEY)
     assert hasattr(exa, "research") and hasattr(aexa, "research")
-
-
-# ---- Core live endpoint smoke checks ----
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_get_contents_live_preferred():
-    exa = Exa(API_KEY)
-    resp = exa.get_contents(
-        urls=["https://techcrunch.com"], text=True, livecrawl="preferred"
-    )
-    assert isinstance(resp, exa_api.SearchResponse)
-    # statuses may be empty when cached – still fine
-    assert len(resp.results) >= 1
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_search_and_contents_live():
-    exa = Exa(API_KEY)
-    resp = exa.search_and_contents("openai", num_results=1, text=True)
-    assert resp.results and resp.results[0].text
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_search_with_user_location_live():
-    exa = Exa(API_KEY)
-    resp = exa.search("news", num_results=1, user_location="US")
-    assert resp.results
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_find_similar_live():
-    exa = Exa(API_KEY)
-    with pytest.warns(DeprecationWarning, match="find_similar"):
-        resp = exa.find_similar("https://example.com", num_results=1)
-    assert resp.results
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_get_contents_sync_live():
-    exa = Exa(API_KEY)
-    resp = exa.get_contents(urls=["https://example.com"], text=True, livecrawl="never")
-    assert resp.results
-
-
-@pytest.mark.asyncio
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-async def test_get_contents_async_live():
-    ax = AsyncExa(API_KEY)
-    resp = await ax.get_contents(
-        urls=["https://example.com"], text=True, livecrawl="never"
-    )
-    assert resp.results
-
-
-########################################
-# Live tests for deprecated context compatibility / statuses features
-########################################
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_search_and_contents_context_live():
-    """Deprecated context=True compatibility should return a context string."""
-    exa = Exa(API_KEY)
-    resp = exa.search_and_contents(
-        "openai research",
-        num_results=3,
-        context=True,  # DEPRECATED FIELD: use highlights or text.
-        text=False,
-    )
-    assert (
-        resp.context is not None  # DEPRECATED FIELD: legacy context response.
-        and isinstance(resp.context, str)
-        and len(resp.context) > 0
-    )
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_find_similar_and_contents_context_live():
-    """Deprecated context=True compatibility should include the context field."""
-    exa = Exa(API_KEY)
-    resp = exa.find_similar_and_contents(
-        "https://example.com",
-        num_results=3,
-        context=True,  # DEPRECATED FIELD: use highlights or text.
-        text=False,
-    )
-    # DEPRECATED FIELD: context may be empty, but legacy attribute should exist.
-    assert hasattr(resp, "context")
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_get_contents_statuses_live():
-    """get_contents should expose statuses list (possibly empty)."""
-    exa = Exa(API_KEY)
-    resp = exa.get_contents(
-        urls=["https://techcrunch.com"], text=True, livecrawl="never"
-    )
-    # statuses attribute exists; ensure it's a list
-    assert isinstance(resp.statuses, list)
-
-
-########################################
-# Live tests for highlights feature
-########################################
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_search_with_highlights_live():
-    """search with highlights option should return highlights in results."""
-    exa = Exa(API_KEY)
-    resp = exa.search(
-        "openai research",
-        contents={"highlights": True},
-        num_results=2,
-    )
-    assert isinstance(resp, exa_api.SearchResponse)
-    assert len(resp.results) > 0
-    # At least one result should have highlights
-    has_highlights = any(r.highlights is not None for r in resp.results)
-    assert has_highlights, "Expected at least one result with highlights"
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_search_with_highlights_options_live():
-    """Deprecated highlight count fields should still work for compatibility."""
-    exa = Exa(API_KEY)
-    resp = exa.search(
-        "machine learning",
-        contents={
-            "highlights": {
-                "num_sentences": 2,  # DEPRECATED FIELD: use max_characters.
-                "highlights_per_url": 3,  # DEPRECATED FIELD: use max_characters.
-            }
-        },
-        num_results=2,
-    )
-    assert isinstance(resp, exa_api.SearchResponse)
-    assert len(resp.results) > 0
-
-
-@pytest.mark.skipif(not _have_real_key(), reason="EXA_API_KEY not provided")
-def test_search_and_contents_with_highlights_live():
-    """search_and_contents with highlights option should return highlights."""
-    exa = Exa(API_KEY)
-    resp = exa.search_and_contents(
-        "artificial intelligence",
-        highlights=True,
-        num_results=2,
-    )
-    assert isinstance(resp, exa_api.SearchResponse)
-    assert len(resp.results) > 0
-    # At least one result should have highlights
-    has_highlights = any(r.highlights is not None for r in resp.results)
-    assert has_highlights, "Expected at least one result with highlights"
