@@ -27,6 +27,10 @@ from typing import (
 from .websets import AsyncWebsetsClient
 import httpx
 import requests
+
+# Default timeout (in seconds) for non-streaming HTTP requests, to avoid
+# uncontrolled resource consumption (e.g. socket descriptor exhaustion).
+DEFAULT_REQUEST_TIMEOUT = 60
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
@@ -1577,6 +1581,7 @@ class Exa:
                     headers=request_headers,
                     params=params,
                     stream=True,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
                 )
                 if res.status_code >= 400:
                     message = (
@@ -1587,7 +1592,10 @@ class Exa:
                 return res
             else:
                 res = requests.get(
-                    self.base_url + endpoint, headers=request_headers, params=params
+                    self.base_url + endpoint,
+                    headers=request_headers,
+                    params=params,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
                 )
         elif method.upper() == "POST":
             if needs_streaming:
@@ -1596,6 +1604,7 @@ class Exa:
                     data=json_data,
                     headers=request_headers,
                     stream=True,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
                 )
                 if res.status_code >= 400:
                     message = (
@@ -1606,14 +1615,24 @@ class Exa:
                 return res
             else:
                 res = requests.post(
-                    self.base_url + endpoint, data=json_data, headers=request_headers
+                    self.base_url + endpoint,
+                    data=json_data,
+                    headers=request_headers,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
                 )
         elif method.upper() == "PATCH":
             res = requests.patch(
-                self.base_url + endpoint, data=json_data, headers=request_headers
+                self.base_url + endpoint,
+                data=json_data,
+                headers=request_headers,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
             )
         elif method.upper() == "DELETE":
-            res = requests.delete(self.base_url + endpoint, headers=request_headers)
+            res = requests.delete(
+                self.base_url + endpoint,
+                headers=request_headers,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
+            )
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
