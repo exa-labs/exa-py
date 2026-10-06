@@ -41,15 +41,15 @@ exa = Exa()  # Reads EXA_API_KEY from environment
 
 ## `search` Method
 
-Perform a search.
-
-For AI answers, RAG, and search previews, use ``contents={"highlights": True}``
+For optimal token efficiency, use ``contents={"highlights": True}``
 and read each result's ``highlights`` list. Exa dynamically chooses the
 number of characters based on each document's relevance to your query.
-No manual character budget is needed. Set ``max_characters`` only when
-your application requires a specific numeric character limit; otherwise
-keep ``highlights=True``. Do not use the deprecated ``num_sentences`` or
-``highlights_per_url`` options.
+Set ``max_characters`` only when your application requires a specific limit.
+
+Supply ``objective`` to improve search quality and token efficiency.
+Describe the larger task you're working on and the goal for this search turn.
+Say which documents should rank first, which should be excluded, and what
+specific facts or figures to pull from them.
 
 Request text when you need full-page content, or use contents=False for
 titles and URLs only. Omitting contents still returns text with 10,000
@@ -62,7 +62,13 @@ max characters by default.
 result = exa.search(
   "hottest AI startups",
   num_results=2,
-  contents={"highlights": True}
+  contents={"highlights": True},
+  objective=(
+      "I'm preparing an investment brief on AI startups. For this search "
+      "turn, identify recently funded companies to investigate further. "
+      "Rank funding announcements first, exclude opinion pieces, and "
+      "pull funding amounts and target markets."
+  ),
 )
 for source in result.results:
     print(source.url, source.highlights)
