@@ -15,6 +15,7 @@ from typing import (
     Union,
     overload,
 )
+from typing_extensions import Unpack
 
 from pydantic import BaseModel, TypeAdapter
 
@@ -30,6 +31,7 @@ from .utils import (
     is_pydantic_model,
     pydantic_to_json_schema,
 )
+from ..request_options import ExtraRequestOptions, given_request_options
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -66,6 +68,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         *,
         instructions: str,
         model: ResearchModel = "exa-research-fast",
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto: ...
 
     @overload
@@ -75,6 +78,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         instructions: str,
         model: Literal["exa-research", "exa-research-pro"] = "exa-research",
         output_schema: Dict[str, Any],
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto: ...
 
     @overload
@@ -84,6 +88,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         instructions: str,
         model: Literal["exa-research", "exa-research-pro"] = "exa-research",
         output_schema: Type[T],
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto: ...
 
     async def create(
@@ -92,6 +97,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         instructions: str,
         model: Literal["exa-research", "exa-research-pro"] = "exa-research",
         output_schema: Optional[Union[Dict[str, Any], Type[BaseModel]]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto:
         """Create a new research request.
 
@@ -99,6 +105,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             instructions: The research instructions.
             model: The model to use for research.
             output_schema: Optional JSON schema or Pydantic model for structured output.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The created research object.
@@ -114,7 +121,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             else:
                 payload["outputSchema"] = output_schema
 
-        response = await self.request("", method="POST", data=payload)
+        response = await self.request("", method="POST", data=payload, **extra)
         adapter = TypeAdapter(ResearchDto)
         return adapter.validate_python(response)
 
@@ -122,6 +129,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
     async def get(
         self,
         research_id: str,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto: ...
 
     @overload
@@ -131,6 +139,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         *,
         stream: Literal[False] = False,
         events: bool = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto: ...
 
     @overload
@@ -140,6 +149,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         *,
         stream: Literal[True],
         events: Optional[bool] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncGenerator[ResearchEvent, None]: ...
 
     @overload
@@ -150,6 +160,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         stream: Literal[False] = False,
         events: bool = False,
         output_schema: Type[T],
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncResearchTyped[T]: ...
 
     async def get(
@@ -159,6 +170,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         stream: bool = False,
         events: bool = False,
         output_schema: Optional[Type[BaseModel]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Union[ResearchDto, AsyncResearchTyped, AsyncGenerator[ResearchEvent, None]]:
         """Get a research request by ID.
 
@@ -167,6 +179,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             stream: Whether to stream events.
             events: Whether to include events in non-streaming response.
             output_schema: Optional Pydantic model for typed output validation.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             Research object, typed research, or async event generator.
@@ -183,12 +196,14 @@ class AsyncResearchClient(AsyncResearchBaseClient):
 
         if stream:
             response = await self.request(
-                f"/{research_id}", method="GET", params=params, stream=True
+                f"/{research_id}", method="GET", params=params, stream=True,
+                **extra,
             )
             return async_stream_sse_events(response)
         else:
             response = await self.request(
-                f"/{research_id}", method="GET", params=params
+                f"/{research_id}", method="GET", params=params,
+                **extra,
             )
             adapter = TypeAdapter(ResearchDto)
             research = adapter.validate_python(response)
@@ -214,18 +229,20 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         *,
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListResearchResponseDto:
         """List research requests.
 
         Args:
             cursor: Pagination cursor.
             limit: Maximum number of results.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of research objects with pagination info.
         """
         params = self.build_pagination_params(cursor, limit)
-        response = await self.request("", method="GET", params=params)
+        response = await self.request("", method="GET", params=params, **extra)
         return ListResearchResponseDto.model_validate(response)
 
     @overload
@@ -236,6 +253,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         poll_interval: int = 1000,
         timeout_ms: int = 600000,
         events: bool = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto: ...
 
     @overload
@@ -247,6 +265,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         timeout_ms: int = 600000,
         events: bool = False,
         output_schema: Type[T],
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncResearchTyped[T]: ...
 
     async def poll_until_finished(
@@ -257,6 +276,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         timeout_ms: int = 600000,
         events: bool = False,
         output_schema: Optional[Type[BaseModel]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Union[ResearchDto, AsyncResearchTyped]:
         """Poll until research is finished.
 
@@ -266,6 +286,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             timeout_ms: Maximum time to wait in milliseconds (default 600000).
             events: Whether to include events in the response.
             output_schema: Optional Pydantic model for typed output validation.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             Completed research object or typed research.
@@ -274,6 +295,9 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             TimeoutError: If research doesn't complete within timeout.
             RuntimeError: If polling fails too many times.
         """
+        # Checked here: the loop below retries any error, and a mistyped
+        # option is not a failed poll.
+        extra = given_request_options(extra)
         poll_interval_sec = poll_interval / 1000
         timeout_sec = timeout_ms / 1000
         max_consecutive_failures = 5
@@ -284,10 +308,11 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             try:
                 if output_schema:
                     result = await self.get(
-                        research_id, events=events, output_schema=output_schema
+                        research_id, events=events, output_schema=output_schema,
+                        **extra,
                     )
                 else:
-                    result = await self.get(research_id, events=events)
+                    result = await self.get(research_id, events=events, **extra)
 
                 consecutive_failures = 0
 

@@ -216,5 +216,7 @@ class CreateAgentRunParams(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     data_sources: Optional[List[AgentDataSource]] = Field(default=None, alias="dataSources")
     """Exa Connect data providers to enable for the run."""
+    user_identifier: Optional[str] = Field(default=None, alias="userIdentifier")
+    """Opaque, non-personal identifier of the end user the run is made on behalf of."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}

@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 import asyncio
 from typing import Any, Dict, Optional, Type, TypeVar, Union
+from typing_extensions import Unpack
 
 from .base import ExaBaseModel
+from ...request_options import ExtraRequestOptions, given_request_options
 
 # Generic type for any ExaBaseModel
 ModelT = TypeVar('ModelT', bound=ExaBaseModel)
@@ -52,7 +54,7 @@ class WebsetsAsyncBaseClient:
         
     async def request(self, endpoint: str, data: Optional[Union[Dict[str, Any], ExaBaseModel, str]] = None, 
                 method: str = "POST", params: Optional[Dict[str, Any]] = None,
-                headers: Optional[Dict[str, str]] = None, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                headers: Optional[Dict[str, str]] = None, options: Optional[Dict[str, Any]] = None, **extra: Unpack[ExtraRequestOptions]) -> Dict[str, Any]:
         """Make an async request to the Exa API.
         
         Args:
@@ -62,10 +64,12 @@ class WebsetsAsyncBaseClient:
             params (Dict[str, Any], optional): The query parameters. Defaults to None.
             headers (Dict[str, str], optional): Custom headers to include in the request. Defaults to None.
             options (Dict[str, Any], optional): Request options that may include 'priority' and/or 'headers'. Defaults to None.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Returns:
             Dict[str, Any]: The API response.
         """
+        extra = given_request_options(extra)
         if isinstance(data, str):
             # If data is a string, pass it as is
             pass
@@ -102,6 +106,6 @@ class WebsetsAsyncBaseClient:
             
         # Only pass headers if there are any
         if final_headers:
-            return await self._client.async_request("/websets/" + endpoint, data=data, method=method, params=params, headers=final_headers)
+            return await self._client.async_request("/websets/" + endpoint, data=data, method=method, params=params, headers=final_headers, **extra)
         else:
-            return await self._client.async_request("/websets/" + endpoint, data=data, method=method, params=params) 
+            return await self._client.async_request("/websets/" + endpoint, data=data, method=method, params=params, **extra) 

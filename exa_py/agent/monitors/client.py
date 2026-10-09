@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from typing import Any, Dict, Iterator, Optional, Sequence, Union
+from typing_extensions import Unpack
 
 from .base import AgentMonitorsBaseClient
 from .types import (
@@ -19,6 +20,7 @@ from .types import (
     ListAgentMonitorEntitiesResponse,
     ListAgentMonitorsResponse,
 )
+from ...request_options import ExtraRequestOptions, options_for_next_page
 
 _DEFAULT_BACKTEST_POLL_INTERVAL_MS = 2000
 _DEFAULT_BACKTEST_POLL_TIMEOUT_MS = 3600000
@@ -60,6 +62,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         *,
         betas: Sequence[str],
         entities: Sequence[EntityInput],
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentMonitor:
         """Add entities to an existing Agent Monitor.
 
@@ -70,6 +73,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
             entities: Entities to add, each with a name and a unique domain.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The updated Agent Monitor.
@@ -89,7 +93,8 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         """
         payload = {"entities": _serialize_entities(entities)}
         response = self.request(
-            f"/{monitor_id}/entities", betas=betas, method="POST", data=payload
+            f"/{monitor_id}/entities", betas=betas, method="POST", data=payload,
+            **extra,
         )
         return AgentMonitor.model_validate(response)
 
@@ -101,6 +106,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListAgentMonitorEntitiesResponse:
         """Page an Agent Monitor's current entities and contents.
 
@@ -111,6 +117,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
             limit: Maximum number of entities to return.
             since: Only return entities whose contents were updated at or
                 after this ISO-8601 timestamp.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             One page of entities with their contents keyed by field ID.
@@ -127,7 +134,8 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         """
         params = self.build_pagination_params(cursor, limit, since)
         response = self.request(
-            f"/{monitor_id}/entities", betas=betas, method="GET", params=params
+            f"/{monitor_id}/entities", betas=betas, method="GET", params=params,
+            **extra,
         )
         return ListAgentMonitorEntitiesResponse.model_validate(response)
 
@@ -139,6 +147,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Iterator[AgentMonitorEntityView]:
         """Iterate through all of a monitor's entities, handling pagination automatically.
 
@@ -149,6 +158,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
                 after this ISO-8601 timestamp.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Yields:
             AgentMonitorEntityView: Each entity with its contents.
@@ -169,12 +179,14 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
                 cursor=cursor,
                 limit=limit,
                 since=since,
+                **extra,
             )
             for entity_view in response.data:
                 yield entity_view
             if not response.has_more or not response.next_cursor:
                 break
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
     def get_all(
         self,
@@ -184,6 +196,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> list[AgentMonitorEntityView]:
         """Collect all of a monitor's entities into a list.
 
@@ -194,6 +207,7 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
             limit: Maximum number of entities to return per page.
             since: Only return entities whose contents were updated at or
                 after this ISO-8601 timestamp.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of all entities with their contents.
@@ -209,7 +223,8 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
         """
         return list(
             self.list_all(
-                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since
+                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since,
+                **extra,
             )
         )
 
@@ -225,6 +240,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListAgentMonitorChangesResponse:
         """Page an Agent Monitor's content change feed since a cursor or timestamp.
 
@@ -236,6 +252,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
             limit: Maximum number of changes to return.
             since: Only return changes committed at or after this ISO-8601
                 timestamp.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             One page of content changes.
@@ -256,7 +273,8 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         """
         params = self.build_pagination_params(cursor, limit, since)
         response = self.request(
-            f"/{monitor_id}/changes", betas=betas, method="GET", params=params
+            f"/{monitor_id}/changes", betas=betas, method="GET", params=params,
+            **extra,
         )
         return ListAgentMonitorChangesResponse.model_validate(response)
 
@@ -268,6 +286,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Iterator[AgentMonitorChange]:
         """Iterate through a monitor's change feed, handling pagination automatically.
 
@@ -278,6 +297,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
             limit: Maximum number of changes to return per page.
             since: Only return changes committed at or after this ISO-8601
                 timestamp.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Yields:
             AgentMonitorChange: Each content change.
@@ -298,12 +318,14 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
                 cursor=cursor,
                 limit=limit,
                 since=since,
+                **extra,
             )
             for change in response.data:
                 yield change
             if not response.has_more or not response.next_cursor:
                 break
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
     def get_all(
         self,
@@ -313,6 +335,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[str] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> list[AgentMonitorChange]:
         """Collect a monitor's change feed into a list.
 
@@ -323,6 +346,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
             limit: Maximum number of changes to return per page.
             since: Only return changes committed at or after this ISO-8601
                 timestamp.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of content changes.
@@ -343,6 +367,7 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
                 cursor=cursor,
                 limit=limit,
                 since=since,
+                **extra,
             )
         )
 
@@ -358,6 +383,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
         fields: Sequence[FieldInput],
         start_time: str,
         end_time: str,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentMonitorBacktest:
         """Start an async backtest of entities x fields over a past news window.
 
@@ -370,6 +396,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
             fields: Fields to populate from news over the window.
             start_time: Start of the news window as an ISO-8601 UTC timestamp.
             end_time: End of the news window as an ISO-8601 UTC timestamp.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The running backtest job; poll it with `get` or use `create_and_wait`.
@@ -400,10 +427,10 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
             "startTime": start_time,
             "endTime": end_time,
         }
-        response = self.request("/backtest", betas=betas, method="POST", data=payload)
+        response = self.request("/backtest", betas=betas, method="POST", data=payload, **extra)
         return AgentMonitorBacktest.model_validate(response)
 
-    def get(self, backtest_id: str, *, betas: Sequence[str]) -> AgentMonitorBacktest:
+    def get(self, backtest_id: str, *, betas: Sequence[str], **extra: Unpack[ExtraRequestOptions]) -> AgentMonitorBacktest:
         """Poll a backtest job for its status and, once completed, its result.
 
         Jobs expire and read as 404 after `expires_at`.
@@ -411,6 +438,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             backtest_id: The ID of the backtest job.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The backtest job, with result data once completed.
@@ -424,7 +452,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
             backtest = exa.beta.agent.monitors.backtests.get("agentbacktest_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(backtest.status)
         """
-        response = self.request(f"/backtest/{backtest_id}", betas=betas, method="GET")
+        response = self.request(f"/backtest/{backtest_id}", betas=betas, method="GET", **extra)
         return AgentMonitorBacktest.model_validate(response)
 
     def poll_until_finished(
@@ -434,6 +462,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
         betas: Sequence[str],
         poll_interval: int = _DEFAULT_BACKTEST_POLL_INTERVAL_MS,
         timeout_ms: int = _DEFAULT_BACKTEST_POLL_TIMEOUT_MS,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentMonitorBacktest:
         """Poll a backtest job until it reaches a terminal status.
 
@@ -442,6 +471,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
             backtest_id: The ID of the backtest job.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The terminal backtest job (completed or failed).
@@ -459,7 +489,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
         poll_interval_sec = poll_interval / 1000
 
         while True:
-            backtest = self.get(backtest_id, betas=betas)
+            backtest = self.get(backtest_id, betas=betas, **extra)
             if backtest.status != "running":
                 return backtest
 
@@ -480,6 +510,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
         end_time: str,
         poll_interval: int = _DEFAULT_BACKTEST_POLL_INTERVAL_MS,
         timeout_ms: int = _DEFAULT_BACKTEST_POLL_TIMEOUT_MS,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentMonitorBacktest:
         """Start a backtest and wait for its result.
 
@@ -491,6 +522,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
             end_time: End of the news window as an ISO-8601 UTC timestamp.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The completed backtest job.
@@ -524,6 +556,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
             fields=fields,
             start_time=start_time,
             end_time=end_time,
+            **extra,
         )
         if backtest.status == "running":
             backtest = self.poll_until_finished(
@@ -531,6 +564,7 @@ class AgentMonitorBacktestsClient(AgentMonitorsBaseClient):
                 betas=betas,
                 poll_interval=poll_interval,
                 timeout_ms=timeout_ms,
+                **extra,
             )
         return _ensure_completed_backtest(backtest)
 
@@ -556,6 +590,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
         entities: Sequence[EntityInput],
         fields: Sequence[FieldInput],
         idempotency_key: Optional[str] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentMonitor:
         """Create an Agent Monitor from its entities, fields, and cadence.
 
@@ -573,6 +608,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             idempotency_key: Sent as the `Idempotency-Key` header. A retried
                 create with the same key returns the monitor the first attempt
                 created instead of creating a duplicate.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The created Agent Monitor.
@@ -609,16 +645,18 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             else None
         )
         response = self.request(
-            "", betas=betas, method="POST", data=payload, headers=headers
+            "", betas=betas, method="POST", data=payload, headers=headers,
+            **extra,
         )
         return AgentMonitor.model_validate(response)
 
-    def get(self, monitor_id: str, *, betas: Sequence[str]) -> AgentMonitor:
+    def get(self, monitor_id: str, *, betas: Sequence[str], **extra: Unpack[ExtraRequestOptions]) -> AgentMonitor:
         """Get an Agent Monitor by ID, including refresh progress.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The Agent Monitor.
@@ -632,7 +670,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             monitor = exa.beta.agent.monitors.get("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(monitor.status, monitor.refresh)
         """
-        response = self.request(f"/{monitor_id}", betas=betas, method="GET")
+        response = self.request(f"/{monitor_id}", betas=betas, method="GET", **extra)
         return AgentMonitor.model_validate(response)
 
     def list(
@@ -641,6 +679,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
         betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListAgentMonitorsResponse:
         """List the team's Agent Monitors.
 
@@ -648,6 +687,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             betas: Beta feature identifiers to enable for this request.
             cursor: Pagination cursor from a previous response.
             limit: Maximum number of monitors to return.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of Agent Monitors with pagination info.
@@ -662,7 +702,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             print([monitor.id for monitor in monitors.data])
         """
         params = self.build_pagination_params(cursor, limit)
-        response = self.request("", betas=betas, method="GET", params=params)
+        response = self.request("", betas=betas, method="GET", params=params, **extra)
         return ListAgentMonitorsResponse.model_validate(response)
 
     def list_all(
@@ -671,6 +711,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
         betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Iterator[AgentMonitor]:
         """Iterate through all Agent Monitors, handling pagination automatically.
 
@@ -678,6 +719,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             betas: Beta feature identifiers to enable for this request.
             cursor: Monitors list cursor to resume from.
             limit: Maximum number of monitors to return per page.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Yields:
             AgentMonitor: Each Agent Monitor.
@@ -692,12 +734,13 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
                 print(monitor.id)
         """
         while True:
-            response = self.list(betas=betas, cursor=cursor, limit=limit)
+            response = self.list(betas=betas, cursor=cursor, limit=limit, **extra)
             for monitor in response.data:
                 yield monitor
             if not response.has_more or not response.next_cursor:
                 break
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
     def get_all(
         self,
@@ -705,6 +748,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
         betas: Sequence[str],
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> list[AgentMonitor]:
         """Collect all Agent Monitors into a list.
 
@@ -712,6 +756,7 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             betas: Beta feature identifiers to enable for this request.
             cursor: Monitors list cursor to resume from.
             limit: Maximum number of monitors to return per page.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of all Agent Monitors.
@@ -725,14 +770,15 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             monitors = exa.beta.agent.monitors.get_all(betas=[AGENT_MONITORS_BETA_HEADER])
             print(len(monitors))
         """
-        return list(self.list_all(betas=betas, cursor=cursor, limit=limit))
+        return list(self.list_all(betas=betas, cursor=cursor, limit=limit, **extra))
 
-    def delete(self, monitor_id: str, *, betas: Sequence[str]) -> DeletedAgentMonitor:
+    def delete(self, monitor_id: str, *, betas: Sequence[str], **extra: Unpack[ExtraRequestOptions]) -> DeletedAgentMonitor:
         """Delete an Agent Monitor and stop its refreshes.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             Deletion status for the Agent Monitor.
@@ -746,5 +792,5 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             deleted = exa.beta.agent.monitors.delete("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER])
             print(deleted.deleted)
         """
-        response = self.request(f"/{monitor_id}", betas=betas, method="DELETE")
+        response = self.request(f"/{monitor_id}", betas=betas, method="DELETE", **extra)
         return DeletedAgentMonitor.model_validate(response)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional, Union
+from typing_extensions import Unpack
 
 from ..types import (
     EventType,
@@ -25,6 +26,7 @@ from ..types import (
 )
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
+from ...request_options import ExtraRequestOptions
 
 # Type alias for all event types
 Event = Union[
@@ -54,13 +56,14 @@ class EventsClient(WebsetsBaseClient):
         super().__init__(client)
 
     def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, 
-             types: Optional[List[EventType]] = None) -> ListEventsResponse:
+             types: Optional[List[EventType]] = None, **extra: Unpack[ExtraRequestOptions]) -> ListEventsResponse:
         """List all Events.
         
         Args:
             cursor (str, optional): The cursor to paginate through the results.
             limit (int, optional): The number of results to return.
             types (List[EventType], optional): The types of events to filter by.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             ListEventsResponse: List of events.
@@ -74,19 +77,20 @@ class EventsClient(WebsetsBaseClient):
             # Convert EventType enums to their string values
             params["types"] = [t.value if hasattr(t, 'value') else t for t in types]
             
-        response = self.request("/v0/events", params=params, method="GET")
+        response = self.request("/v0/events", params=params, method="GET", **extra)
         return ListEventsResponse.model_validate(response)
 
-    def get(self, id: str) -> Event:
+    def get(self, id: str, **extra: Unpack[ExtraRequestOptions]) -> Event:
         """Get an Event by ID.
         
         Args:
             id (str): The ID of the Event.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             Event: The retrieved event.
         """
-        response = self.request(f"/v0/events/{id}", method="GET")
+        response = self.request(f"/v0/events/{id}", method="GET", **extra)
         
         # The response should contain a 'type' field that helps us determine
         # which specific event class to use for validation
@@ -135,13 +139,14 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
         super().__init__(client)
 
     async def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, 
-             types: Optional[List[EventType]] = None) -> ListEventsResponse:
+             types: Optional[List[EventType]] = None, **extra: Unpack[ExtraRequestOptions]) -> ListEventsResponse:
         """List all Events.
         
         Args:
             cursor (str, optional): The cursor to paginate through the results.
             limit (int, optional): The number of results to return.
             types (List[EventType], optional): The types of events to filter by.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             ListEventsResponse: List of events.
@@ -155,19 +160,20 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
             # Convert EventType enums to their string values
             params["types"] = [t.value if hasattr(t, 'value') else t for t in types]
             
-        response = await self.request("/v0/events", params=params, method="GET")
+        response = await self.request("/v0/events", params=params, method="GET", **extra)
         return ListEventsResponse.model_validate(response)
 
-    async def get(self, id: str) -> Event:
+    async def get(self, id: str, **extra: Unpack[ExtraRequestOptions]) -> Event:
         """Get an Event by ID.
         
         Args:
             id (str): The ID of the Event.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             Event: The retrieved event.
         """
-        response = await self.request(f"/v0/events/{id}", method="GET")
+        response = await self.request(f"/v0/events/{id}", method="GET", **extra)
         
         # The response should contain a 'type' field that helps us determine
         # which specific event class to use for validation
