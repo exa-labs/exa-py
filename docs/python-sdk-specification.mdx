@@ -1439,7 +1439,9 @@ A class representing a streaming answer response.
 
 #### `AsyncStreamAnswerResponse`
 
-A class representing a streaming answer response.
+A class representing an async streaming answer response.
+
+Use `await response.close()` to release the response when stopping iteration early.
 
 #### `StreamSearchResponse`
 
@@ -1447,7 +1449,9 @@ A class representing a streaming search response.
 
 #### `AsyncStreamSearchResponse`
 
-A class representing a streaming search response.
+A class representing an async streaming search response.
+
+Use `await response.close()` to release the response when stopping iteration early.
 
 #### `ContentStatus`
 

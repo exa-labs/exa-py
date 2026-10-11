@@ -309,6 +309,19 @@ exa = AsyncExa(api_key="your-api-key")
 results = await exa.search("async search example", contents={"highlights": True})
 ```
 
+Async `stream_search()` and `stream_answer()` return streams whose `close()` must
+be awaited. Use `finally` to release the response if iteration stops early:
+
+```python
+stream = await exa.stream_search("What are the latest battery breakthroughs?")
+try:
+    async for chunk in stream:
+        if chunk.content:
+            print(chunk.content, end="", flush=True)
+finally:
+    await stream.close()
+```
+
 ## More
 
 See the [full documentation](https://exa.ai/docs) for all features including websets, filters, and advanced options.

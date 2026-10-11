@@ -1240,7 +1240,10 @@ class StreamAnswerResponse:
 
 
 class AsyncStreamAnswerResponse:
-    """A class representing a streaming answer response."""
+    """A class representing an async streaming answer response.
+
+    Use `await response.close()` to release the response when stopping iteration early.
+    """
 
     def __init__(self, raw_response: httpx.Response):
         self._raw_response = raw_response
@@ -1295,9 +1298,18 @@ class AsyncStreamAnswerResponse:
 
         return generator()
 
-    def close(self) -> None:
-        """Close the underlying raw response to release the network socket."""
-        self._raw_response.close()
+    async def close(self) -> None:
+        """Close the underlying async response to release the network socket.
+
+        Returns:
+            None
+
+        Examples:
+            Close an async stream after finishing or stopping iteration:
+            >>> stream = await async_exa.stream_answer("What is quantum computing?")
+            >>> await stream.close()
+        """
+        await self._raw_response.aclose()
 
 
 class StreamSearchResponse(StreamAnswerResponse):
@@ -1305,7 +1317,10 @@ class StreamSearchResponse(StreamAnswerResponse):
 
 
 class AsyncStreamSearchResponse(AsyncStreamAnswerResponse):
-    """A class representing a streaming search response."""
+    """A class representing an async streaming search response.
+
+    Use `await response.close()` to release the response when stopping iteration early.
+    """
 
 
 T = TypeVar("T")
