@@ -27,13 +27,14 @@ class _FakeAsyncStreamResponse:
         self._lines = lines
         self.status_code = status_code
         self.text = ""
+        self.closed = False
 
     async def aiter_lines(self):
         for line in self._lines:
             yield line
 
-    def close(self):
-        return None
+    async def aclose(self):
+        self.closed = True
 
 
 ########################################
@@ -89,6 +90,33 @@ def test_search_accepts_user_location_offline():
         # This should not raise any errors about unknown parameters
         resp = exa.search("test query", user_location="US", num_results=1)
         assert isinstance(resp, exa_api.SearchResponse)
+
+
+def test_search_accepts_user_location_coordinates_offline():
+    """Test that search method accepts a user_location dict without error."""
+    exa = Exa(API_KEY)
+    mock_response = {
+        "results": [{"url": "http://example.com", "id": "1", "title": "Test"}],
+        "costDollars": {"total": 0.001},
+    }
+
+    user_location = {"country": "US", "latitude": 37.7749, "longitude": -122.4194}
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.search("test query", user_location=user_location, num_results=1)
+        assert isinstance(resp, exa_api.SearchResponse)
+        assert mock_request.call_args[0][1]["userLocation"] == user_location
+
+
+def test_answer_accepts_user_location_coordinates_offline():
+    """Test that answer method accepts a user_location dict without error."""
+    exa = Exa(API_KEY)
+    mock_response = {"answer": "Test answer", "citations": []}
+
+    user_location = {"country": "US", "latitude": 37.7749, "longitude": -122.4194}
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        resp = exa.answer("test query", user_location=user_location)
+        assert isinstance(resp, exa_api.AnswerResponse)
+        assert mock_request.call_args[0][1]["userLocation"] == user_location
 
 
 def test_find_similar_deprecated_offline():
@@ -683,6 +711,7 @@ async def test_async_stream_search_streams_openai_style_chunks_offline():
         chunks = [chunk async for chunk in stream]
 
         assert len(chunks) == 2
+        assert mock_stream_response.closed
         assert chunks[0].content == "Hello"
         assert chunks[1].citations is not None
         assert chunks[1].citations[0].url == "http://example.com"

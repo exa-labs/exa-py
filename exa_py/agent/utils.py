@@ -8,6 +8,7 @@ from typing import Any, AsyncGenerator, Dict, Generator, Optional
 import httpx
 import requests
 
+from ..errors import typed_timeouts
 from .types import AgentEvent
 
 
@@ -42,6 +43,7 @@ def parse_sse_event_lines(event_lines: list[str]) -> Optional[AgentEvent]:
     return AgentEvent(id=event_id, event=event_name, data=data)
 
 
+@typed_timeouts
 def stream_agent_events(response: requests.Response) -> Generator[AgentEvent, None, None]:
     event_lines: list[str] = []
 
@@ -67,6 +69,7 @@ def stream_agent_events(response: requests.Response) -> Generator[AgentEvent, No
             close()
 
 
+@typed_timeouts
 async def async_stream_agent_events(
     response: httpx.Response,
 ) -> AsyncGenerator[AgentEvent, None]:

@@ -101,8 +101,12 @@ deep_result = exa.search(
 | system_prompt | Optional[str] | Instructions that guide both the search process and the final returned result. Use this to prefer certain sources, emphasize novelty, avoid duplicates, or constrain the response style. Supported for all search types. | None |
 | output_schema | Optional[[DeepOutputSchema](#deepoutputschema)] | Search output schema for structured synthesis. When provided, the API returns synthesized output in ``output``. Use ``{"type": "text", "description": ...}`` for plain text output or ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON. For object schemas, max nesting depth is 2 and max total properties is 10. Supported for all search types. | None |
 | objective | Optional[str] | The broader goal this search serves: the task the caller is working on, beyond the query itself. When an agent picks the query as one step of a larger task, pass the goal of that step: which documents should rank first, which should be excluded, and what to pull from them. Up to 4096 characters. | None |
+| user_identifier | Optional[str] | An opaque identifier you generate for the end user this request is made on behalf of, such as a UUID or a hash. Never send personal information such as an email address, name or phone number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa records it so usage can be attributed to one end user; it does not change results. | None |
 | betas | Optional[Sequence[str]] | Exa-Beta tokens to send with the request (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights). | None |
-| extra_body | Optional[Dict[str, Any]] | Per-call body overrides, except stream. | None |
+| extra_body | Optional[Mapping[str, Any]] | Per-call body overrides, except stream. | None |
+| timeout | Optional[float] | Per-operation network inactivity timeout in seconds; defaults to the client timeout. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
 
 ### Return Example
 
@@ -186,6 +190,10 @@ similar_results = exa.search(
 | exclude_source_domain | Optional[bool] | Whether to exclude the source domain. | None |
 | category | Optional[[Category](#category)] | Data category to focus on (e.g. 'company', 'news', 'publication'). | None |
 | flags | Optional[List[str]] | Experimental flags. | None |
+| timeout | Optional[float] | Timeout in seconds for this request. Defaults to the client-level timeout. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -316,6 +324,11 @@ print(response_with_text.citations[0].text)  # Full page text
 | model | Optional[Literal['exa', 'exa-pro']] | The model to use for answering. Defaults to None. | None |
 | output_schema | Optional[[JSONSchemaInput](#jsonschemainput)] | JSON schema describing the desired answer structure. | None |
 | user_location | Optional[str] | - | None |
+| user_identifier | Optional[str] | An opaque identifier you generate for the end user this request is made on behalf of, such as a UUID or a hash. Never send personal information such as an email address, name or phone number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa records it so usage can be attributed to one end user; it does not change results. | None |
+| timeout | Optional[float] | Timeout in seconds for this request. Defaults to the client-level timeout. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -373,6 +386,11 @@ for chunk in stream:
 | model | Optional[Literal['exa', 'exa-pro']] | The model to use for answering. Defaults to None. | None |
 | output_schema | Optional[[JSONSchemaInput](#jsonschemainput)] | JSON schema describing the desired answer structure. | None |
 | user_location | Optional[str] | - | None |
+| user_identifier | Optional[str] | An opaque identifier you generate for the end user this request is made on behalf of, such as a UUID or a hash. Never send personal information such as an email address, name or phone number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa records it so usage can be attributed to one end user; it does not change results. | None |
+| timeout | Optional[float] | Timeout in seconds for this request. Defaults to the client-level timeout. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -437,6 +455,9 @@ print(f"Task created with ID: {task.research_id}")
 | instructions | str | The research instructions describing what to research. | Required |
 | model | [ResearchModel](#researchmodel) | The model to use ('exa-research-fast', 'exa-research', or 'exa-research-pro'). | `'exa-research-fast'` |
 | output_schema | Optional[Union[Dict[str, Any], Type[[BaseModel](https://docs.pydantic.dev/latest/api/base_model/#BaseModel)]]] | Optional JSON schema for structured output format. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -485,6 +506,9 @@ if task.status == "completed":
 | stream | bool | Whether to stream events as they occur. | `False` |
 | events | bool | Whether to include events in the response. | `False` |
 | output_schema | Optional[Type[[BaseModel](https://docs.pydantic.dev/latest/api/base_model/#BaseModel)]] | Optional Pydantic model for typed output validation. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -564,6 +588,9 @@ print(f"Research complete: {result.output}")
 | timeout_ms | int | Maximum time to wait in milliseconds before timing out. | `600000` |
 | events | bool | Whether to include events in the response. | `False` |
 | output_schema | Optional[Type[[BaseModel](https://docs.pydantic.dev/latest/api/base_model/#BaseModel)]] | Optional Pydantic model for typed output validation. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Result Object
 
@@ -603,6 +630,9 @@ if response.has_more:
 | --------- | ---- | ----------- | ------- |
 | cursor | Optional[str] | Pagination cursor from a previous response. | None |
 | limit | Optional[int] | Maximum number of results to return. | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -671,6 +701,9 @@ print(monitor.id)
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | params | Union[Dict[str, Any], [CreateSearchMonitorParams](#createsearchmonitorparams)] | - | Required |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -741,6 +774,9 @@ print(monitor.status)
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | monitor_id | str | - | Required |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -811,6 +847,9 @@ print([monitor.name for monitor in monitors.data])
 | status | Optional[[SearchMonitorStatus](#searchmonitorstatus)] | - | None |
 | cursor | Optional[str] | - | None |
 | limit | Optional[int] | - | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -873,6 +912,9 @@ print(monitor.updated_at)
 | --------- | ---- | ----------- | ------- |
 | monitor_id | str | - | Required |
 | params | Union[Dict[str, Any], [UpdateSearchMonitorParams](#updatesearchmonitorparams)] | - | Required |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -933,6 +975,9 @@ print(deleted_monitor.status)
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | monitor_id | str | - | Required |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -989,6 +1034,9 @@ print(response.triggered)
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | monitor_id | str | - | Required |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -1027,6 +1075,9 @@ print(runs.data[0].status if runs.data else "no runs yet")
 | monitor_id | str | - | Required |
 | cursor | Optional[str] | - | None |
 | limit | Optional[int] | - | None |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 
@@ -1087,6 +1138,9 @@ print(run.status)
 | --------- | ---- | ----------- | ------- |
 | monitor_id | str | - | Required |
 | run_id | str | - | Required |
+| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
+| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
+| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
 
 ### Return Example
 

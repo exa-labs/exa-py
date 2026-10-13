@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing_extensions import Unpack
+from ..request_options import ExtraRequestOptions, given_request_options
 
 if TYPE_CHECKING:
     from exa_py.api import AsyncExa
@@ -21,10 +23,13 @@ class SearchMonitorsAsyncBaseClient:
         method: str = "POST",
         data: Optional[Union[Dict[str, Any], str]] = None,
         params: Optional[Dict[str, str]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Dict[str, Any]:
+        extra = given_request_options(extra)
         full_endpoint = f"{self.base_path}{endpoint}"
         return await self._client.async_request(
-            full_endpoint, data=data, method=method, params=params
+            full_endpoint, data=data, method=method, params=params,
+            **extra,
         )
 
     def build_pagination_params(

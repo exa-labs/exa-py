@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Optional, Dict, Any, Union, Iterator, AsyncIterator, List
+from typing_extensions import Unpack
 
 from ..types import (
     CreateWebhookParameters,
@@ -13,6 +14,7 @@ from ..types import (
 )
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
+from ...request_options import ExtraRequestOptions, options_for_next_page
 
 class WebhookAttemptsClient(WebsetsBaseClient):
     """Client for managing Webhook Attempts."""
@@ -22,7 +24,7 @@ class WebhookAttemptsClient(WebsetsBaseClient):
     
     def list(self, webhook_id: str, *, cursor: Optional[str] = None, 
              limit: Optional[int] = None, event_type: Optional[Union[EventType, str]] = None,
-             successful: Optional[bool] = None) -> ListWebhookAttemptsResponse:
+             successful: Optional[bool] = None, **extra: Unpack[ExtraRequestOptions]) -> ListWebhookAttemptsResponse:
         """List all attempts made by a Webhook ordered in descending order.
         
         Args:
@@ -31,6 +33,7 @@ class WebhookAttemptsClient(WebsetsBaseClient):
             limit (int, optional): The number of results to return (max 200).
             event_type (Union[EventType, str], optional): The type of event to filter by.
             successful (bool, optional): Filter attempts by success status.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             ListWebhookAttemptsResponse: List of webhook attempts.
@@ -49,7 +52,7 @@ class WebhookAttemptsClient(WebsetsBaseClient):
             "successful": successful
         }.items() if v is not None}
         
-        response = self.request(f"/v0/webhooks/{webhook_id}/attempts", params=params, method="GET")
+        response = self.request(f"/v0/webhooks/{webhook_id}/attempts", params=params, method="GET", **extra)
         return ListWebhookAttemptsResponse.model_validate(response)
 
 class WebsetWebhooksClient(WebsetsBaseClient):
@@ -59,81 +62,87 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         super().__init__(client)
         self.attempts = WebhookAttemptsClient(client)
 
-    def create(self, params: Union[Dict[str, Any], CreateWebhookParameters]) -> Webhook:
+    def create(self, params: Union[Dict[str, Any], CreateWebhookParameters], **extra: Unpack[ExtraRequestOptions]) -> Webhook:
         """Create a Webhook.
         
         Args:
             params (CreateWebhookParameters): The parameters for creating a webhook.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             Webhook: The created webhook.
         """
-        response = self.request("/v0/webhooks", data=params)
+        response = self.request("/v0/webhooks", data=params, **extra)
         return Webhook.model_validate(response)
 
-    def get(self, id: str) -> Webhook:
+    def get(self, id: str, **extra: Unpack[ExtraRequestOptions]) -> Webhook:
         """Get a Webhook by ID.
         
         Args:
             id (str): The id of the webhook.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             Webhook: The retrieved webhook.
         """
-        response = self.request(f"/v0/webhooks/{id}", method="GET")
+        response = self.request(f"/v0/webhooks/{id}", method="GET", **extra)
         return Webhook.model_validate(response)
 
-    def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None) -> ListWebhooksResponse:
+    def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> ListWebhooksResponse:
         """List all Webhooks.
         
         Args:
             cursor (str, optional): The cursor to paginate through the results.
             limit (int, optional): The number of results to return (max 200).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             ListWebhooksResponse: List of webhooks.
         """
         params = {k: v for k, v in {"cursor": cursor, "limit": limit}.items() if v is not None}
-        response = self.request("/v0/webhooks", params=params, method="GET")
+        response = self.request("/v0/webhooks", params=params, method="GET", **extra)
         return ListWebhooksResponse.model_validate(response)
 
-    def update(self, id: str, params: Union[Dict[str, Any], UpdateWebhookParameters]) -> Webhook:
+    def update(self, id: str, params: Union[Dict[str, Any], UpdateWebhookParameters], **extra: Unpack[ExtraRequestOptions]) -> Webhook:
         """Update a Webhook.
         
         Args:
             id (str): The id of the webhook.
             params (UpdateWebhookParameters): The parameters for updating a webhook.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             Webhook: The updated webhook.
         """
-        response = self.request(f"/v0/webhooks/{id}", data=params, method="PATCH")
+        response = self.request(f"/v0/webhooks/{id}", data=params, method="PATCH", **extra)
         return Webhook.model_validate(response)
 
-    def delete(self, id: str) -> Webhook:
+    def delete(self, id: str, **extra: Unpack[ExtraRequestOptions]) -> Webhook:
         """Delete a Webhook.
         
         Args:
             id (str): The id of the webhook.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             Webhook: The deleted webhook.
         """
-        response = self.request(f"/v0/webhooks/{id}", method="DELETE")
+        response = self.request(f"/v0/webhooks/{id}", method="DELETE", **extra)
         return Webhook.model_validate(response)
 
-    def list_all(self, *, limit: Optional[int] = None) -> Iterator[Webhook]:
+    def list_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> Iterator[Webhook]:
         """Iterate through all Webhooks, handling pagination automatically.
         
         Args:
             limit (int, optional): The number of results to return per page (max 200).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Yields:
             Webhook: Each webhook.
         """
         cursor = None
         while True:
-            response = self.list(cursor=cursor, limit=limit)
+            response = self.list(cursor=cursor, limit=limit, **extra)
             for webhook in response.data:
                 yield webhook
             
@@ -141,17 +150,19 @@ class WebsetWebhooksClient(WebsetsBaseClient):
                 break
                 
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
-    def get_all(self, *, limit: Optional[int] = None) -> List[Webhook]:
+    def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Webhook]:
         """Collect all Webhooks into a list.
         
         Args:
             limit (int, optional): The number of results to return per page (max 200).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Returns:
             List[Webhook]: All webhooks.
         """
-        return list(self.list_all(limit=limit))
+        return list(self.list_all(limit=limit, **extra))
 
     def list_all_attempts(
         self, 
@@ -159,7 +170,8 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         *, 
         limit: Optional[int] = None,
         event_type: Optional[Union[EventType, str]] = None,
-        successful: Optional[bool] = None
+        successful: Optional[bool] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Iterator[WebhookAttempt]:
         """Iterate through all attempts for a Webhook, handling pagination automatically.
         
@@ -168,6 +180,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
             limit (int, optional): The number of results to return per page (max 200).
             event_type (Union[EventType, str], optional): The type of event to filter by.
             successful (bool, optional): Filter attempts by success status.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Yields:
             WebhookAttempt: Each webhook attempt.
@@ -179,7 +192,8 @@ class WebsetWebhooksClient(WebsetsBaseClient):
                 cursor=cursor, 
                 limit=limit, 
                 event_type=event_type, 
-                successful=successful
+                successful=successful,
+                **extra,
             )
             for attempt in response.data:
                 yield attempt
@@ -188,6 +202,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
                 break
                 
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
     def get_all_attempts(
         self, 
@@ -195,7 +210,8 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         *, 
         limit: Optional[int] = None,
         event_type: Optional[Union[EventType, str]] = None,
-        successful: Optional[bool] = None
+        successful: Optional[bool] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> List[WebhookAttempt]:
         """Collect all attempts for a Webhook into a list.
         
@@ -204,6 +220,7 @@ class WebsetWebhooksClient(WebsetsBaseClient):
             limit (int, optional): The number of results to return per page (max 200).
             event_type (Union[EventType, str], optional): The type of event to filter by.
             successful (bool, optional): Filter attempts by success status.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Returns:
             List[WebhookAttempt]: All webhook attempts.
@@ -212,7 +229,8 @@ class WebsetWebhooksClient(WebsetsBaseClient):
             webhook_id, 
             limit=limit, 
             event_type=event_type, 
-            successful=successful
+            successful=successful,
+            **extra,
         ))
 
 
@@ -224,8 +242,12 @@ class AsyncWebhookAttemptsClient(WebsetsAsyncBaseClient):
     
     async def list(self, webhook_id: str, *, cursor: Optional[str] = None, 
              limit: Optional[int] = None, event_type: Optional[Union[EventType, str]] = None,
-             successful: Optional[bool] = None) -> ListWebhookAttemptsResponse:
-        """List all attempts made by a Webhook ordered in descending order."""
+             successful: Optional[bool] = None, **extra: Unpack[ExtraRequestOptions]) -> ListWebhookAttemptsResponse:
+        """List all attempts made by a Webhook ordered in descending order.
+
+        Args:
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+        """
         event_type_value = None
         if event_type is not None:
             if isinstance(event_type, EventType):
@@ -240,7 +262,7 @@ class AsyncWebhookAttemptsClient(WebsetsAsyncBaseClient):
             "successful": successful
         }.items() if v is not None}
         
-        response = await self.request(f"/v0/webhooks/{webhook_id}/attempts", params=params, method="GET")
+        response = await self.request(f"/v0/webhooks/{webhook_id}/attempts", params=params, method="GET", **extra)
         return ListWebhookAttemptsResponse.model_validate(response)
 
 class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
@@ -250,44 +272,65 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         super().__init__(client)
         self.attempts = AsyncWebhookAttemptsClient(client)
 
-    async def create(self, params: Union[Dict[str, Any], CreateWebhookParameters]) -> Webhook:
-        """Create a Webhook."""
-        response = await self.request("/v0/webhooks", data=params)
+    async def create(self, params: Union[Dict[str, Any], CreateWebhookParameters], **extra: Unpack[ExtraRequestOptions]) -> Webhook:
+        """Create a Webhook.
+
+        Args:
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+        """
+        response = await self.request("/v0/webhooks", data=params, **extra)
         return Webhook.model_validate(response)
 
-    async def get(self, id: str) -> Webhook:
-        """Get a Webhook by ID."""
-        response = await self.request(f"/v0/webhooks/{id}", method="GET")
+    async def get(self, id: str, **extra: Unpack[ExtraRequestOptions]) -> Webhook:
+        """Get a Webhook by ID.
+
+        Args:
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+        """
+        response = await self.request(f"/v0/webhooks/{id}", method="GET", **extra)
         return Webhook.model_validate(response)
 
-    async def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None) -> ListWebhooksResponse:
-        """List all Webhooks."""
+    async def list(self, *, cursor: Optional[str] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> ListWebhooksResponse:
+        """List all Webhooks.
+
+        Args:
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+        """
         params = {k: v for k, v in {"cursor": cursor, "limit": limit}.items() if v is not None}
-        response = await self.request("/v0/webhooks", params=params, method="GET")
+        response = await self.request("/v0/webhooks", params=params, method="GET", **extra)
         return ListWebhooksResponse.model_validate(response)
 
-    async def update(self, id: str, params: Union[Dict[str, Any], UpdateWebhookParameters]) -> Webhook:
-        """Update a Webhook."""
-        response = await self.request(f"/v0/webhooks/{id}", data=params, method="PATCH")
+    async def update(self, id: str, params: Union[Dict[str, Any], UpdateWebhookParameters], **extra: Unpack[ExtraRequestOptions]) -> Webhook:
+        """Update a Webhook.
+
+        Args:
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+        """
+        response = await self.request(f"/v0/webhooks/{id}", data=params, method="PATCH", **extra)
         return Webhook.model_validate(response)
 
-    async def delete(self, id: str) -> Webhook:
-        """Delete a Webhook."""
-        response = await self.request(f"/v0/webhooks/{id}", method="DELETE")
+    async def delete(self, id: str, **extra: Unpack[ExtraRequestOptions]) -> Webhook:
+        """Delete a Webhook.
+
+        Args:
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+        """
+        response = await self.request(f"/v0/webhooks/{id}", method="DELETE", **extra)
         return Webhook.model_validate(response)
 
-    async def list_all(self, *, limit: Optional[int] = None) -> AsyncIterator[Webhook]:
+    async def list_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> AsyncIterator[Webhook]:
         """Iterate through all Webhooks, handling pagination automatically.
         
         Args:
             limit (int, optional): The number of results to return per page (max 200).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Yields:
             Webhook: Each webhook.
         """
         cursor = None
         while True:
-            response = await self.list(cursor=cursor, limit=limit)
+            response = await self.list(cursor=cursor, limit=limit, **extra)
             for webhook in response.data:
                 yield webhook
             
@@ -295,18 +338,20 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
                 break
                 
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
-    async def get_all(self, *, limit: Optional[int] = None) -> List[Webhook]:
+    async def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Webhook]:
         """Collect all Webhooks into a list.
         
         Args:
             limit (int, optional): The number of results to return per page (max 200).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Returns:
             List[Webhook]: All webhooks.
         """
         webhooks = []
-        async for webhook in self.list_all(limit=limit):
+        async for webhook in self.list_all(limit=limit, **extra):
             webhooks.append(webhook)
         return webhooks
 
@@ -316,7 +361,8 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         *, 
         limit: Optional[int] = None,
         event_type: Optional[Union[EventType, str]] = None,
-        successful: Optional[bool] = None
+        successful: Optional[bool] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncIterator[WebhookAttempt]:
         """Iterate through all attempts for a Webhook, handling pagination automatically.
         
@@ -325,6 +371,7 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
             limit (int, optional): The number of results to return per page (max 200).
             event_type (Union[EventType, str], optional): The type of event to filter by.
             successful (bool, optional): Filter attempts by success status.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Yields:
             WebhookAttempt: Each webhook attempt.
@@ -336,7 +383,8 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
                 cursor=cursor, 
                 limit=limit, 
                 event_type=event_type, 
-                successful=successful
+                successful=successful,
+                **extra,
             )
             for attempt in response.data:
                 yield attempt
@@ -345,6 +393,7 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
                 break
                 
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
     async def get_all_attempts(
         self, 
@@ -352,7 +401,8 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         *, 
         limit: Optional[int] = None,
         event_type: Optional[Union[EventType, str]] = None,
-        successful: Optional[bool] = None
+        successful: Optional[bool] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> List[WebhookAttempt]:
         """Collect all attempts for a Webhook into a list.
         
@@ -361,6 +411,7 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
             limit (int, optional): The number of results to return per page (max 200).
             event_type (Union[EventType, str], optional): The type of event to filter by.
             successful (bool, optional): Filter attempts by success status.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Returns:
             List[WebhookAttempt]: All webhook attempts.
@@ -370,7 +421,8 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
             webhook_id, 
             limit=limit, 
             event_type=event_type, 
-            successful=successful
+            successful=successful,
+            **extra,
         ):
             attempts.append(attempt)
         return attempts

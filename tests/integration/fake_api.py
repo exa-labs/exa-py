@@ -94,6 +94,11 @@ def is_bool(value: Any, path: str) -> None:
         raise _fail(path, "boolean", value)
 
 
+def is_number(value: Any, path: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise _fail(path, "number", value)
+
+
 def is_object(value: Any, path: str) -> None:
     if not isinstance(value, dict):
         raise _fail(path, "object", value)
@@ -261,6 +266,19 @@ CONTENTS_FIELDS: Dict[str, Validator] = {
 # so a client must omit the field to ask for no contents.
 CONTENTS_OPTIONS = obj(CONTENTS_FIELDS)
 
+USER_LOCATION = any_of(
+    is_string,
+    obj(
+        {
+            "country": is_string,
+            "latitude": is_number,
+            "longitude": is_number,
+        },
+        {"latitude", "longitude"},
+    ),
+    obj({"country": is_string}, {"country"}),
+)
+
 FILTER_FIELDS: Dict[str, Validator] = {
     "numResults": integer(minimum=1, maximum=100),
     "includeDomains": string_list,
@@ -273,7 +291,7 @@ FILTER_FIELDS: Dict[str, Validator] = {
     "endPublishedDate": is_string,
     "category": CATEGORY,
     "flags": string_list,
-    "userLocation": is_string,
+    "userLocation": USER_LOCATION,
     "contents": CONTENTS_OPTIONS,
 }
 
