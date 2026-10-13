@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.26.0](https://github.com/exa-labs/exa-py/compare/v2.25.0...v2.26.0) (2026-10-13)
+
+
+### Features
+
+* add request options and typed timeout errors ([#283](https://github.com/exa-labs/exa-py/issues/283)) ([9d599f8](https://github.com/exa-labs/exa-py/commit/9d599f8570647442a4ad83f30a3e2270266d9927))
+
+
+### Bug Fixes
+
+* sync exa-py ([#278](https://github.com/exa-labs/exa-py/issues/278)) ([525e004](https://github.com/exa-labs/exa-py/commit/525e004f635d208b3c1d6bb73319473fa41b7a03))
+
 ## [2.25.0](https://github.com/exa-labs/exa-py/compare/v2.24.0...v2.25.0) (2026-10-01)
 
 
