@@ -1780,15 +1780,15 @@ class Exa:
         extra_query: Optional[Mapping[str, Any]] = None,
 
     ) -> SearchResponse[Result]:
-        """Perform a search.
-
-        For AI answers, RAG, and search previews, use ``contents={"highlights": True}``
+        """For optimal token efficiency, use ``contents={"highlights": True}``
         and read each result's ``highlights`` list. Exa dynamically chooses the
         number of characters based on each document's relevance to your query.
-        No manual character budget is needed. Set ``max_characters`` only when
-        your application requires a specific numeric character limit; otherwise
-        keep ``highlights=True``. Do not use the deprecated ``num_sentences`` or
-        ``highlights_per_url`` options.
+        Set ``max_characters`` only when your application requires a specific limit.
+
+        Supply ``objective`` to improve search quality and token efficiency.
+        Describe the larger task you're working on and the goal for this search turn.
+        Say which documents should rank first, which should be excluded, and what
+        specific facts or figures to pull from them.
 
         Request text when you need full-page content, or use contents=False for
         titles and URLs only. Omitting contents still returns text with 10,000
@@ -1862,7 +1862,13 @@ class Exa:
             result = exa.search(
               "hottest AI startups",
               num_results=2,
-              contents={"highlights": True}
+              contents={"highlights": True},
+              objective=(
+                  "I'm preparing an investment brief on AI startups. For this search "
+                  "turn, identify recently funded companies to investigate further. "
+                  "Rank funding announcements first, exclude opinion pieces, and "
+                  "pull funding amounts and target markets."
+              ),
             )
             for source in result.results:
                 print(source.url, source.highlights)
@@ -3349,15 +3355,15 @@ class AsyncExa(Exa):
         extra_query: Optional[Mapping[str, Any]] = None,
 
     ) -> SearchResponse[Result]:
-        """Perform a search with a prompt-engineered query to retrieve relevant results.
-
-        For AI answers, RAG, and search previews, use ``contents={"highlights": True}``
+        """For optimal token efficiency, use ``contents={"highlights": True}``
         and read each result's ``highlights`` list. Exa dynamically chooses the
         number of characters based on each document's relevance to your query.
-        No manual character budget is needed. Set ``max_characters`` only when
-        your application requires a specific numeric character limit; otherwise
-        keep ``highlights=True``. Do not use the deprecated ``num_sentences`` or
-        ``highlights_per_url`` options.
+        Set ``max_characters`` only when your application requires a specific limit.
+
+        Supply ``objective`` to improve search quality and token efficiency.
+        Describe the larger task you're working on and the goal for this search turn.
+        Say which documents should rank first, which should be excluded, and what
+        specific facts or figures to pull from them.
 
         Request text when you need full-page content, or use contents=False for
         titles and URLs only. Omitting contents still returns text with 10,000
@@ -3430,7 +3436,14 @@ class AsyncExa(Exa):
             Basic async search:
             >>> async_exa = AsyncExa(api_key="your-api-key")
             >>> results = await async_exa.search(
-            ...     "latest AI research papers", contents={"highlights": True}
+            ...     "latest AI research papers",
+            ...     contents={"highlights": True},
+            ...     objective=(
+            ...         "I'm writing a literature review of language model architectures. "
+            ...         "For this search turn, gather evidence to compare their performance. "
+            ...         "Rank original research papers first, exclude surveys, and pull "
+            ...         "benchmark results and evaluation settings."
+            ...     ),
             ... )
             >>> print(results.results[0].highlights)
 
