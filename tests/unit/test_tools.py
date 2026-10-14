@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from exa_py import AsyncExa, Exa
+from exa_py.api import SearchNotice
 from exa_py.tools import SEARCH_OBJECTIVE_TOOL_DESCRIPTION
 
 
@@ -22,6 +23,37 @@ def result(**kwargs):
         text=kwargs.get("text"),
         summary=kwargs.get("summary"),
     )
+
+
+@pytest.mark.parametrize("as_mapping", [False, True])
+def test_search_tool_forwards_notice_messages(as_mapping):
+    exa = Exa("test")
+    notice = {
+        "code": "FUTURE_NOTICE",
+        "path": "/query",
+        "message": "The query's site restriction was removed.",
+        "details": {"futureField": True},
+    }
+    raw_response = (
+        {"results": [], "notices": [notice]}
+        if as_mapping
+        else SimpleNamespace(results=[], notices=[SearchNotice(**notice)])
+    )
+    exa.search = lambda query, **kwargs: raw_response
+    tool = exa.tools.web_search()
+
+    assert tool.run({"query": "q"}) == (
+        "Notice: The query's site restriction was removed.\n\nNo search results found."
+    )
+    assert tool.execute({"query": "q"}) is raw_response
+
+
+@pytest.mark.parametrize("notices", [None, []])
+def test_search_tool_output_unchanged_without_notices(notices):
+    exa = Exa("test")
+    exa.search = lambda query, **kwargs: SimpleNamespace(results=[], notices=notices)
+
+    assert exa.tools.web_search().run({"query": "q"}) == "No search results found."
 
 
 def test_openai_tool_is_wire_safe_and_has_query_and_objective_schema(monkeypatch):

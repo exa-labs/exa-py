@@ -1181,20 +1181,58 @@ class AnswerResult:
 
 
 @dataclass
+class SearchNotice:
+    """A non-fatal note about how search results were produced.
+
+    Attributes:
+        code (str): Notice identifier; new codes may be added by the API.
+        path (str): JSON pointer to the request field the notice concerns.
+        message (str): Human-readable message suitable for model tool output.
+        details (dict, optional): Additional, code-specific information.
+    """
+
+    code: str
+    path: str
+    message: str
+    details: Optional[Dict[str, Any]] = None
+
+
+def _parse_search_notices(raw: Optional[List[dict]]) -> Optional[List[SearchNotice]]:
+    """Parse notices without restricting their codes or detail fields."""
+    if raw is None:
+        return None
+    return [
+        SearchNotice(
+            code=notice["code"],
+            path=notice["path"],
+            message=notice["message"],
+            details=notice.get("details"),
+        )
+        for notice in raw
+    ]
+
+
+@dataclass
 class StreamChunk:
     """A class representing a single chunk of streaming data.
 
     Attributes:
         content (Optional[str]): The partial text content of the streamed response.
         citations (Optional[List[AnswerResult]]): List of citations if provided in this chunk.
+        notices (Optional[List[SearchNotice]]): Notes about how search results were produced.
     """
 
     content: Optional[str] = None
     citations: Optional[List[AnswerResult]] = None
+    notices: Optional[List[SearchNotice]] = None
 
     def has_data(self) -> bool:
         """Check if this chunk contains any data."""
-        return self.content is not None or self.citations is not None
+        return (
+            self.content is not None
+            or self.citations is not None
+            or bool(self.notices)
+        )
 
     def __str__(self) -> str:
         """Format the chunk data as a string."""
@@ -1205,6 +1243,8 @@ class StreamChunk:
             output += "\nCitations:"
             for source in self.citations:
                 output += f"\n{source}"
+        if self.notices:
+            output += "\n" + "\n".join(f"Notice: {notice.message}" for notice in self.notices)
         return output
 
 
@@ -1285,7 +1325,11 @@ class StreamAnswerResponse:
                         )
                     )
 
-            stream_chunk = StreamChunk(content=content, citations=citations)
+            stream_chunk = StreamChunk(
+                content=content,
+                citations=citations,
+                notices=_parse_search_notices(chunk.get("notices")),
+            )
             if stream_chunk.has_data():
                 yield stream_chunk
 
@@ -1346,7 +1390,11 @@ class AsyncStreamAnswerResponse:
                                 )
                             )
 
-                    stream_chunk = StreamChunk(content=content, citations=citations)
+                    stream_chunk = StreamChunk(
+                        content=content,
+                        citations=citations,
+                        notices=_parse_search_notices(chunk.get("notices")),
+                    )
                     if stream_chunk.has_data():
                         yield stream_chunk
             finally:
@@ -1399,6 +1447,7 @@ class SearchResponse(Generic[T]):
         statuses (List[ContentStatus], optional): Status list from get_contents.
         cost_dollars (CostDollars, optional): Cost breakdown.
         search_time (float, optional): Time taken for the search in milliseconds.
+        notices (List[SearchNotice], optional): Notes about how the results were produced.
     """
 
     results: List[T]
@@ -1409,6 +1458,7 @@ class SearchResponse(Generic[T]):
     statuses: Optional[List[ContentStatus]] = None
     cost_dollars: Optional[CostDollars] = None
     search_time: Optional[float] = None
+    notices: Optional[List[SearchNotice]] = None
 
     def __str__(self):
         output = "\n\n".join(str(result) for result in self.results)
@@ -1428,6 +1478,8 @@ class SearchResponse(Generic[T]):
                 output += f"\n  - contents: {self.cost_dollars.contents}"
         if self.statuses:
             output += f"\nStatuses: {self.statuses}"
+        if self.notices:
+            output += "\n" + "\n".join(f"Notice: {notice.message}" for notice in self.notices)
         return output
 
 
@@ -1947,6 +1999,7 @@ class Exa:
             output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
+            notices=_parse_search_notices(data.get("notices")),
         )
 
     def stream_search(
@@ -2173,6 +2226,7 @@ class Exa:
             output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
+            notices=_parse_search_notices(data.get("notices")),
         )
 
     @overload
@@ -3513,6 +3567,7 @@ class AsyncExa(Exa):
             output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
+            notices=_parse_search_notices(data.get("notices")),
         )
 
     async def stream_search(
@@ -3737,6 +3792,7 @@ class AsyncExa(Exa):
             context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
+            notices=_parse_search_notices(data.get("notices")),
         )
 
     async def get_contents(self, urls: Union[str, List[str], List[_Result]], **kwargs):
