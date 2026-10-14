@@ -84,6 +84,11 @@ Search `output_schema` modes:
 `system_prompt` and `output_schema` are supported on every search type.
 Search streaming is available via `stream_search(...)`, which yields OpenAI-style chat completion chunks.
 
+Search responses and stream chunks may include `notices`, typed as `SearchNotice`
+objects with `code`, `path`, `message`, and optional `details`. Pass notice messages
+to your model along with the results; the built-in web search tools do this
+automatically. Notice codes and detail fields may expand over time.
+
 For `type: "object"`, search currently enforces:
 - max nesting depth: `2`
 - max total properties: `10`

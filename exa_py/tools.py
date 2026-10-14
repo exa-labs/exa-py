@@ -107,7 +107,11 @@ def _format_results(response: Any, empty_message: str) -> str:
 
 
 def _format_response(response: Any) -> str:
-    return _format_results(response, "No search results found.")
+    """Include search notice messages in model-facing evidence."""
+    notices = _value(response, "notices", []) or []
+    notes = [f"Notice: {_value(notice, 'message')}" for notice in notices]
+    results = _format_results(response, "No search results found.")
+    return "\n\n".join([*notes, results])
 
 
 def _format_contents_response(response: Any) -> str:

@@ -1,4 +1,5 @@
-from unittest.mock import AsyncMock, patch
+import json
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -6,6 +7,19 @@ import pytest
 from exa_py import Exa, AsyncExa, api as exa_api
 
 API_KEY = "test-key"
+
+SEARCH_NOTICES = [
+    {
+        "code": "RESTRICTIONS_RELAXED",
+        "path": "/query",
+        "message": "These results come from a search with the site restriction removed.",
+        "details": {
+            "relaxed": [{"kind": "site", "operator": "site:example.com"}],
+            "futureField": True,
+        },
+    },
+    {"code": "FUTURE_NOTICE", "path": "/futureField", "message": "A new notice."},
+]
 
 
 class _FakeStreamResponse:
@@ -75,6 +89,40 @@ def test_answerresponse_accepts_dict():
     dummy = exa_api.AnswerResult(id="1", url="u", title="t")
     resp = exa_api.AnswerResponse(answer={"foo": "bar"}, citations=[dummy])
     assert isinstance(resp.answer, dict) and resp.answer["foo"] == "bar"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("method", ["search", "search_and_contents"])
+@pytest.mark.parametrize("notices", [None, [], SEARCH_NOTICES])
+@pytest.mark.filterwarnings("ignore:search_and_contents:DeprecationWarning")
+async def test_search_notices_preserve_open_codes_and_details(
+    asynchronous, method, notices
+):
+    client = AsyncExa(API_KEY) if asynchronous else Exa(API_KEY)
+    payload = {"results": []}
+    if notices is not None:
+        payload["notices"] = notices
+    request = "async_request" if asynchronous else "request"
+    mock = (AsyncMock if asynchronous else Mock)(return_value=payload)
+    with patch.object(client, request, new=mock):
+        response = getattr(client, method)("query")
+        if asynchronous:
+            response = await response
+
+    if not notices:
+        assert response.notices == notices
+    else:
+        first, future = response.notices
+        assert isinstance(first, exa_api.SearchNotice)
+        assert first.code == "RESTRICTIONS_RELAXED"
+        assert first.path == "/query"
+        assert first.message == SEARCH_NOTICES[0]["message"]
+        assert first.details == SEARCH_NOTICES[0]["details"]
+        assert future.code == "FUTURE_NOTICE"
+        assert future.path == "/futureField"
+        assert future.details is None
+        assert first.message in str(response)
 
 
 def test_search_accepts_user_location_offline():
@@ -481,6 +529,7 @@ def test_stream_search_streams_openai_style_chunks_offline():
         [
             'data: {"choices":[{"delta":{"content":"Hello"}}]}',
             'data: {"citations":[{"id":"1","url":"http://example.com","title":"Example"}]}',
+            "data: " + json.dumps({"notices": SEARCH_NOTICES}),
         ]
     )
 
@@ -493,10 +542,16 @@ def test_stream_search_streams_openai_style_chunks_offline():
         )
         chunks = list(stream)
 
-        assert len(chunks) == 2
+        assert len(chunks) == 3
         assert chunks[0].content == "Hello"
+        assert chunks[0].notices is None
         assert chunks[1].citations is not None
         assert chunks[1].citations[0].url == "http://example.com"
+        assert chunks[2].content is None and chunks[2].citations is None
+        assert chunks[2].notices[0].details == SEARCH_NOTICES[0]["details"]
+        assert chunks[2].notices[1].code == "FUTURE_NOTICE"
+        assert chunks[2].notices[1].details is None
+        assert SEARCH_NOTICES[0]["message"] in str(chunks[2])
 
         call_args = mock_request.call_args
         assert call_args[0][0] == "/search"
@@ -696,6 +751,7 @@ async def test_async_stream_search_streams_openai_style_chunks_offline():
         [
             'data: {"choices":[{"delta":{"content":"Hello"}}]}',
             'data: {"citations":[{"id":"1","url":"http://example.com","title":"Example"}]}',
+            "data: " + json.dumps({"notices": SEARCH_NOTICES}),
         ]
     )
 
@@ -710,11 +766,16 @@ async def test_async_stream_search_streams_openai_style_chunks_offline():
         )
         chunks = [chunk async for chunk in stream]
 
-        assert len(chunks) == 2
+        assert len(chunks) == 3
         assert mock_stream_response.closed
         assert chunks[0].content == "Hello"
+        assert chunks[0].notices is None
         assert chunks[1].citations is not None
         assert chunks[1].citations[0].url == "http://example.com"
+        assert chunks[2].content is None and chunks[2].citations is None
+        assert chunks[2].notices[0].details == SEARCH_NOTICES[0]["details"]
+        assert chunks[2].notices[1].code == "FUTURE_NOTICE"
+        assert chunks[2].notices[1].details is None
 
         call_args = mock_async_request.call_args
         assert call_args[0][0] == "/search"
