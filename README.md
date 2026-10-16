@@ -95,7 +95,7 @@ Deep search variants that also support `additional_queries`:
 
 ### Raw body fields
 
-Use `extra_body` for per-call search body overrides.
+Use `extra_body` for per-call search body overrides. Every other method takes it too; see [Request options](#request-options).
 
 ```python
 result = exa.search("AI research", extra_body={"futureField": True})
@@ -309,18 +309,77 @@ exa = AsyncExa(api_key="your-api-key")
 results = await exa.search("async search example", contents={"highlights": True})
 ```
 
-Async `stream_search()` and `stream_answer()` return streams whose `close()` must
-be awaited. Use `finally` to release the response if iteration stops early:
+## Request options
+
+Every API method takes three keyword arguments on top of its own, on `Exa` and `AsyncExa` alike:
+
+| Argument        | Effect                                         |
+| --------------- | ---------------------------------------------- |
+| `extra_body`    | Extra fields merged over the JSON request body |
+| `extra_headers` | Extra request headers                          |
+| `extra_query`   | Extra query parameters                         |
 
 ```python
-stream = await exa.stream_search("What are the latest battery breakthroughs?")
-try:
-    async for chunk in stream:
-        if chunk.content:
-            print(chunk.content, end="", flush=True)
-finally:
-    await stream.close()
+# Send a field the SDK does not type yet.
+exa.get_contents("https://example.com", text=True, extra_body={"futureField": True})
+
+exa.websets.list(
+    limit=10,
+    extra_query={"futureParam": "value"},
+    extra_headers={"X-Request-Source": "nightly"},
+)
 ```
+
+They add to the request the method builds. On a name the method also sets, your value wins.
+
+- `extra_body` is sent with `POST` and `PATCH` requests. Other requests ignore it; use `extra_query` there.
+- `extra_query` skips a parameter set to `None` and sends `True` and `False` as `true` and `false`, from both clients.
+- A header the SDK sets, such as `User-Agent`, is replaced whatever its case. A header set to `None` is skipped.
+- The method you call decides whether the response streams. `stream` is never taken from `extra_body` or `extra_query`, and an extra `Accept` header neither starts a stream nor replaces the `Accept` of a streaming method: call the streaming method instead.
+- Helpers that make several requests (`list_all`, `get_all`, `poll_until_finished`, `create_and_wait`, `wait_until_idle`) apply them to each one, so `create_and_wait` sends `extra_body` with the create request and not with its polls. A `cursor` in `extra_query` picks the first page of `list_all` and `get_all`; the helper advances from there.
+- A CSV import's upload goes to a presigned URL and receives none of the three.
+- The LLM tool helpers (`exa.tools`, `exa.openai`, `exa.anthropic`) pass the options and `timeout` given when you create a tool to every request it makes, for example `exa.openai.web_search(timeout=10, extra_headers={"X-Request-Source": "agent"})`. `run`, `execute` and the `handle_tool_calls` / `handle_tool_use` helpers take none per call.
+
+## Timeouts and cancellation
+
+The sync and async clients default to a 600-second **network inactivity timeout** (not a wall-clock deadline). Set a client-wide value or override it for a search, contents, answer, or streaming call; use `None` at construction to disable it. A per-call `None` inherits the client's value.
+
+```python
+from exa_py import Exa
+
+exa = Exa(api_key="your-api-key", timeout=30)
+results = exa.search("latest AI developments", timeout=5)
+```
+
+A request that exceeds its timeout raises `ExaTimeoutError`, from the sync and the async client alike:
+
+```python
+from exa_py import Exa, ExaTimeoutError
+
+exa = Exa(api_key="your-api-key")
+try:
+    results = exa.search("latest AI developments", timeout=5)
+except ExaTimeoutError:
+    results = None
+```
+
+The error is also an instance of the exception the HTTP library raised, so handlers written for those keep working:
+
+- `AsyncExa`: an `httpx.TimeoutException`.
+- `Exa`: a `requests.exceptions.Timeout` while connecting or waiting for the response to start, and a `requests.exceptions.ConnectionError` when the response stalls after it started, as Requests reports it.
+
+With `AsyncExa`, cancel an in-flight operation by cancelling the task awaiting it:
+
+```python
+import asyncio
+from exa_py import AsyncExa
+
+exa = AsyncExa(api_key="your-api-key")
+task = asyncio.create_task(exa.search("latest AI developments"))
+task.cancel()
+```
+
+When stopping an async search/answer stream early, call `await stream.aclose()` to release its HTTP connection; cancellation while awaiting the next chunk also closes it. The sync client cannot cancel a blocking read from another thread; the timeout bounds each period of network inactivity. Both constructors and per-call overrides require a positive finite timeout when not `None`.
 
 ## More
 

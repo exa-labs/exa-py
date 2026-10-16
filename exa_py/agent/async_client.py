@@ -14,6 +14,7 @@ from typing import (
     Union,
     overload,
 )
+from typing_extensions import Unpack
 
 from pydantic import BaseModel
 
@@ -41,6 +42,7 @@ from .types import (
     ListAgentRunsResponse,
 )
 from .utils import async_stream_agent_events
+from ..request_options import ExtraRequestOptions, options_for_next_page
 
 
 class AsyncAgentRunEventsClient(AsyncAgentBaseClient):
@@ -52,6 +54,7 @@ class AsyncAgentRunEventsClient(AsyncAgentBaseClient):
         *,
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListAgentRunEventsResponse:
         """List stored events for an Agent run.
 
@@ -59,6 +62,7 @@ class AsyncAgentRunEventsClient(AsyncAgentBaseClient):
             run_id: The ID of the Agent run.
             cursor: Pagination cursor from a previous response.
             limit: Maximum number of events to return.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of Agent run events with pagination info.
@@ -75,7 +79,7 @@ class AsyncAgentRunEventsClient(AsyncAgentBaseClient):
             print(events.data[0].event if events.data else "no events yet")
         """
         params = self.build_pagination_params(cursor, limit)
-        response = await self.request(f"/{run_id}/events", method="GET", params=params)
+        response = await self.request(f"/{run_id}/events", method="GET", params=params, **extra)
         return ListAgentRunEventsResponse.model_validate(response)
 
 
@@ -101,7 +105,9 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         stream: Literal[False] = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun: ...
 
     @overload
@@ -117,7 +123,9 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         stream: Literal[True] = True,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncGenerator[AgentEvent, None]: ...
 
     async def create(
@@ -132,7 +140,9 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         stream: bool = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Union[AgentRun, AsyncGenerator[AgentEvent, None]]:
         """Create an Agent run.
 
@@ -147,7 +157,16 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
             data_sources: Optional Exa Connect data providers to enable for the run.
+            user_identifier: Optional opaque identifier you generate for the end
+                user this run is made on behalf of, such as a UUID or a hash. Never
+                send personal information such as an email address, name or phone
+                number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa
+                records it with the run and its searches so usage can be attributed
+                to one end user; it does not change results. A follow-up run
+                (``previous_run_id``) that omits it keeps the identifier of the run
+                it continues.
             stream: Whether to stream server-sent Agent events instead of returning a run.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The created Agent run, or an async generator of Agent events when stream is True.
@@ -172,18 +191,20 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
+            user_identifier=user_identifier,
         )
 
-        response = await self.request("", method="POST", data=payload, stream=stream)
+        response = await self.request("", method="POST", data=payload, stream=stream, **extra)
         if stream:
             return async_stream_agent_events(response)
         return AgentRun.model_validate(response)
 
-    async def get(self, run_id: str) -> AgentRun:
+    async def get(self, run_id: str, **extra: Unpack[ExtraRequestOptions]) -> AgentRun:
         """Get an Agent run by ID.
 
         Args:
             run_id: The ID of the Agent run.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The Agent run.
@@ -196,7 +217,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             run = await exa.agent.runs.get("agent_run_123")
             print(run.status)
         """
-        response = await self.request(f"/{run_id}", method="GET")
+        response = await self.request(f"/{run_id}", method="GET", **extra)
         return AgentRun.model_validate(response)
 
     async def list(
@@ -204,12 +225,14 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         *,
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListAgentRunsResponse:
         """List Agent runs.
 
         Args:
             cursor: Pagination cursor from a previous response.
             limit: Maximum number of runs to return.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of Agent runs with pagination info.
@@ -223,18 +246,20 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             print([run.id for run in runs.data])
         """
         params = self.build_pagination_params(cursor, limit)
-        response = await self.request("", method="GET", params=params)
+        response = await self.request("", method="GET", params=params, **extra)
         return ListAgentRunsResponse.model_validate(response)
 
     async def list_all(
         self,
         *,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncGenerator[AgentRun, None]:
         """Iterate through all Agent runs, handling pagination automatically.
 
         Args:
             limit: Maximum number of runs to return per page.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Yields:
             AgentRun: Each Agent run.
@@ -249,18 +274,20 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         """
         cursor = None
         while True:
-            response = await self.list(cursor=cursor, limit=limit)
+            response = await self.list(cursor=cursor, limit=limit, **extra)
             for run in response.data:
                 yield run
             if not response.has_more or not response.next_cursor:
                 break
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
-    async def get_all(self, *, limit: Optional[int] = None) -> list[AgentRun]:
+    async def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> list[AgentRun]:
         """Collect all Agent runs into a list.
 
         Args:
             limit: Maximum number of runs to return per page.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             List of all Agent runs.
@@ -274,15 +301,16 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             print(len(runs))
         """
         runs: list[AgentRun] = []
-        async for run in self.list_all(limit=limit):
+        async for run in self.list_all(limit=limit, **extra):
             runs.append(run)
         return runs
 
-    async def cancel(self, run_id: str) -> AgentRun:
+    async def cancel(self, run_id: str, **extra: Unpack[ExtraRequestOptions]) -> AgentRun:
         """Cancel a queued or running Agent run.
 
         Args:
             run_id: The ID of the Agent run.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The cancelled Agent run.
@@ -295,13 +323,16 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             run = await exa.agent.runs.cancel("agent_run_123")
             print(run.status)
         """
-        response = await self.request(f"/{run_id}/cancel", method="POST")
+        response = await self.request(f"/{run_id}/cancel", method="POST", **extra)
         return AgentRun.model_validate(response)
 
-    async def stop(self, run_id: str) -> AgentRun:
+    async def stop(self, run_id: str, **extra: Unpack[ExtraRequestOptions]) -> AgentRun:
         """Stop a running Agent run, completing it early with the results gathered so far.
 
         Only supported for `ultra` effort runs.
+
+        Args:
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Examples:
             from exa_py import AsyncExa
@@ -311,14 +342,15 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             run = await exa.agent.runs.stop("agent_run_123")
             print(run.stop_reason)
         """
-        response = await self.request(f"/{run_id}/stop", method="POST")
+        response = await self.request(f"/{run_id}/stop", method="POST", **extra)
         return AgentRun.model_validate(response)
 
-    async def delete(self, run_id: str) -> DeletedAgentRun:
+    async def delete(self, run_id: str, **extra: Unpack[ExtraRequestOptions]) -> DeletedAgentRun:
         """Delete an Agent run.
 
         Args:
             run_id: The ID of the Agent run.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             Deletion status for the Agent run.
@@ -331,7 +363,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             deleted = await exa.agent.runs.delete("agent_run_123")
             print(deleted.deleted)
         """
-        response = await self.request(f"/{run_id}", method="DELETE")
+        response = await self.request(f"/{run_id}", method="DELETE", **extra)
         return DeletedAgentRun.model_validate(response)
 
     async def poll_until_finished(
@@ -340,6 +372,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         *,
         poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
         timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun:
         """Poll an Agent run until it reaches a terminal status.
 
@@ -347,6 +380,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             run_id: The ID of the Agent run.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The terminal Agent run.
@@ -363,7 +397,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         poll_interval_sec = poll_interval / 1000
 
         while True:
-            run = await self.get(run_id)
+            run = await self.get(run_id, **extra)
             if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
@@ -386,8 +420,10 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
         timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun:
         """Create an Agent run and wait for it to reach a terminal status.
 
@@ -400,8 +436,17 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
             data_sources: Optional Exa Connect data providers to enable for the run.
+            user_identifier: Optional opaque identifier you generate for the end
+                user this run is made on behalf of, such as a UUID or a hash. Never
+                send personal information such as an email address, name or phone
+                number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa
+                records it with the run and its searches so usage can be attributed
+                to one end user; it does not change results. A follow-up run
+                (``previous_run_id``) that omits it keeps the identifier of the run
+                it continues.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The completed Agent run.
@@ -427,11 +472,14 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
+            user_identifier=user_identifier,
+            **extra,
         )
         terminal_run = await self.poll_until_finished(
             run.id,
             poll_interval=poll_interval,
             timeout_ms=timeout_ms,
+            **extra,
         )
         return _ensure_completed_run(terminal_run)
 
@@ -446,6 +494,7 @@ class AsyncAgentBetaRunEventsClient(AsyncAgentRunEventsClient):
         betas: Optional[Sequence[str]] = None,
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListAgentRunEventsResponse:
         params = self.build_pagination_params(cursor, limit)
         response = await self.request(
@@ -453,6 +502,7 @@ class AsyncAgentBetaRunEventsClient(AsyncAgentRunEventsClient):
             method="GET",
             params=params,
             headers=_headers_for_betas(betas),
+            **extra,
         )
         return ListAgentRunEventsResponse.model_validate(response)
 
@@ -480,7 +530,9 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         stream: Literal[False] = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun: ...
 
     @overload
@@ -497,7 +549,9 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         stream: Literal[True] = True,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncGenerator[AgentEvent, None]: ...
 
     async def create(
@@ -513,7 +567,9 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         stream: bool = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Union[AgentRun, AsyncGenerator[AgentEvent, None]]:
         payload = _build_create_payload(
             query=query,
@@ -525,6 +581,7 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
+            user_identifier=user_identifier,
         )
         response = await self.request(
             "",
@@ -532,16 +589,19 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
             data=payload,
             stream=stream,
             headers=_headers_for_betas(betas),
+            **extra,
         )
         if stream:
             return async_stream_agent_events(response)
         return AgentRun.model_validate(response)
 
     async def get(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun:
         response = await self.request(
-            f"/{run_id}", method="GET", headers=_headers_for_betas(betas)
+            f"/{run_id}", method="GET", headers=_headers_for_betas(betas),
+            **extra,
         )
         return AgentRun.model_validate(response)
 
@@ -551,10 +611,12 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         betas: Optional[Sequence[str]] = None,
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> ListAgentRunsResponse:
         params = self.build_pagination_params(cursor, limit)
         response = await self.request(
-            "", method="GET", params=params, headers=_headers_for_betas(betas)
+            "", method="GET", params=params, headers=_headers_for_betas(betas),
+            **extra,
         )
         return ListAgentRunsResponse.model_validate(response)
 
@@ -563,34 +625,40 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         *,
         betas: Optional[Sequence[str]] = None,
         limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncGenerator[AgentRun, None]:
         cursor = None
         while True:
-            response = await self.list(betas=betas, cursor=cursor, limit=limit)
+            response = await self.list(betas=betas, cursor=cursor, limit=limit, **extra)
             for run in response.data:
                 yield run
             if not response.has_more or not response.next_cursor:
                 break
             cursor = response.next_cursor
+            extra = options_for_next_page(extra)
 
     async def get_all(
-        self, *, betas: Optional[Sequence[str]] = None, limit: Optional[int] = None
+        self, *, betas: Optional[Sequence[str]] = None, limit: Optional[int] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> list[AgentRun]:
         runs: list[AgentRun] = []
-        async for run in self.list_all(betas=betas, limit=limit):
+        async for run in self.list_all(betas=betas, limit=limit, **extra):
             runs.append(run)
         return runs
 
     async def cancel(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun:
         response = await self.request(
-            f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas)
+            f"/{run_id}/cancel", method="POST", headers=_headers_for_betas(betas),
+            **extra,
         )
         return AgentRun.model_validate(response)
 
     async def stop(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun:
         response = await self.request(
             f"/{run_id}/stop",
@@ -598,14 +666,17 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
             headers=_headers_for_betas(
                 betas if betas is not None else [AGENT_MAX_EFFORT_BETA]
             ),
+            **extra,
         )
         return AgentRun.model_validate(response)
 
     async def delete(
-        self, run_id: str, *, betas: Optional[Sequence[str]] = None
+        self, run_id: str, *, betas: Optional[Sequence[str]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> DeletedAgentRun:
         response = await self.request(
-            f"/{run_id}", method="DELETE", headers=_headers_for_betas(betas)
+            f"/{run_id}", method="DELETE", headers=_headers_for_betas(betas),
+            **extra,
         )
         return DeletedAgentRun.model_validate(response)
 
@@ -616,12 +687,13 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         betas: Optional[Sequence[str]] = None,
         poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
         timeout_ms: int = _DEFAULT_POLL_TIMEOUT_MS,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun:
         start_time = asyncio.get_event_loop().time()
         poll_interval_sec = poll_interval / 1000
 
         while True:
-            run = await self.get(run_id, betas=betas)
+            run = await self.get(run_id, betas=betas, **extra)
             if run.status in _TERMINAL_RUN_STATUSES:
                 return run
 
@@ -645,8 +717,10 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         previous_run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         data_sources: Optional[list[AgentDataSource]] = None,
+        user_identifier: Optional[str] = None,
         poll_interval: int = _DEFAULT_POLL_INTERVAL_MS,
         timeout_ms: int = _DEFAULT_CREATE_AND_WAIT_TIMEOUT_MS,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> AgentRun:
         run = await self.create(
             betas=betas,
@@ -659,12 +733,15 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
             previous_run_id=previous_run_id,
             metadata=metadata,
             data_sources=data_sources,
+            user_identifier=user_identifier,
+            **extra,
         )
         terminal_run = await self.poll_until_finished(
             run.id,
             betas=betas,
             poll_interval=poll_interval,
             timeout_ms=timeout_ms,
+            **extra,
         )
         return _ensure_completed_run(terminal_run)
 

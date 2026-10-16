@@ -16,6 +16,8 @@ import httpx
 import requests
 from pydantic import BaseModel, ValidationError
 
+from ..errors import typed_timeouts
+
 from .models import (
     ResearchEvent,
     ResearchDefinitionEvent,
@@ -151,6 +153,7 @@ def parse_research_event(raw_event: Dict[str, Any]) -> Optional[ResearchEvent]:
         return None
 
 
+@typed_timeouts
 def stream_sse_events(
     response: requests.Response,
 ) -> Generator[ResearchEvent, None, None]:
@@ -187,6 +190,7 @@ def stream_sse_events(
                 yield event
 
 
+@typed_timeouts
 async def async_stream_sse_events(
     response: httpx.Response,
 ) -> AsyncGenerator[ResearchEvent, None]:

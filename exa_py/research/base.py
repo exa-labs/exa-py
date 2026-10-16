@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing_extensions import Unpack
 
 import httpx
 import requests
+from ..request_options import ExtraRequestOptions, given_request_options
 
 if TYPE_CHECKING:
     from exa_py.api import Exa, AsyncExa
@@ -30,6 +32,7 @@ class ResearchBaseClient:
         data: Optional[Union[Dict[str, Any], str]] = None,
         params: Optional[Dict[str, str]] = None,
         stream: bool = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Union[Dict[str, Any], requests.Response]:
         """Make a request to the Research API.
 
@@ -39,10 +42,12 @@ class ResearchBaseClient:
             data: Request body data.
             params: Query parameters.
             stream: Whether to stream the response.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The API response as a dict or raw Response for streaming.
         """
+        extra = given_request_options(extra)
         full_endpoint = f"{self.base_path}{endpoint}"
 
         if stream:
@@ -51,7 +56,8 @@ class ResearchBaseClient:
                 # For GET requests, streaming is controlled by params
                 # The params should already have stream=true set by the caller
                 return self._client.request(
-                    full_endpoint, data=None, method=method, params=params
+                    full_endpoint, data=None, method=method, params=params,
+                    **extra,
                 )
             else:
                 # For POST requests, add stream flag to data
@@ -61,11 +67,13 @@ class ResearchBaseClient:
                     data["stream"] = True
                 # The client's request method returns raw Response when streaming
                 return self._client.request(
-                    full_endpoint, data=data, method=method, params=params
+                    full_endpoint, data=data, method=method, params=params,
+                    **extra,
                 )
         else:
             return self._client.request(
-                full_endpoint, data=data, method=method, params=params
+                full_endpoint, data=data, method=method, params=params,
+                **extra,
             )
 
     def build_pagination_params(
@@ -107,6 +115,7 @@ class AsyncResearchBaseClient:
         data: Optional[Union[Dict[str, Any], str]] = None,
         params: Optional[Dict[str, str]] = None,
         stream: bool = False,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Union[Dict[str, Any], httpx.Response]:
         """Make an async request to the Research API.
 
@@ -116,10 +125,12 @@ class AsyncResearchBaseClient:
             data: Request body data.
             params: Query parameters.
             stream: Whether to stream the response.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
             The API response as a dict or raw Response for streaming.
         """
+        extra = given_request_options(extra)
         full_endpoint = f"{self.base_path}{endpoint}"
 
         if stream:
@@ -128,7 +139,8 @@ class AsyncResearchBaseClient:
                 # For GET requests, streaming is controlled by params
                 # The params should already have stream=true set by the caller
                 return await self._client.async_request(
-                    full_endpoint, data=None, method=method, params=params
+                    full_endpoint, data=None, method=method, params=params,
+                    **extra,
                 )
             else:
                 # For POST requests, add stream flag to data
@@ -138,11 +150,13 @@ class AsyncResearchBaseClient:
                     data["stream"] = True
                 # The async_request method returns raw Response when streaming
                 return await self._client.async_request(
-                    full_endpoint, data=data, method=method, params=params
+                    full_endpoint, data=data, method=method, params=params,
+                    **extra,
                 )
         else:
             return await self._client.async_request(
-                full_endpoint, data=data, method=method, params=params
+                full_endpoint, data=data, method=method, params=params,
+                **extra,
             )
 
     def build_pagination_params(

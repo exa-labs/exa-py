@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing_extensions import Unpack
 
 import httpx
+from ..request_options import ExtraRequestOptions, given_request_options
 
 if TYPE_CHECKING:
     from exa_py.api import AsyncExa
@@ -26,7 +28,9 @@ class AsyncAgentBaseClient:
         params: Optional[Dict[str, str]] = None,
         stream: bool = False,
         headers: Optional[Dict[str, str]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Union[Dict[str, Any], httpx.Response]:
+        extra = given_request_options(extra)
         full_endpoint = f"{self.base_path}{endpoint}"
         request_headers = {}
         if stream:
@@ -39,6 +43,7 @@ class AsyncAgentBaseClient:
             method=method,
             params=params,
             headers=request_headers,
+            **extra,
         )
 
     def build_pagination_params(

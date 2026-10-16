@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
+from typing_extensions import Unpack
 
 from ..betas import headers_for_betas
 from .types import AGENT_MONITORS_BETA_HEADER
+from ...request_options import ExtraRequestOptions, given_request_options
 
 if TYPE_CHECKING:
     from exa_py.api import Exa
@@ -27,7 +29,9 @@ class AgentMonitorsBaseClient:
         data: Optional[Union[Dict[str, Any], str]] = None,
         params: Optional[Dict[str, str]] = None,
         headers: Optional[Dict[str, str]] = None,
+        **extra: Unpack[ExtraRequestOptions],
     ) -> Dict[str, Any]:
+        extra = given_request_options(extra)
         if not betas or AGENT_MONITORS_BETA_HEADER not in betas:
             raise ValueError(
                 "betas must include the Agent Monitors beta identifier "
@@ -43,6 +47,7 @@ class AgentMonitorsBaseClient:
             method=method,
             params=params,
             headers=request_headers,
+            **extra,
         )
 
     def build_pagination_params(

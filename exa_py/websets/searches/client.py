@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, Any, Union, Optional
+from typing_extensions import Unpack
 
 from ..types import (
     CreateWebsetSearchParameters,
@@ -9,6 +10,7 @@ from ..types import (
 )
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
+from ...request_options import ExtraRequestOptions
 
 class WebsetSearchesClient(WebsetsBaseClient):
     """Client for managing Webset Searches."""
@@ -17,7 +19,7 @@ class WebsetSearchesClient(WebsetsBaseClient):
         super().__init__(client)
 
     def create(self, webset_id: str, params: Union[Dict[str, Any], CreateWebsetSearchParameters],
-               options: Optional[Union[Dict[str, Any], RequestOptions]] = None) -> WebsetSearch:
+               options: Optional[Union[Dict[str, Any], RequestOptions]] = None, **extra: Unpack[ExtraRequestOptions]) -> WebsetSearch:
         """Create a new Search for the Webset.
         
         Args:
@@ -25,37 +27,40 @@ class WebsetSearchesClient(WebsetsBaseClient):
             params (CreateWebsetSearchParameters): The parameters for creating a search.
             options (RequestOptions, optional): Request options including priority and/or custom headers.
                 Can specify priority as 'low', 'medium', or 'high'.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             WebsetSearch: The created search.
         """
-        response = self.request(f"/v0/websets/{webset_id}/searches", data=params, options=options)
+        response = self.request(f"/v0/websets/{webset_id}/searches", data=params, options=options, **extra)
         return WebsetSearch.model_validate(response)
 
-    def get(self, webset_id: str, id: str) -> WebsetSearch:
+    def get(self, webset_id: str, id: str, **extra: Unpack[ExtraRequestOptions]) -> WebsetSearch:
         """Get a Search by ID.
         
         Args:
             webset_id (str): The id of the Webset.
             id (str): The id of the Search.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             WebsetSearch: The retrieved search.
         """
-        response = self.request(f"/v0/websets/{webset_id}/searches/{id}", method="GET")
+        response = self.request(f"/v0/websets/{webset_id}/searches/{id}", method="GET", **extra)
         return WebsetSearch.model_validate(response)
 
-    def cancel(self, webset_id: str, id: str) -> WebsetSearch:
+    def cancel(self, webset_id: str, id: str, **extra: Unpack[ExtraRequestOptions]) -> WebsetSearch:
         """Cancel a running Search.
         
         Args:
             webset_id (str): The id of the Webset.
             id (str): The id of the Search.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             WebsetSearch: The canceled search.
         """
-        response = self.request(f"/v0/websets/{webset_id}/searches/{id}/cancel", method="POST")
+        response = self.request(f"/v0/websets/{webset_id}/searches/{id}/cancel", method="POST", **extra)
         return WebsetSearch.model_validate(response)
 
 
@@ -66,7 +71,7 @@ class AsyncWebsetSearchesClient(WebsetsAsyncBaseClient):
         super().__init__(client)
 
     async def create(self, webset_id: str, params: Union[Dict[str, Any], CreateWebsetSearchParameters],
-                     options: Optional[Union[Dict[str, Any], RequestOptions]] = None) -> WebsetSearch:
+                     options: Optional[Union[Dict[str, Any], RequestOptions]] = None, **extra: Unpack[ExtraRequestOptions]) -> WebsetSearch:
         """Create a new Search for the Webset.
         
         Args:
@@ -74,35 +79,38 @@ class AsyncWebsetSearchesClient(WebsetsAsyncBaseClient):
             params (CreateWebsetSearchParameters): The parameters for creating a search.
             options (RequestOptions, optional): Request options including priority and/or custom headers.
                 Can specify priority as 'low', 'medium', or 'high'.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             WebsetSearch: The created search.
         """
-        response = await self.request(f"/v0/websets/{webset_id}/searches", data=params, options=options)
+        response = await self.request(f"/v0/websets/{webset_id}/searches", data=params, options=options, **extra)
         return WebsetSearch.model_validate(response)
 
-    async def get(self, webset_id: str, id: str) -> WebsetSearch:
+    async def get(self, webset_id: str, id: str, **extra: Unpack[ExtraRequestOptions]) -> WebsetSearch:
         """Get a Search by ID.
         
         Args:
             webset_id (str): The id of the Webset.
             id (str): The id of the Search.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             WebsetSearch: The retrieved search.
         """
-        response = await self.request(f"/v0/websets/{webset_id}/searches/{id}", method="GET")
+        response = await self.request(f"/v0/websets/{webset_id}/searches/{id}", method="GET", **extra)
         return WebsetSearch.model_validate(response)
 
-    async def cancel(self, webset_id: str, id: str) -> WebsetSearch:
+    async def cancel(self, webset_id: str, id: str, **extra: Unpack[ExtraRequestOptions]) -> WebsetSearch:
         """Cancel a running Search.
         
         Args:
             webset_id (str): The id of the Webset.
             id (str): The id of the Search.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             WebsetSearch: The canceled search.
         """
-        response = await self.request(f"/v0/websets/{webset_id}/searches/{id}/cancel", method="POST")
+        response = await self.request(f"/v0/websets/{webset_id}/searches/{id}/cancel", method="POST", **extra)
         return WebsetSearch.model_validate(response) 

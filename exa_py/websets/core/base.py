@@ -4,6 +4,8 @@ import json
 from pydantic import ConfigDict, BaseModel, AnyUrl
 from enum import Enum
 from typing import Any, Dict, Optional, TypeVar, Generic, Type, get_origin, get_args, Union
+from typing_extensions import Unpack
+from ...request_options import ExtraRequestOptions, given_request_options
 
 # Generic type var for any Enum
 EnumT = TypeVar('EnumT', bound=Enum)
@@ -74,7 +76,7 @@ class WebsetsBaseClient:
         
     def request(self, endpoint: str, data: Optional[Union[Dict[str, Any], ExaBaseModel, str]] = None, 
                 method: str = "POST", params: Optional[Dict[str, Any]] = None, 
-                headers: Optional[Dict[str, str]] = None, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                headers: Optional[Dict[str, str]] = None, options: Optional[Dict[str, Any]] = None, **extra: Unpack[ExtraRequestOptions]) -> Dict[str, Any]:
         """Make a request to the Exa API.
         
         Args:
@@ -84,10 +86,12 @@ class WebsetsBaseClient:
             params (Dict[str, Any], optional): The query parameters. Defaults to None.
             headers (Dict[str, str], optional): Custom headers to include in the request. Defaults to None.
             options (Dict[str, Any], optional): Request options that may include 'priority' and/or 'headers'. Defaults to None.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
             
         Returns:
             Dict[str, Any]: The API response.
         """
+        extra = given_request_options(extra)
         if isinstance(data, str):
             # If data is a string, pass it as is
             pass
@@ -124,7 +128,7 @@ class WebsetsBaseClient:
             
         # Only pass headers if there are any
         if final_headers:
-            return self._client.request("/websets/" + endpoint, data=data, method=method, params=params, headers=final_headers)
+            return self._client.request("/websets/" + endpoint, data=data, method=method, params=params, headers=final_headers, **extra)
         else:
-            return self._client.request("/websets/" + endpoint, data=data, method=method, params=params) 
+            return self._client.request("/websets/" + endpoint, data=data, method=method, params=params, **extra) 
 

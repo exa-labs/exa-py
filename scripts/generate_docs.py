@@ -33,6 +33,30 @@ class ParsedParam:
     description: Optional[str] = None
 
 
+# The keywords `**extra: Unpack[ExtraRequestOptions]` accepts, as the core
+# methods document them.
+EXTRA_REQUEST_OPTION_PARAMS = [
+    ParsedParam(
+        name="extra_headers",
+        type_hint="Optional[Mapping[str, Optional[str]]]",
+        default="None",
+        description="Extra headers to send with the request.",
+    ),
+    ParsedParam(
+        name="extra_query",
+        type_hint="Optional[Mapping[str, Any]]",
+        default="None",
+        description="Extra query parameters to send with the request.",
+    ),
+    ParsedParam(
+        name="extra_body",
+        type_hint="Optional[Mapping[str, Any]]",
+        default="None",
+        description="Extra fields merged over the JSON request body, except stream.",
+    ),
+]
+
+
 @dataclass
 class ParsedMethod:
     """Represents a parsed method with its signature and docstring."""
@@ -163,7 +187,11 @@ class DocGenerator:
         current_desc = []
 
         for line in args_text.split("\n"):
-            match = re.match(r"^\s*(\w+)\s*\([^)]*\):\s*(.*)$", line)
+            # `name (type): description`, or a `*args` / `**kwargs` entry, which
+            # Google style writes without a type.
+            match = re.match(r"^\s*(\w+)\s*\([^)]*\):\s*(.*)$", line) or re.match(
+                r"^\s*\*{1,2}(\w+)\s*(?:\([^)]*\))?:\s*(.*)$", line
+            )
             if match:
                 if current_param:
                     params[current_param] = " ".join(current_desc).strip()
@@ -269,6 +297,13 @@ class DocGenerator:
                 default=default,
                 description=param_descriptions.get(arg.arg),
             ))
+
+        # `**extra: Unpack[ExtraRequestOptions]` stands for the request options
+        # every API method accepts; list them as the keywords they are.
+        kwarg = args.kwarg
+        if kwarg is not None and kwarg.annotation is not None:
+            if ast.unparse(kwarg.annotation) == "Unpack[ExtraRequestOptions]":
+                params.extend(EXTRA_REQUEST_OPTION_PARAMS)
 
         return_type = self.get_type_annotation_str(node.returns) if node.returns else None
 
