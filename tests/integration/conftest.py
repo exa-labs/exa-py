@@ -72,9 +72,13 @@ def exa():
 
 
 @pytest.fixture
-def async_exa():
-    """Fixture that provides an AsyncExa client for the configured API."""
+async def async_exa():
+    """Fixture that provides an AsyncExa client for the configured API.
+
+    The client's connections are closed when the test ends.
+    """
     api_key = os.getenv("EXA_API_KEY")
     if not api_key:
         pytest.skip("EXA_API_KEY environment variable not set")
-    return AsyncExa(*client_args(api_key))
+    async with AsyncExa(*client_args(api_key)) as exa:
+        yield exa

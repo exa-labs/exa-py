@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from exa_py import AsyncExa, Exa
+from exa_py.api import SearchNotice
 from exa_py.tools import SEARCH_OBJECTIVE_TOOL_DESCRIPTION
 
 
@@ -653,3 +654,125 @@ async def test_async_contents_tools_and_handlers():
         }
     )
     assert "Text: Page text" in tool_results[0]["content"]
+
+
+RELAXED_NOTICE = (
+    "No results matched the site restriction site:example.com in the query; "
+    "these results come from a search with that restriction removed."
+)
+RELAXED_DETAILS = {"relaxed": [{"kind": "site", "operator": "site:example.com"}]}
+IGNORED_WARNING = {
+    "code": "IGNORED_FIELD",
+    "path": "/useAutoprompt",
+    "message": "useAutoprompt is ignored. Remove it from the request.",
+}
+
+
+def search_payload(**extra):
+    return {
+        "requestId": "request-1",
+        "results": [
+            {
+                "id": "result-1",
+                "url": "https://example.com",
+                "title": "Example",
+                "highlights": ["A fact"],
+            }
+        ],
+        **extra,
+    }
+
+
+def test_search_parses_notices():
+    exa = Exa("test")
+    exa.request = lambda *args, **kwargs: search_payload(
+        notices=[
+            {
+                "code": "RESTRICTIONS_RELAXED",
+                "path": "/query",
+                "message": RELAXED_NOTICE,
+                "details": RELAXED_DETAILS,
+            },
+            {"code": "A_FUTURE_CODE", "path": "/query", "message": "A second notice."},
+            {"code": "MALFORMED"},
+        ]
+    )
+
+    assert exa.search("site:example.com news").notices == [
+        SearchNotice(
+            code="RESTRICTIONS_RELAXED",
+            path="/query",
+            message=RELAXED_NOTICE,
+            details=RELAXED_DETAILS,
+        ),
+        SearchNotice(code="A_FUTURE_CODE", path="/query", message="A second notice."),
+    ]
+
+    exa.request = lambda *args, **kwargs: search_payload()
+    assert exa.search("news").notices is None
+
+
+def test_web_search_leads_output_with_one_note_line_per_notice():
+    exa = Exa("test")
+    payloads = [
+        search_payload(),
+        search_payload(
+            notices=[
+                {
+                    "code": "RESTRICTIONS_RELAXED",
+                    "path": "/query",
+                    "message": RELAXED_NOTICE,
+                    "details": RELAXED_DETAILS,
+                },
+                {"code": "A_FUTURE_CODE", "path": "/query", "message": "A second notice."},
+            ]
+        ),
+    ]
+    exa.request = lambda *args, **kwargs: payloads.pop(0)
+    tool = exa.openai.web_search()
+
+    plain = tool.run({"query": "site:example.com news"})
+    with_notices = tool.run({"query": "site:example.com news"})
+
+    assert "Note:" not in plain
+    assert with_notices == f"Note: {RELAXED_NOTICE}\nNote: A second notice.\n\n{plain}"
+
+
+def test_web_search_shows_notices_when_there_are_no_results():
+    exa = Exa("test")
+    exa.search = lambda query, **kwargs: SimpleNamespace(
+        results=[],
+        notices=[SearchNotice(code="RESTRICTIONS_RELAXED", path="/query", message=RELAXED_NOTICE)],
+    )
+
+    assert exa.tools.web_search().run({"query": "news"}) == (
+        f"Note: {RELAXED_NOTICE}\n\nNo search results found."
+    )
+
+
+def test_web_search_keeps_warnings_out_of_the_output():
+    exa = Exa("test")
+    exa.request = lambda *args, **kwargs: search_payload(warnings=[IGNORED_WARNING])
+
+    output = exa.anthropic.web_search().run({"query": "news"})
+
+    assert "useAutoprompt" not in output
+    assert "Note:" not in output
+
+
+@pytest.mark.asyncio
+async def test_async_web_search_shows_notices_and_leaves_out_warnings():
+    exa = AsyncExa("test")
+
+    async def search(query, **kwargs):
+        return SimpleNamespace(
+            results=[result(highlights=["A fact"])],
+            notices=[SearchNotice(code="RESTRICTIONS_RELAXED", path="/query", message=RELAXED_NOTICE)],
+            warnings=[SimpleNamespace(**IGNORED_WARNING)],
+        )
+
+    exa.search = search
+    output = await exa.openai.web_search().run({"query": "news"})
+
+    assert output.startswith(f"Note: {RELAXED_NOTICE}\n\nTitle: Example")
+    assert "useAutoprompt" not in output

@@ -1,8 +1,7 @@
 """Types for the Exa Agent Monitors API (`/agent/monitors`).
 
-An Agent Monitor keeps a table of entities x fields fresh: static fields are
-answered once per entity over the live web, dynamic fields are tracked from
-news on every refresh, on the monitor's cadence.
+An Agent Monitor keeps a table of entities x fields fresh on the monitor's
+cadence.
 """
 
 from __future__ import annotations
@@ -27,17 +26,13 @@ AgentMonitorBacktestStatus = Literal["running", "completed", "failed"]
 
 
 class AgentMonitorField(BaseModel):
-    """A field the monitor keeps fresh for every entity.
-
-    Fields are dynamic (tracked from news on every refresh) unless declared
-    `mode: "static"` (answered once over the live web).
-    """
+    """A field the monitor keeps fresh for every entity."""
 
     id: str
     name: str
     description: str
     mode: AgentMonitorFieldMode = "dynamic"
-    """Deprecated: the static/dynamic knob is becoming internal-only."""
+    """Deprecated. Not returned by the API."""
     type: Union[AgentMonitorFieldValueType, str] = "string"
     """The type of the field's cell values."""
 
@@ -149,9 +144,8 @@ class AgentMonitorEntityView(BaseModel):
 class AgentMonitorChangeEntity(BaseModel):
     """Entity reference on a change item.
 
-    `id` is the canonical, stable join key; the name attributes are
-    denormalized for display, resolved as of read time, and absent when the
-    entity no longer exists.
+    Join on `id`. The other attributes show the entity's current values for
+    display and are absent once the entity is removed.
     """
 
     id: str
@@ -186,11 +180,11 @@ class AgentMonitorChange(BaseModel):
 
 
 class AgentMonitorEntityParam(BaseModel):
-    """An entity to track. `domain` anchors entity resolution and must be unique per monitor."""
+    """An entity to track. Each name and domain pair must be unique."""
 
     name: str
     domain: str
-    """Resolution anchor: entities resolve by first-party or domain-verified evidence."""
+    """The entity's website domain, used to identify the entity."""
     description: Optional[str] = None
     """Extra disambiguation context for entity resolution of ambiguous names."""
 
@@ -198,18 +192,16 @@ class AgentMonitorEntityParam(BaseModel):
 
 
 class AgentMonitorFieldParam(BaseModel):
-    """A field to keep fresh. Dynamic (the default) unless declared `mode: "static"`."""
+    """A field to keep fresh."""
 
     name: str
     description: str
     type: Optional[Union[AgentMonitorFieldValueType, str]] = None
-    """The type of the field's cell values; defaults to "string". Cell values
-    are normalized to the declared type best-effort on write, never rejected —
-    but declaring an unsupported type (e.g. "object") is a 400.
-    "static"/"dynamic" are accepted as deprecated aliases of `mode`; declaring
-    both spellings is a 400."""
+    """The type of the field's values. Defaults to "string". Values are
+    converted to this type where possible. An unsupported type fails the
+    request, including the deprecated values "static" and "dynamic"."""
     mode: Optional[AgentMonitorFieldMode] = None
-    """Deprecated: the static/dynamic knob is becoming internal-only."""
+    """Deprecated. Omit this field. The API rejects requests that set it."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -229,7 +221,8 @@ class ListAgentMonitorEntitiesResponse(BaseModel):
     has_more: bool = Field(alias="hasMore")
     next_cursor: Optional[str] = Field(default=None, alias="nextCursor")
     version: int
-    """Store head change token; "am I caught up?" display only, NOT the cursor."""
+    """Latest change version of the monitor, for showing whether a reader is
+    up to date. Not a cursor. Page with `next_cursor`."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -241,7 +234,8 @@ class ListAgentMonitorChangesResponse(BaseModel):
     next_cursor: Optional[str] = Field(default=None, alias="nextCursor")
     """Opaque; resume the feed from the last served change. None when data is empty."""
     version: int
-    """Store head change token; "am I caught up?" display only, NOT the cursor."""
+    """Latest change version of the monitor, for showing whether a reader is
+    up to date. Not a cursor. Page with `next_cursor`."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -255,7 +249,7 @@ class DeletedAgentMonitor(BaseModel):
 
 
 class AgentMonitorBacktestContent(BaseModel):
-    """One backtest cell: a value and its grounding citations."""
+    """One backtest cell, with a value and its grounding citations."""
 
     value: Any
     citations: List[AgentMonitorCitation]
@@ -268,7 +262,7 @@ class AgentMonitorBacktestEntity(BaseModel):
 
     name: str
     contents: Dict[str, AgentMonitorBacktestContent]
-    """Populated cells by field name; fields with no update are absent."""
+    """Populated cells by field name. Fields with no update are absent."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 

@@ -30,7 +30,6 @@ EXTRA = {
 }
 OPTION_NAMES = ("extra_headers", "extra_query", "extra_body", "extraHeaders", "extraQuery", "extraBody")
 
-_RESEARCH = {"researchId": "r1", "createdAt": 1, "instructions": "test", "status": "pending"}
 _EVENTS = b'id: 1\nevent: agent_run.created\ndata: {"id": "agent_run_1"}\n\n'
 
 _RUN = {
@@ -237,6 +236,26 @@ def test_both_clients_encode_extra_query_values_alike(api):
 
     sync_query, async_query = (request["query"] for request in api.requests)
     assert sync_query == async_query == {"flag": ["true"], "off": ["false"], "limit": ["5"]}
+
+
+def test_both_clients_encode_list_values_of_extra_query_alike(api):
+    api.reply = lambda request: {"data": [], "hasMore": False}
+    extra_query = {"flags": [True, False], "tags": ["a", None], "pair": ("x", True), "top": True}
+    Exa("test-key", base_url=api.url).websets.list(extra_query=extra_query)
+
+    async def run_async():
+        async with AsyncExa("test-key", api_base=api.url) as exa:
+            await exa.websets.list(extra_query=extra_query)
+
+    asyncio.run(run_async())
+
+    sync_query, async_query = (request["query"] for request in api.requests)
+    assert sync_query == async_query == {
+        "flags": ["true", "false"],
+        "tags": ["a"],
+        "pair": ["x", "true"],
+        "top": ["true"],
+    }
 
 
 def test_sync_extra_header_set_to_none_is_skipped(api):
@@ -526,31 +545,6 @@ async def test_async_extra_headers_do_not_change_how_the_response_is_read(api):
 
     assert run.id == "agent_run_1"
     assert api.requests[0]["headers"]["accept"] == "text/event-stream"
-
-
-def test_sync_extra_query_cannot_change_whether_a_method_streams(api):
-    api.reply = lambda request: _RESEARCH
-    exa = Exa("test-key", base_url=api.url)
-
-    research = exa.research.get("r1", extra_query={"stream": "true", "debug": "1"})
-
-    assert research.research_id == "r1"
-    assert api.requests[0]["query"]["stream"] == ["false"]
-    assert api.requests[0]["query"]["debug"] == ["1"]
-
-
-@pytest.mark.asyncio
-async def test_async_extra_query_cannot_change_whether_a_method_streams(api):
-    api.reply = lambda request: _RESEARCH
-    exa = AsyncExa("test-key", api_base=api.url)
-    try:
-        research = await exa.research.get("r1", extra_query={"stream": "true", "debug": "1"})
-    finally:
-        await exa.client.aclose()
-
-    assert research.research_id == "r1"
-    assert api.requests[0]["query"]["stream"] == ["false"]
-    assert api.requests[0]["query"]["debug"] == ["1"]
 
 
 def test_an_extra_query_holding_only_stream_adds_no_query_string(api):

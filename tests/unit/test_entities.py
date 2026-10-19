@@ -21,8 +21,13 @@ from exa_py.api import (
     EntityDateRange,
     EntityPersonPropertiesCompanyRef,
     EntityPersonPropertiesWorkHistoryEntry,
+    EntityPersonPropertiesInstitutionRef,
+    EntityPersonPropertiesEducationHistoryEntry,
+    EntityPersonPropertiesNotableWork,
+    EntityPersonPropertiesResearch,
     Result,
     _Result,
+    _parse_entities,
 )
 
 
@@ -213,6 +218,158 @@ class TestEntityPersonProperties:
         props = EntityPersonProperties(name="Jane Doe", work_history=[])
         assert props.name == "Jane Doe"
         assert props.work_history == []
+
+    def test_person_properties_new_fields_default_to_none(self):
+        props = EntityPersonProperties(name="Jane Doe")
+        assert props.first_name is None
+        assert props.last_name is None
+        assert props.education_history is None
+        assert props.research is None
+
+
+class TestParsePersonEntity:
+    def test_parses_every_person_property(self):
+        entities = _parse_entities(
+            [
+                {
+                    "id": "https://exa.ai/library/person/ada-lovelace",
+                    "type": "person",
+                    "version": 1,
+                    "properties": {
+                        "name": "Ada Lovelace",
+                        "firstName": "Ada",
+                        "lastName": "Lovelace",
+                        "location": "London, UK",
+                        "workHistory": [
+                            {
+                                "title": "Analyst",
+                                "location": None,
+                                "dates": {"from": "1842-01-01", "to": None},
+                                "company": {"id": None, "name": "Analytical Engine"},
+                            }
+                        ],
+                        "educationHistory": [
+                            {
+                                "degree": "Mathematics",
+                                "dates": {"from": "1832-01-01", "to": "1835-01-01"},
+                                "institution": {
+                                    "id": "https://exa.ai/library/organization/university-of-london",
+                                    "name": "University of London",
+                                },
+                            }
+                        ],
+                        "research": {
+                            "worksCount": 3,
+                            "citationCount": 120,
+                            "hIndex": 2,
+                            "firstPublicationYear": 1843,
+                            "latestPublicationYear": 1843,
+                            "areas": ["Mathematics", "Computing"],
+                            "notableWorks": [
+                                {
+                                    "title": "Notes on the Analytical Engine",
+                                    "year": 1843,
+                                    "venue": "Scientific Memoirs",
+                                    "citationCount": 100,
+                                    "doi": None,
+                                    "id": None,
+                                    "type": "article",
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        )
+
+        assert entities is not None
+        props = entities[0].properties
+        assert props.first_name == "Ada"
+        assert props.last_name == "Lovelace"
+        assert props.work_history[0].company.name == "Analytical Engine"
+        assert props.education_history == [
+            EntityPersonPropertiesEducationHistoryEntry(
+                degree="Mathematics",
+                dates=EntityDateRange(from_date="1832-01-01", to_date="1835-01-01"),
+                institution=EntityPersonPropertiesInstitutionRef(
+                    id="https://exa.ai/library/organization/university-of-london",
+                    name="University of London",
+                ),
+            )
+        ]
+        assert props.research == EntityPersonPropertiesResearch(
+            works_count=3,
+            citation_count=120,
+            h_index=2,
+            first_publication_year=1843,
+            latest_publication_year=1843,
+            areas=["Mathematics", "Computing"],
+            notable_works=[
+                EntityPersonPropertiesNotableWork(
+                    title="Notes on the Analytical Engine",
+                    year=1843,
+                    venue="Scientific Memoirs",
+                    citation_count=100,
+                    type="article",
+                )
+            ],
+        )
+
+    def test_parses_person_with_null_and_missing_properties(self):
+        entities = _parse_entities(
+            [
+                {
+                    "id": "https://exa.ai/library/person/jane-doe",
+                    "type": "person",
+                    "version": 1,
+                    "properties": {
+                        "name": "Jane Doe",
+                        "educationHistory": [
+                            {"degree": None, "dates": None, "institution": None}
+                        ],
+                        "research": None,
+                    },
+                }
+            ]
+        )
+
+        assert entities is not None
+        props = entities[0].properties
+        assert props.first_name is None
+        assert props.education_history == [EntityPersonPropertiesEducationHistoryEntry()]
+        assert props.research is None
+
+    def test_keeps_empty_lists_apart_from_missing_ones(self):
+        entities = _parse_entities(
+            [
+                {
+                    "id": "https://exa.ai/library/person/jane-doe",
+                    "type": "person",
+                    "version": 1,
+                    "properties": {
+                        "name": "Jane Doe",
+                        "workHistory": [],
+                        "educationHistory": [],
+                        "research": {"areas": [], "notableWorks": []},
+                    },
+                },
+                {
+                    "id": "https://exa.ai/library/person/john-doe",
+                    "type": "person",
+                    "version": 1,
+                    "properties": {"name": "John Doe", "research": {}},
+                },
+            ]
+        )
+
+        assert entities is not None
+        empty, missing = entities[0].properties, entities[1].properties
+        assert empty.work_history == []
+        assert empty.education_history == []
+        assert empty.research == EntityPersonPropertiesResearch(areas=[], notable_works=[])
+        assert missing.work_history is None
+        assert missing.education_history is None
+        assert missing.research is None
 
 
 class TestCompanyEntity:

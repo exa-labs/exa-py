@@ -59,17 +59,15 @@ class WebsetsClient(WebsetsBaseClient):
     def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters], **extra: Unpack[ExtraRequestOptions]) -> PreviewWebsetResponse:
         """Preview a webset query.
         
-        Preview how a search query will be decomposed before creating a webset. 
-        This endpoint performs the same query analysis that happens during webset creation, 
-        allowing you to see the detected entity type, generated search criteria, and 
-        available enrichment columns in advance.
+        Returns how a search query will be interpreted before you create a Webset,
+        including the detected entity, generated criteria, and suggested enrichments.
         
         Args:
             params (PreviewWebsetParameters): The parameters for previewing a webset.
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
-            PreviewWebsetResponse: The preview response showing how the query will be decomposed.
+            PreviewWebsetResponse: How the query will be interpreted.
         """
         response = self.request("/v0/websets/preview", data=params, **extra)
         return PreviewWebsetResponse.model_validate(response)

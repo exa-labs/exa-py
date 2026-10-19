@@ -1,8 +1,15 @@
-"""Transport timeouts surface as ExaTimeoutError and stay catchable as before."""
+"""Transport timeouts surface as ExaTimeoutError and stay catchable as before.
+
+A timeout bounds connecting and each wait for data, and a stream only until
+a successful response starts: these tests run both clients against local
+servers that stall, stream slower than the timeout, or answer late.
+"""
 
 import copy
 import pickle
+import socket
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import Mock, patch
 
@@ -74,20 +81,142 @@ def test_sync_timeout_is_typed_and_still_a_requests_timeout(stalling_server):
         exa.search("slow", timeout=0.1)
 
 
-def test_sync_stream_timeout_is_typed_and_still_a_connection_error(stalling_server):
-    exa = Exa("test-key", base_url=stalling_server, timeout=0.2)
-    stream = exa.stream_answer("slow")  # Headers arrive; the body then stalls.
+# The clients' timeout in the streaming tests, and the gap between two events of
+# a stream, longer than the timeout.
+_TIMEOUT = 0.2
+_GAP = 0.5
+
+
+def _event(index: int) -> bytes:
+    return f'data: {{"choices":[{{"delta":{{"content":"c{index}"}}}}]}}\n\n'.encode()
+
+
+@pytest.fixture
+def paced_server():
+    """A local server whose streams are slower than `_TIMEOUT`.
+
+    A path with ``/late`` in it gets a response that never starts; one with
+    ``/error``, a 500 response whose body stalls. Any other path streams three events `_GAP`
+    seconds apart: chunked on a kept-alive connection, or, under ``/close``,
+    as a body that runs to the end of the connection (``Connection: close``).
+    """
+    release = threading.Event()
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def _handle(self):
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            if "/late" in self.path:
+                release.wait()
+                return
+            if "/error" in self.path:
+                self.send_response(500)
+                self.send_header("Content-Length", "100")
+                self.end_headers()
+                self.wfile.write(b'{"error": ')
+                self.wfile.flush()
+                release.wait()
+                return
+            chunked = not self.path.startswith("/close/")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            if chunked:
+                self.send_header("Transfer-Encoding", "chunked")
+            else:
+                self.send_header("Connection", "close")
+            self.end_headers()
+            for index in range(3):
+                if index and release.wait(_GAP):
+                    return
+                self._send(_event(index), chunked)
+            if chunked:
+                self._send(b"", chunked)
+
+        def _send(self, data: bytes, chunked: bool) -> None:
+            self.wfile.write(b"%x\r\n%s\r\n" % (len(data), data) if chunked else data)
+            self.wfile.flush()
+
+        do_GET = do_POST = _handle
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server.daemon_threads = True
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}"
+    finally:
+        release.set()
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.parametrize("connection", ["", "/close"], ids=["keep-alive", "close"])
+def test_a_sync_stream_is_timed_until_it_starts_only(paced_server, connection):
+    exa = Exa("test-key", base_url=paced_server + connection, timeout=_TIMEOUT)
+    started = time.monotonic()
+    assert [chunk.content for chunk in exa.stream_answer("q")] == ["c0", "c1", "c2"]
+    assert time.monotonic() - started >= 2 * _GAP
+
+    late = Exa("test-key", base_url=paced_server + "/late", timeout=_TIMEOUT)
     with pytest.raises(ExaTimeoutError) as raised:
-        list(stream)
-    assert isinstance(raised.value, requests.exceptions.ConnectionError)
+        late.stream_answer("q")
+    assert isinstance(raised.value, requests.exceptions.ReadTimeout)
 
 
-def test_a_raw_streamed_response_raises_the_transport_error_as_is(stalling_server):
-    exa = Exa("test-key", base_url=stalling_server, timeout=0.2)
-    response = exa.request("/search", {"stream": True})
-    with pytest.raises(requests.exceptions.ConnectionError) as raised:
-        list(response.iter_lines())
-    assert not isinstance(raised.value, ExaTimeoutError)
+@pytest.mark.parametrize("connection", ["", "/close"], ids=["keep-alive", "close"])
+@pytest.mark.parametrize("method", ["GET", "POST"])
+def test_a_raw_sync_stream_is_timed_until_it_starts_only(paced_server, method, connection):
+    exa = Exa("test-key", base_url=paced_server + connection, timeout=_TIMEOUT)
+    if method == "GET":
+        response = exa.request("/events", method="GET", params={"stream": "true"})
+    else:
+        response = exa.request("/events", {"stream": True})
+    assert [line for line in response.iter_lines() if line] == [
+        _event(index).strip() for index in range(3)
+    ]
+
+    with pytest.raises(ExaTimeoutError):
+        exa.request("/late", {"stream": True})
+
+
+def test_a_sync_stream_error_response_is_read_under_the_timeout(paced_server):
+    exa = Exa("test-key", base_url=paced_server + "/error", timeout=_TIMEOUT)
+    with pytest.raises(ExaTimeoutError):
+        exa.stream_answer("q")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("connection", ["", "/close"], ids=["keep-alive", "close"])
+async def test_an_async_stream_is_timed_until_it_starts_only(paced_server, connection):
+    async with AsyncExa("test-key", api_base=paced_server + connection, timeout=_TIMEOUT) as exa:
+        started = time.monotonic()
+        stream = await exa.stream_answer("q")
+        assert [chunk.content async for chunk in stream] == ["c0", "c1", "c2"]
+        assert time.monotonic() - started >= 2 * _GAP
+
+        response = await exa.async_request("/events", method="GET", params={"stream": "true"})
+        try:
+            assert [line async for line in response.aiter_lines() if line] == [
+                _event(index).decode().strip() for index in range(3)
+            ]
+        finally:
+            await response.aclose()
+
+    async with AsyncExa("test-key", api_base=paced_server + "/late", timeout=_TIMEOUT) as late:
+        with pytest.raises(ExaTimeoutError) as raised:
+            await late.stream_answer("q")
+        assert isinstance(raised.value, httpx.ReadTimeout)
+
+
+@pytest.mark.asyncio
+async def test_an_async_stream_error_response_is_read_under_the_timeout(paced_server):
+    async with AsyncExa("test-key", api_base=paced_server + "/error", timeout=_TIMEOUT) as exa:
+        with pytest.raises(ExaTimeoutError):
+            await exa.stream_answer("q")
 
 
 @pytest.mark.asyncio
@@ -106,19 +235,130 @@ async def test_async_timeout_is_typed_and_still_an_httpx_timeout(stalling_server
         await exa.client.aclose()
 
 
-@pytest.mark.asyncio
-async def test_async_stream_timeout_is_typed_and_closes_the_response(stalling_server):
-    exa = AsyncExa("test-key", api_base=stalling_server, timeout=0.2)
-    try:
-        stream = await exa.stream_answer("slow")
-        chunks = stream.__aiter__()
-        assert (await chunks.__anext__()).content == "first"
+# An address reserved for documentation. The `several_addresses` fixture makes a
+# connection to it time out, as one to an address that drops packets does.
+_BLACK_HOLE = "192.0.2.1"
+
+
+@pytest.fixture
+def several_addresses(monkeypatch):
+    """Host names that resolve to several addresses; returns a closed local port.
+
+    ``two-addresses.test`` resolves to an address whose connection times out,
+    then to the closed port, which refuses at once. ``refusing.test`` resolves
+    to the closed port twice. ``unresolvable.test`` fails its lookup after
+    `_TIMEOUT` seconds.
+    """
+    closed = socket.socket()
+    closed.bind(("127.0.0.1", 0))
+    port = closed.getsockname()[1]
+    closed.close()
+    refused = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))
+    timing_out = (socket.AF_INET, socket.SOCK_STREAM, 6, "", (_BLACK_HOLE, port))
+    real_getaddrinfo = socket.getaddrinfo
+
+    def getaddrinfo(host, *args, **kwargs):
+        if host == "two-addresses.test":
+            return [timing_out, refused]
+        if host == "refusing.test":
+            return [refused, refused]
+        if host == "unresolvable.test":
+            time.sleep(_TIMEOUT)
+            raise socket.gaierror(socket.EAI_NONAME, "Name or service not known")
+        return real_getaddrinfo(host, *args, **kwargs)
+
+    class Socket(socket.socket):
+        def connect(self, address):
+            if address[0] == _BLACK_HOLE:
+                time.sleep(self.gettimeout())
+                raise socket.timeout("timed out")
+            return super().connect(address)
+
+    monkeypatch.setattr(socket, "getaddrinfo", getaddrinfo)
+    monkeypatch.setattr(socket, "socket", Socket)
+    return port
+
+
+def test_a_connect_timeout_on_one_of_several_addresses_is_typed(several_addresses):
+    exa = Exa("test-key", base_url=f"http://two-addresses.test:{several_addresses}", timeout=_TIMEOUT)
+    with pytest.raises(ExaTimeoutError) as raised:
+        exa.search("q")
+    assert isinstance(raised.value, requests.exceptions.ConnectTimeout)
+    assert isinstance(raised.value, requests.exceptions.ConnectionError)
+    assert "connect timeout=0.2" in str(raised.value)
+    assert type(raised.value.__cause__.__cause__) is requests.exceptions.ConnectionError
+
+
+@pytest.mark.parametrize("host", ["refusing.test", "unresolvable.test"])
+def test_a_refused_connection_or_failed_lookup_stays_a_connection_error(several_addresses, host):
+    exa = Exa("test-key", base_url=f"http://{host}:{several_addresses}", timeout=_TIMEOUT)
+    with pytest.raises(requests.exceptions.ConnectionError) as raised:
+        exa.search("q")
+    assert not isinstance(raised.value, (ExaTimeoutError, requests.exceptions.Timeout))
+
+
+def test_an_import_upload_connect_timeout_on_one_of_several_addresses_is_typed(several_addresses):
+    client = ImportsClient(Exa("test-key", timeout=_TIMEOUT))
+    created = {**_IMPORT, "uploadUrl": f"http://two-addresses.test:{several_addresses}/upload"}
+    with patch.object(client, "request", return_value=created):
         with pytest.raises(ExaTimeoutError) as raised:
-            await chunks.__anext__()
-        assert isinstance(raised.value, httpx.ReadTimeout)
-        assert stream._raw_response.is_closed
+            client.create({}, csv_data="url\nhttps://example.com")
+    assert isinstance(raised.value, requests.exceptions.ConnectTimeout)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "timeout_class,setting",
+    [
+        (httpx.ConnectTimeout, "connect"),
+        (httpx.ReadTimeout, "read"),
+        (httpx.WriteTimeout, "write"),
+        (httpx.PoolTimeout, "pool"),
+    ],
+)
+async def test_an_httpx_timeout_without_a_message_is_given_one(timeout_class, setting):
+    def handle(request: httpx.Request) -> httpx.Response:
+        raise timeout_class("", request=request)
+
+    exa = AsyncExa("test-key", timeout=5)
+    exa._client = httpx.AsyncClient(transport=httpx.MockTransport(handle), timeout=exa.timeout)
+    try:
+        with pytest.raises(ExaTimeoutError) as raised:
+            await exa.search("slow")
     finally:
-        await exa.client.aclose()
+        await exa.aclose()
+    assert str(raised.value) == f"{setting.capitalize()} timed out. ({setting} timeout=5)"
+    assert isinstance(raised.value, timeout_class)
+    assert raised.value.request.url.path == "/search"
+    assert str(raised.value.__cause__) == ""
+
+
+def test_a_timeout_without_a_message_or_a_request_is_still_described():
+    assert str(_as_exa_timeout(httpx.ReadTimeout(""))) == "Read timed out."
+    assert str(_as_exa_timeout(requests.exceptions.ReadTimeout())) == "Request timed out."
+
+
+@pytest.mark.asyncio
+async def test_an_async_tool_hands_the_model_the_timeout_message():
+    def handle(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("", request=request)
+
+    exa = AsyncExa("test-key", timeout=5)
+    exa._client = httpx.AsyncClient(transport=httpx.MockTransport(handle), timeout=exa.timeout)
+    exa.openai.web_search()
+    message = {
+        "role": "assistant",
+        "tool_calls": [
+            {"id": "c1", "type": "function", "function": {"name": "web_search", "arguments": '{"query": "q"}'}}
+        ],
+    }
+    try:
+        outputs = await exa.openai.handle_tool_calls(message)
+    finally:
+        await exa.aclose()
+    assert outputs == [
+        {"role": "tool", "tool_call_id": "c1", "content": "Error: Read timed out. (read timeout=5)"}
+    ]
 
 
 @pytest.mark.parametrize(

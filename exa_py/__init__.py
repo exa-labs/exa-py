@@ -1,4 +1,9 @@
 from .api import Exa as Exa
 from .api import AsyncExa as AsyncExa
+from .api import UserLocation as UserLocation
+from .api import UserLocationCoordinates as UserLocationCoordinates
+from .api import UserLocationCountry as UserLocationCountry
 from .errors import ExaTimeoutError as ExaTimeoutError
+from .api import ApiWarning as ApiWarning
+from .api_warnings import ExaWarning as ExaWarning
 from .request_options import ExtraRequestOptions as ExtraRequestOptions

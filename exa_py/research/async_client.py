@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import (
     Any,
     AsyncGenerator,
@@ -19,7 +18,7 @@ from typing_extensions import Unpack
 
 from pydantic import BaseModel, TypeAdapter
 
-from .base import AsyncResearchBaseClient
+from .base import AsyncResearchBaseClient, raise_research_retired
 from .models import (
     ResearchDto,
     ResearchEvent,
@@ -60,7 +59,11 @@ class AsyncResearchTyped(Generic[T]):
 
 
 class AsyncResearchClient(AsyncResearchBaseClient):
-    """Asynchronous client for the Research API."""
+    """Client for the Research API, which has been retired.
+
+    Every method raises ValueError without sending a request. Use the Agent API
+    (``exa.agent.runs.create``) for asynchronous, multi-step research.
+    """
 
     @overload
     async def create(
@@ -292,46 +295,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
             Completed research object or typed research.
 
         Raises:
-            TimeoutError: If research doesn't complete within timeout.
-            RuntimeError: If polling fails too many times.
+            ValueError: Always. The Research API has been retired.
         """
-        # Checked here: the loop below retries any error, and a mistyped
-        # option is not a failed poll.
-        extra = given_request_options(extra)
-        poll_interval_sec = poll_interval / 1000
-        timeout_sec = timeout_ms / 1000
-        max_consecutive_failures = 5
-        start_time = asyncio.get_event_loop().time()
-        consecutive_failures = 0
-
-        while True:
-            try:
-                if output_schema:
-                    result = await self.get(
-                        research_id, events=events, output_schema=output_schema,
-                        **extra,
-                    )
-                else:
-                    result = await self.get(research_id, events=events, **extra)
-
-                consecutive_failures = 0
-
-                # Check if research is finished
-                status = result.status if hasattr(result, "status") else None
-                if status in ["completed", "failed", "canceled"]:
-                    return result
-
-            except Exception as e:
-                consecutive_failures += 1
-                if consecutive_failures >= max_consecutive_failures:
-                    raise RuntimeError(
-                        f"Polling failed {max_consecutive_failures} times in a row "
-                        f"for research {research_id}: {e}"
-                    )
-
-            if asyncio.get_event_loop().time() - start_time > timeout_sec:
-                raise TimeoutError(
-                    f"Research {research_id} did not complete within {timeout_ms}ms"
-                )
-
-            await asyncio.sleep(poll_interval_sec)
+        given_request_options(extra)
+        raise_research_retired()

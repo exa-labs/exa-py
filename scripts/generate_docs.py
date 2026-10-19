@@ -809,9 +809,13 @@ exa = Exa()  # Reads EXA_API_KEY from environment
         research_models_filepath: Path,
         monitors_filepath: Path,
         monitors_types_filepath: Path,
+        api_warnings_filepath: Path,
     ) -> str:
         """Generate the full markdown documentation."""
         methods_by_class, classes, type_aliases = self.parse_sdk_file(api_filepath)
+        # ExaWarning, the Python warning issued for each ApiWarning, follows the api.py types.
+        _, api_warnings_classes, _ = self.parse_sdk_file(api_warnings_filepath)
+        classes.extend(api_warnings_classes)
         research_methods, _, research_type_aliases = self.parse_sdk_file(research_filepath, self.export_research_methods)
         monitors_methods, _, monitors_type_aliases = self.parse_sdk_file(
             monitors_filepath, self.export_monitors_methods
@@ -877,6 +881,7 @@ def main():
     research_models_file = script_dir.parent / "exa_py" / "research" / "models.py"
     monitors_file = script_dir.parent / "exa_py" / "monitors" / "client.py"
     monitors_types_file = script_dir.parent / "exa_py" / "monitors" / "types.py"
+    api_warnings_file = script_dir.parent / "exa_py" / "api_warnings.py"
 
     if not config_file.exists():
         print(f"Error: Config file not found at {config_file}", file=sys.stderr)
@@ -902,6 +907,10 @@ def main():
         print(f"Error: Search Monitors types file not found at {monitors_types_file}", file=sys.stderr)
         sys.exit(1)
 
+    if not api_warnings_file.exists():
+        print(f"Error: API warnings file not found at {api_warnings_file}", file=sys.stderr)
+        sys.exit(1)
+
     generator = DocGenerator(config_file)
     docs = generator.generate_full_documentation(
         api_file,
@@ -909,6 +918,7 @@ def main():
         research_models_file,
         monitors_file,
         monitors_types_file,
+        api_warnings_file,
     )
     print(docs)
 

@@ -29,6 +29,13 @@ SEARCH_OBJECTIVE_TOOL_DESCRIPTION = (
 # /search rejects longer objectives.
 _MAX_OBJECTIVE_LENGTH = 4096
 
+# Search responses can carry ``notices``: notes about how the results were
+# produced, written for a model. The search tool's text leads with one
+# ``Note: <message>`` line per notice, then a blank line, then the results: the
+# format agent evals measured. A response without notices formats exactly as
+# before. ``warnings`` describe the request, not the results, so the tool
+# leaves them out of its text.
+
 
 def _advertise_required(schema: dict[str, Any], *names: str) -> None:
     """List optional fields as required in a model's advertised JSON schema.
@@ -107,7 +114,14 @@ def _format_results(response: Any, empty_message: str) -> str:
 
 
 def _format_response(response: Any) -> str:
-    return _format_results(response, "No search results found.")
+    text = _format_results(response, "No search results found.")
+    messages = [
+        _value(notice, "message") for notice in _value(response, "notices") or []
+    ]
+    notes = [f"Note: {message}" for message in messages if isinstance(message, str)]
+    if not notes:
+        return text
+    return "\n".join(notes) + "\n\n" + text
 
 
 def _format_contents_response(response: Any) -> str:

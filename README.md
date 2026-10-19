@@ -244,7 +244,7 @@ run = exa.agent.runs.create(
 
 Agent Monitors use the beta namespace and require the `AGENT_MONITORS_BETA_HEADER` beta identifier (`agent-monitors-2026-08-04`).
 
-An Agent Monitor keeps a table of entities × fields fresh on a cadence: static fields are answered once per entity over the live web, dynamic fields are tracked from news on every refresh.
+An Agent Monitor keeps a table of entities × fields fresh on a cadence.
 
 ```python
 from exa_py.agent import AGENT_MONITORS_BETA_HEADER
@@ -261,8 +261,8 @@ monitor = exa.beta.agent.monitors.create(
         {"name": "Globex", "domain": "globex.com"},
     ],
     fields=[
-        {"name": "funding", "description": "New funding rounds"},  # dynamic by default
-        {"name": "ceo", "description": "The company's current CEO", "mode": "static"},
+        {"name": "funding", "description": "New funding rounds"},
+        {"name": "ceo", "description": "The company's current CEO"},
     ],
     idempotency_key="my-monitor-1",  # safe retries: same key returns the same monitor
 )
@@ -380,6 +380,32 @@ task.cancel()
 ```
 
 When stopping an async search/answer stream early, call `await stream.aclose()` to release its HTTP connection; cancellation while awaiting the next chunk also closes it. The sync client cannot cancel a blocking read from another thread; the timeout bounds each period of network inactivity. Both constructors and per-call overrides require a positive finite timeout when not `None`.
+
+## Warnings
+
+The API can return `warnings` about a request, such as a field it ignores. At the time of writing, search responses carry them, including `stream_search`. A warning never changes the status code or the results. It is for whoever maintains the code that builds the request. Fix the request, and don't pass the warning to a model. The response keeps them in `warnings`.
+
+The client also issues each one as an `ExaWarning` through Python's `warnings` module, attributed to the line of your code that made the call:
+
+```text
+app.py:12: ExaWarning: [exa] POST /search IGNORED_FIELD at /startCrawlDate: startCrawlDate is no longer supported and is ignored. Remove it from the request.
+```
+
+Python's default filter shows a given warning once per calling line. Silence them, or route them to logging:
+
+```python
+import logging
+import warnings
+
+from exa_py import ExaWarning
+
+warnings.filterwarnings("ignore", category=ExaWarning)  # silence them
+logging.captureWarnings(True)  # or send them to the "py.warnings" logger
+```
+
+Each `ExaWarning` has the attributes `warning`, `endpoint`, `method` and `request_id`. `warning` is the `ApiWarning`, with its `code`, `path` and `message`.
+
+Deprecated options raise a `DeprecationWarning` before the request is sent, whether you set them as options or through `extra_body`. At the time of writing, those are `start_crawl_date`, `end_crawl_date`, and the highlights options `num_sentences` and `highlights_per_url`. Python shows a `DeprecationWarning` by default only for code run as `__main__`. Test runners such as pytest show them too.
 
 ## More
 

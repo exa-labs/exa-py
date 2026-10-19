@@ -1,3 +1,4 @@
+from typing import get_args
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -117,6 +118,144 @@ def test_answer_accepts_user_location_coordinates_offline():
         resp = exa.answer("test query", user_location=user_location)
         assert isinstance(resp, exa_api.AnswerResponse)
         assert mock_request.call_args[0][1]["userLocation"] == user_location
+
+
+class _EmptyStream:
+    """A streamed response with no events, for the streaming methods."""
+
+    status_code = 200
+    text = ""
+
+    def iter_lines(self):
+        return iter(())
+
+    async def aiter_lines(self):
+        for line in ():
+            yield line
+
+    def close(self):
+        return None
+
+
+_USER_LOCATION_REPLY = {"results": [], "answer": "ok", "citations": []}
+_USER_LOCATION_METHODS = ["search", "stream_search", "answer", "stream_answer"]
+MALFORMED_USER_LOCATIONS = [
+    123,
+    True,
+    ["US"],
+    {},
+    {"country": 5},
+    {"country": None},
+    {"country": "US", "city": "San Francisco"},
+    {"latitude": 37.7},
+    {"longitude": -122.4},
+    {"latitude": "37.7", "longitude": -122.4},
+    {"latitude": True, "longitude": -122.4},
+    {"latitude": 90.5, "longitude": 0},
+    {"latitude": 0, "longitude": -180.5},
+    {"latitude": float("nan"), "longitude": 0},
+]
+WELL_FORMED_USER_LOCATIONS = [
+    "US",
+    {"country": "US"},
+    {"latitude": 37.7749, "longitude": -122.4194},
+    {"country": "US", "latitude": 37, "longitude": -122},
+    {"latitude": -90, "longitude": 180},
+]
+
+
+def _reply_for(method):
+    return _EmptyStream() if method.startswith("stream_") else _USER_LOCATION_REPLY
+
+
+@pytest.mark.parametrize("method", _USER_LOCATION_METHODS)
+@pytest.mark.parametrize("user_location", MALFORMED_USER_LOCATIONS, ids=repr)
+def test_sync_methods_reject_a_malformed_user_location(method, user_location):
+    exa = Exa(API_KEY)
+    with patch.object(exa, "request", return_value=_reply_for(method)) as mock_request:
+        with pytest.raises(ValueError, match="Invalid value for option 'user_location'"):
+            getattr(exa, method)("q", user_location=user_location)
+    mock_request.assert_not_called()
+
+
+@pytest.mark.parametrize("method", _USER_LOCATION_METHODS)
+@pytest.mark.parametrize("user_location", WELL_FORMED_USER_LOCATIONS, ids=repr)
+def test_sync_methods_send_a_well_formed_user_location(method, user_location):
+    exa = Exa(API_KEY)
+    with patch.object(exa, "request", return_value=_reply_for(method)) as mock_request:
+        getattr(exa, method)("q", user_location=user_location)
+    assert mock_request.call_args[0][1]["userLocation"] == user_location
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", _USER_LOCATION_METHODS)
+@pytest.mark.parametrize("user_location", MALFORMED_USER_LOCATIONS, ids=repr)
+async def test_async_methods_reject_a_malformed_user_location(method, user_location):
+    exa = AsyncExa(API_KEY)
+    with patch.object(
+        exa, "async_request", new_callable=AsyncMock, return_value=_reply_for(method)
+    ) as mock_request:
+        with pytest.raises(ValueError, match="Invalid value for option 'user_location'"):
+            await getattr(exa, method)("q", user_location=user_location)
+    mock_request.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", _USER_LOCATION_METHODS)
+@pytest.mark.parametrize("user_location", WELL_FORMED_USER_LOCATIONS, ids=repr)
+async def test_async_methods_send_a_well_formed_user_location(method, user_location):
+    exa = AsyncExa(API_KEY)
+    with patch.object(
+        exa, "async_request", new_callable=AsyncMock, return_value=_reply_for(method)
+    ) as mock_request:
+        await getattr(exa, method)("q", user_location=user_location)
+    assert mock_request.call_args[0][1]["userLocation"] == user_location
+
+
+@pytest.mark.parametrize("user_location", WELL_FORMED_USER_LOCATIONS, ids=repr)
+def test_search_and_contents_keeps_user_location_outside_contents(user_location):
+    exa = Exa(API_KEY)
+    with patch.object(exa, "request", return_value=_USER_LOCATION_REPLY) as mock_request:
+        with pytest.warns(DeprecationWarning):
+            exa.search_and_contents("q", text=True, user_location=user_location)
+    body = mock_request.call_args[0][1]
+    assert body["userLocation"] == user_location
+    assert body["contents"] == {"text": True}
+
+
+@pytest.mark.asyncio
+async def test_async_search_and_contents_keeps_user_location_outside_contents():
+    user_location = {"country": "US", "latitude": 37.7749, "longitude": -122.4194}
+    exa = AsyncExa(API_KEY)
+    with patch.object(
+        exa, "async_request", new_callable=AsyncMock, return_value=_USER_LOCATION_REPLY
+    ) as mock_request:
+        with pytest.warns(DeprecationWarning):
+            await exa.search_and_contents("q", text=True, user_location=user_location)
+    body = mock_request.call_args[0][1]
+    assert body["userLocation"] == user_location
+    assert body["contents"] == {"text": True}
+
+
+def test_search_and_contents_rejects_a_malformed_user_location():
+    exa = Exa(API_KEY)
+    with patch.object(exa, "request", return_value=_USER_LOCATION_REPLY) as mock_request:
+        with pytest.warns(DeprecationWarning):
+            with pytest.raises(ValueError, match="Invalid value for option 'user_location'"):
+                exa.search_and_contents("q", user_location={"latitude": 37.7})
+    mock_request.assert_not_called()
+
+
+def test_find_similar_and_contents_rejects_user_location():
+    """/findSimilar does not take the field, so the SDK refuses it."""
+    exa = Exa(API_KEY)
+    with patch.object(exa, "request", return_value=_USER_LOCATION_REPLY) as mock_request:
+        with pytest.warns(DeprecationWarning):
+            with pytest.raises(ValueError, match="user_location"):
+                exa.find_similar_and_contents(
+                    "https://example.com", user_location={"country": "US"}
+                )
+    mock_request.assert_not_called()
 
 
 def test_find_similar_deprecated_offline():
@@ -298,6 +437,127 @@ def test_search_accepts_instant_type_offline():
         assert call_args[0][0] == "/search"
         options = call_args[0][1]
         assert options["type"] == "instant"
+
+
+LITE_DEFAULT_BODY = {
+    "query": "lite query",
+    "type": "lite",
+    "contents": {"text": {"maxCharacters": 10_000}},
+}
+
+
+def test_search_type_includes_lite():
+    assert "lite" in get_args(exa_api.SearchType)
+
+
+def test_search_passes_unknown_type_through_offline():
+    """A type string SearchType does not list reaches the /search body as given."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.search("q", type="future-type")
+        assert mock_request.call_args[0][1]["type"] == "future-type"
+
+        exa.search_and_contents("q", type="future-type")
+        assert mock_request.call_args[0][1]["type"] == "future-type"
+
+    with patch.object(
+        exa, "request", return_value=_FakeStreamResponse([])
+    ) as mock_request:
+        list(exa.stream_search("q", type="future-type"))
+        assert mock_request.call_args[0][1]["type"] == "future-type"
+
+
+@pytest.mark.asyncio
+async def test_async_search_passes_unknown_type_through_offline():
+    """AsyncExa sends a type string SearchType does not list as given."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        await ax.search("q", type="future-type")
+        assert mock_request.call_args[0][1]["type"] == "future-type"
+
+        await ax.search_and_contents("q", type="future-type")
+        assert mock_request.call_args[0][1]["type"] == "future-type"
+
+
+def test_search_lite_sends_only_type_and_default_text_offline():
+    """search(type='lite') adds nothing to the body beyond the default text contents."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.004}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.search("lite query", type="lite")
+
+    assert mock_request.call_args[0][0] == "/search"
+    assert mock_request.call_args[0][1] == LITE_DEFAULT_BODY
+
+
+def test_search_lite_forwards_supported_parameters_offline():
+    """Caller-set parameters reach the body as given, with no defaults added beside them."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.004}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.search(
+            "lite query",
+            type="lite",
+            num_results=3,
+            category="news",
+            include_domains=["example.com"],
+            start_published_date="2026-01-01T00:00:00.000Z",
+            contents={"highlights": True},
+        )
+
+    assert mock_request.call_args[0][1] == {
+        "query": "lite query",
+        "type": "lite",
+        "numResults": 3,
+        "category": "news",
+        "includeDomains": ["example.com"],
+        "startPublishedDate": "2026-01-01T00:00:00.000Z",
+        "contents": {"highlights": True},
+    }
+
+
+def test_search_and_contents_lite_sends_only_type_and_default_text_offline():
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.004}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        exa.search_and_contents("lite query", type="lite")
+
+    assert mock_request.call_args[0][1] == LITE_DEFAULT_BODY
+
+
+@pytest.mark.asyncio
+async def test_async_search_lite_sends_only_type_and_default_text_offline():
+    ax = AsyncExa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.004}}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        await ax.search("lite query", type="lite")
+
+    assert mock_request.call_args[0][1] == LITE_DEFAULT_BODY
+
+
+@pytest.mark.asyncio
+async def test_async_search_and_contents_lite_sends_only_type_and_default_text_offline():
+    ax = AsyncExa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.004}}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        await ax.search_and_contents("lite query", type="lite")
+
+    assert mock_request.call_args[0][1] == LITE_DEFAULT_BODY
 
 
 def test_search_accepts_deep_reasoning_params_offline():
@@ -1061,6 +1321,79 @@ def test_search_and_contents_with_highlights_offline():
         options = call_args[0][1]
         assert options["contents"]["highlights"] is True
         assert options["contents"]["text"] is True
+
+
+FILTER_EMPTY_CONTENTS = {"text": True, "filterEmptyResults": False}
+
+
+def test_search_and_contents_nests_filter_empty_results_offline():
+    """search_and_contents sends filter_empty_results inside contents."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        with pytest.warns(DeprecationWarning, match="search_and_contents"):
+            exa.search_and_contents(
+                "test query", text=True, filter_empty_results=False
+            )
+
+    body = mock_request.call_args[0][1]
+    assert body["contents"] == FILTER_EMPTY_CONTENTS
+    assert "filterEmptyResults" not in body
+
+
+@pytest.mark.asyncio
+async def test_async_search_and_contents_nests_filter_empty_results_offline():
+    """AsyncExa.search_and_contents sends filter_empty_results inside contents."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        with pytest.warns(DeprecationWarning, match="search_and_contents"):
+            await ax.search_and_contents(
+                "test query", text=True, filter_empty_results=False
+            )
+
+    body = mock_request.call_args[0][1]
+    assert body["contents"] == FILTER_EMPTY_CONTENTS
+    assert "filterEmptyResults" not in body
+
+
+def test_find_similar_and_contents_nests_filter_empty_results_offline():
+    """find_similar_and_contents sends filter_empty_results inside contents."""
+    exa = Exa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(exa, "request", return_value=mock_response) as mock_request:
+        with pytest.warns(DeprecationWarning, match="find_similar_and_contents"):
+            exa.find_similar_and_contents(
+                "https://example.com", text=True, filter_empty_results=False
+            )
+
+    body = mock_request.call_args[0][1]
+    assert body["contents"] == FILTER_EMPTY_CONTENTS
+    assert "filterEmptyResults" not in body
+
+
+@pytest.mark.asyncio
+async def test_async_find_similar_and_contents_nests_filter_empty_results_offline():
+    """AsyncExa.find_similar_and_contents sends filter_empty_results inside contents."""
+    ax = AsyncExa(API_KEY)
+    mock_response = {"results": [], "costDollars": {"total": 0.001}}
+
+    with patch.object(
+        ax, "async_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_request:
+        with pytest.warns(DeprecationWarning, match="find_similar_and_contents"):
+            await ax.find_similar_and_contents(
+                "https://example.com", text=True, filter_empty_results=False
+            )
+
+    body = mock_request.call_args[0][1]
+    assert body["contents"] == FILTER_EMPTY_CONTENTS
+    assert "filterEmptyResults" not in body
 
 
 ########################################
