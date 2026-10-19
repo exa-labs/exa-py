@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.26.0](https://github.com/exa-labs/exa-py/compare/v2.25.0...v2.26.0) (2026-10-19)
+
+
+### Features
+
+* accept any search type string, keeping known types for autocomplete ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* accept latitude and longitude in user_location ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* add request options and typed timeout errors ([#283](https://github.com/exa-labs/exa-py/issues/283)) ([9d599f8](https://github.com/exa-labs/exa-py/commit/9d599f8570647442a4ad83f30a3e2270266d9927))
+* add the lite search type ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* report API warnings as ExaWarning and warn on deprecated options ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* return typed search warnings on responses and streams ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* show search notices to the model in the web search tools ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+
+
+### Bug Fixes
+
+* fail Research API calls at once with a retirement error ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* send filter_empty_results inside contents ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* stream and connect timeouts, query encoding, and AsyncExa typing and lifecycle ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* sync exa-py ([#278](https://github.com/exa-labs/exa-py/issues/278)) ([525e004](https://github.com/exa-labs/exa-py/commit/525e004f635d208b3c1d6bb73319473fa41b7a03))
+
+
+### Documentation
+
+* deprecate search subpages, extras rich links and code blocks, and summary max tokens ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+* point deep-reasoning callers at deep or Exa Agent ([bcc2f8f](https://github.com/exa-labs/exa-py/commit/bcc2f8f7eae80f32ff0172bdbaef0427cfa21e91))
+
 ## [2.25.0](https://github.com/exa-labs/exa-py/compare/v2.24.0...v2.25.0) (2026-10-01)
 
 
