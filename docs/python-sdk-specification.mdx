@@ -82,7 +82,7 @@ deep_result = exa.search(
 | --------- | ---- | ----------- | ------- |
 | query | str | The query string. | Required |
 | stream | Optional[bool] | If True, stream the synthesized search response. Use ``stream_search(...)`` instead of ``search(..., stream=True)``. | `False` |
-| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. For AI context, prefer `{"highlights": True}` for relevance-based sizing and read result.highlights. See [ContentsOptions](#contentsoptions) for all options. DEPRECATED FIELD WARNING: ``contents.context`` is deprecated; use ``highlights`` or ``text`` instead. | None |
+| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. For AI context, prefer `{"highlights": True}` for relevance-based sizing and read result.highlights. See [ContentsOptions](#contentsoptions) for all options. | None |
 | num_results | Optional[int] | Number of search results to return. Default 10. | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
 | exclude_domains | Optional[List[str]] | Domains to exclude from the search. | None |
@@ -92,19 +92,19 @@ deep_result = exa.search(
 | end_published_date | Optional[str] | Only links published before this date. | None |
 | include_text | Optional[List[str]] | Strings that must appear in the page text. | None |
 | exclude_text | Optional[List[str]] | Strings that must not appear in the page text. | None |
-| type | Optional[Union[[SearchType](#searchtype), str]] | Search type - 'auto' (default), 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', or 'instant'. | None |
+| type | Optional[Union[[SearchType](#searchtype), str]] | Search type - 'auto' (default), 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', 'instant', or 'lite' (beta: low-cost, reduced parameter set). | None |
 | category | Optional[[Category](#category)] | Data category to focus on (e.g. 'company', 'news', 'publication'). | None |
 | flags | Optional[List[str]] | Experimental flags for Exa usage. | None |
 | moderation | Optional[bool] | If True, the search results will be moderated for safety. | None |
-| user_location | Optional[str] | Two-letter ISO country code of the user (e.g. US). | None |
+| user_location | Optional[Union[str, [UserLocation](#userlocation)]] | The end user's location, as a two-letter ISO 3166-1 country code or a [UserLocation](#userlocation) dict. | None |
 | additional_queries | Optional[List[str]] | Alternative query formulations for deep search to skip automatic LLM-based query expansion. Max 5 queries. Only applicable when type is 'deep-lite', 'deep', or 'deep-reasoning'. Example: ["machine learning", "ML algorithms", "neural networks"] | None |
 | system_prompt | Optional[str] | Instructions that guide both the search process and the final returned result. Use this to prefer certain sources, emphasize novelty, avoid duplicates, or constrain the response style. Supported for all search types. | None |
 | output_schema | Optional[[DeepOutputSchema](#deepoutputschema)] | Search output schema for structured synthesis. When provided, the API returns synthesized output in ``output``. Use ``{"type": "text", "description": ...}`` for plain text output or ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON. For object schemas, max nesting depth is 2 and max total properties is 10. Supported for all search types. | None |
 | objective | Optional[str] | The broader goal this search serves: the task the caller is working on, beyond the query itself. When an agent picks the query as one step of a larger task, pass the goal of that step: which documents should rank first, which should be excluded, and what to pull from them. Up to 4096 characters. | None |
-| user_identifier | Optional[str] | An opaque identifier you generate for the end user this request is made on behalf of, such as a UUID or a hash. Never send personal information such as an email address, name or phone number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa records it so usage can be attributed to one end user; it does not change results. | None |
+| user_identifier | Optional[str] | An opaque ID you assign to the end user this request is made for, such as a UUID, used to attribute usage to that end user. Must not contain personal information such as an email address, phone number, username or name. Hash such values before sending them. 1 to 64 characters: letters, digits, ``_`` and ``-``. Retained even when your team has Zero Data Retention enabled. Does not affect results. | None |
 | betas | Optional[Sequence[str]] | Exa-Beta tokens to send with the request (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights). | None |
 | extra_body | Optional[Mapping[str, Any]] | Per-call body overrides, except stream. | None |
-| timeout | Optional[float] | Per-operation network inactivity timeout in seconds; defaults to the client timeout. | None |
+| timeout | Optional[float] | Per-operation network inactivity timeout in seconds. Defaults to the client timeout. | None |
 | extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
 | extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
 
@@ -177,7 +177,7 @@ similar_results = exa.search(
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
 | url | str | The URL to find similar pages for. | Required |
-| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). DEPRECATED FIELD WARNING: ``contents.context`` is deprecated; use ``highlights`` or ``text`` instead. | None |
+| contents | Optional[Union[[ContentsOptions](#contentsoptions), Literal[False]]] | Options for retrieving page contents. Defaults to `{"text": {"maxCharacters": 10000}`}. Use False to disable contents. See [ContentsOptions](#contentsoptions) for available options (text, highlights, summary, etc.). | None |
 | num_results | Optional[int] | Number of results to return. Default is None (server default). | None |
 | include_domains | Optional[List[str]] | Domains to include in the search. | None |
 | exclude_domains | Optional[List[str]] | Domains to exclude from the search. | None |
@@ -323,8 +323,8 @@ print(response_with_text.citations[0].text)  # Full page text
 | system_prompt | Optional[str] | A system prompt to guide the LLM's behavior when generating the answer. | None |
 | model | Optional[Literal['exa', 'exa-pro']] | The model to use for answering. Defaults to None. | None |
 | output_schema | Optional[[JSONSchemaInput](#jsonschemainput)] | JSON schema describing the desired answer structure. | None |
-| user_location | Optional[str] | - | None |
-| user_identifier | Optional[str] | An opaque identifier you generate for the end user this request is made on behalf of, such as a UUID or a hash. Never send personal information such as an email address, name or phone number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa records it so usage can be attributed to one end user; it does not change results. | None |
+| user_location | Optional[Union[str, [UserLocation](#userlocation)]] | The end user's location, as a two-letter ISO 3166-1 country code or a [UserLocation](#userlocation) dict. | None |
+| user_identifier | Optional[str] | An opaque ID you assign to the end user this request is made for, such as a UUID, used to attribute usage to that end user. Must not contain personal information such as an email address, phone number, username or name. Hash such values before sending them. 1 to 64 characters: letters, digits, ``_`` and ``-``. Retained even when your team has Zero Data Retention enabled. Does not affect results. | None |
 | timeout | Optional[float] | Timeout in seconds for this request. Defaults to the client-level timeout. | None |
 | extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
 | extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
@@ -385,9 +385,9 @@ for chunk in stream:
 | system_prompt | Optional[str] | A system prompt to guide the LLM's behavior when generating the answer. | None |
 | model | Optional[Literal['exa', 'exa-pro']] | The model to use for answering. Defaults to None. | None |
 | output_schema | Optional[[JSONSchemaInput](#jsonschemainput)] | JSON schema describing the desired answer structure. | None |
-| user_location | Optional[str] | - | None |
-| user_identifier | Optional[str] | An opaque identifier you generate for the end user this request is made on behalf of, such as a UUID or a hash. Never send personal information such as an email address, name or phone number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa records it so usage can be attributed to one end user; it does not change results. | None |
-| timeout | Optional[float] | Timeout in seconds for this request. Defaults to the client-level timeout. | None |
+| user_location | Optional[Union[str, [UserLocation](#userlocation)]] | The end user's location, as a two-letter ISO 3166-1 country code or a [UserLocation](#userlocation) dict. | None |
+| user_identifier | Optional[str] | An opaque ID you assign to the end user this request is made for, such as a UUID, used to attribute usage to that end user. Must not contain personal information such as an email address, phone number, username or name. Hash such values before sending them. 1 to 64 characters: letters, digits, ``_`` and ``-``. Retained even when your team has Zero Data Retention enabled. Does not affect results. | None |
+| timeout | Optional[float] | Timeout in seconds for this request. Defaults to the client-level timeout. It bounds the wait for the stream to start. A stream that has started is not timed. | None |
 | extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
 | extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
 | extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
@@ -416,252 +416,6 @@ for chunk in stream:
 | ----- | ---- | ----------- |
 | content | Optional[str] | The partial text content of the streamed response. |
 | citations | Optional[List[[AnswerResult](#answerresult)]] | List of citations if provided in this chunk. |
-
-## `research.create` Method
-
-Create a new research request.
-
-### Input Example
-
-```python
-from exa_py import Exa
-import os
-
-exa = Exa(os.environ["EXA_API_KEY"])
-
-# Create a simple research task
-instructions = "What is the latest valuation of SpaceX?"
-schema = {
-    "type": "object",
-    "properties": {
-        "valuation": {"type": "string"},
-        "date": {"type": "string"},
-        "source": {"type": "string"}
-    }
-}
-
-task = exa.research.create(
-    instructions=instructions,
-    output_schema=schema
-)
-
-print(f"Task created with ID: {task.research_id}")
-```
-
-### Input Parameters
-
-| Parameter | Type | Description | Default |
-| --------- | ---- | ----------- | ------- |
-| instructions | str | The research instructions describing what to research. | Required |
-| model | [ResearchModel](#researchmodel) | The model to use ('exa-research-fast', 'exa-research', or 'exa-research-pro'). | `'exa-research-fast'` |
-| output_schema | Optional[Union[Dict[str, Any], Type[[BaseModel](https://docs.pydantic.dev/latest/api/base_model/#BaseModel)]]] | Optional JSON schema for structured output format. | None |
-| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
-| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
-| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
-
-### Return Example
-
-```json
-{
-  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
-```
-
-### Result Object
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| research_id | str | The unique identifier for the research request |
-| created_at | float | Milliseconds since epoch time |
-| model | [ResearchModel](#researchmodel) | The model used for the research request |
-| instructions | str | The instructions given to this research request |
-| output_schema | Optional[Dict[str, Any]] | - |
-| status | Literal['completed'] | - |
-| finished_at | float | Milliseconds since epoch time |
-| events | Optional[List[[ResearchEvent](#researchevent)]] | - |
-| output | [ResearchOutput](#researchoutput) | - |
-| cost_dollars | [CostDollars](#costdollars) | - |
-
-## `research.get` Method
-
-Get a research request by ID.
-
-### Input Example
-
-```python
-# Get a research task by ID
-task_id = "your-task-id-here"
-task = exa.research.get(task_id)
-
-print(f"Task status: {task.status}")
-if task.status == "completed":
-    print(f"Results: {task.output}")
-```
-
-### Input Parameters
-
-| Parameter | Type | Description | Default |
-| --------- | ---- | ----------- | ------- |
-| research_id | str | The unique identifier of the research task. | Required |
-| stream | bool | Whether to stream events as they occur. | `False` |
-| events | bool | Whether to include events in the response. | `False` |
-| output_schema | Optional[Type[[BaseModel](https://docs.pydantic.dev/latest/api/base_model/#BaseModel)]] | Optional Pydantic model for typed output validation. | None |
-| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
-| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
-| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
-
-### Return Example
-
-```json
-{
-  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "status": "completed",
-  "instructions": "What is the latest valuation of SpaceX?",
-  "schema": {
-    "type": "object",
-    "properties": {
-      "valuation": {
-        "type": "string"
-      },
-      "date": {
-        "type": "string"
-      },
-      "source": {
-        "type": "string"
-      }
-    }
-  },
-  "output": {
-    "valuation": "$350 billion",
-    "date": "December 2024",
-    "source": "Financial Times"
-  }
-}
-```
-
-### Result Object
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| research_id | str | The unique identifier for the research request |
-| created_at | float | Milliseconds since epoch time |
-| model | [ResearchModel](#researchmodel) | The model used for the research request |
-| instructions | str | The instructions given to this research request |
-| output_schema | Optional[Dict[str, Any]] | - |
-| status | Literal['completed'] | - |
-| finished_at | float | Milliseconds since epoch time |
-| events | Optional[List[[ResearchEvent](#researchevent)]] | - |
-| output | [ResearchOutput](#researchoutput) | - |
-| cost_dollars | [CostDollars](#costdollars) | - |
-
-## `research.poll_until_finished` Method
-
-Poll until research is finished.
-
-### Input Example
-
-```python
-# Create and poll a task until completion
-task = exa.research.create(
-    instructions="Get information about Paris, France",
-    output_schema={
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "population": {"type": "string"},
-            "founded_date": {"type": "string"}
-        }
-    }
-)
-
-# Poll until completion
-result = exa.research.poll_until_finished(task.research_id)
-print(f"Research complete: {result.output}")
-```
-
-### Input Parameters
-
-| Parameter | Type | Description | Default |
-| --------- | ---- | ----------- | ------- |
-| research_id | str | The unique identifier of the research task. | Required |
-| poll_interval | int | Milliseconds between polling attempts. | `1000` |
-| timeout_ms | int | Maximum time to wait in milliseconds before timing out. | `600000` |
-| events | bool | Whether to include events in the response. | `False` |
-| output_schema | Optional[Type[[BaseModel](https://docs.pydantic.dev/latest/api/base_model/#BaseModel)]] | Optional Pydantic model for typed output validation. | None |
-| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
-| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
-| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
-
-### Result Object
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| research_id | str | The unique identifier for the research request |
-| created_at | float | Milliseconds since epoch time |
-| model | [ResearchModel](#researchmodel) | The model used for the research request |
-| instructions | str | The instructions given to this research request |
-| output_schema | Optional[Dict[str, Any]] | - |
-| status | Literal['completed'] | - |
-| finished_at | float | Milliseconds since epoch time |
-| events | Optional[List[[ResearchEvent](#researchevent)]] | - |
-| output | [ResearchOutput](#researchoutput) | - |
-| cost_dollars | [CostDollars](#costdollars) | - |
-
-## `research.list` Method
-
-List research requests.
-
-### Input Example
-
-```python
-# List all research tasks
-response = exa.research.list()
-print(f"Found {len(response.data)} tasks")
-
-# List with pagination
-response = exa.research.list(limit=10)
-if response.has_more:
-    next_page = exa.research.list(cursor=response.next_cursor)
-```
-
-### Input Parameters
-
-| Parameter | Type | Description | Default |
-| --------- | ---- | ----------- | ------- |
-| cursor | Optional[str] | Pagination cursor from a previous response. | None |
-| limit | Optional[int] | Maximum number of results to return. | None |
-| extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
-| extra_query | Optional[Mapping[str, Any]] | Extra query parameters to send with the request. | None |
-| extra_body | Optional[Mapping[str, Any]] | Extra fields merged over the JSON request body, except stream. | None |
-
-### Return Example
-
-```json
-{
-  "data": [
-    {
-      "id": "task-1",
-      "status": "completed",
-      "instructions": "Research SpaceX valuation"
-    },
-    {
-      "id": "task-2",
-      "status": "running",
-      "instructions": "Compare GPU specifications"
-    }
-  ],
-  "hasMore": true,
-  "nextCursor": "eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTE1VDE4OjMwOjAwWiIsImlkIjoidGFzay0yIn0="
-}
-```
-
-### Result Object
-
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| data | List[[ResearchDto](#researchdto)] | The list of research requests |
-| has_more | bool | Whether there are more results to paginate through |
-| next_cursor | Optional[str] | The cursor to paginate through the next set of results |
 
 ## `monitors.create` Method
 
@@ -1226,8 +980,8 @@ AI context. Use a fixed limit only when your application explicitly requires one
 | query | str | The query string for highlight generation. Highlights will be biased towards this query. |
 | max_characters | int | Override for an explicit application character limit. Prefer ``highlights=True`` for relevance-based sizing rather than choosing an arbitrary limit to keep context concise. Not compatible with dynamic. |
 | dynamic | bool | Enable Dynamic Highlights (research preview): allocates one shared context budget across all results instead of a per-document budget; the model sizes the output itself. Not compatible with max_characters. Beta: requires passing ``betas=[DYNAMIC_HIGHLIGHTS_BETA]`` to the request. |
-| num_sentences | int | DEPRECATED FIELD - do not use in new code. Use max_characters instead. Kept only for backward compatibility. |
-| highlights_per_url | int | DEPRECATED FIELD - do not use in new code. Use max_characters instead. Kept only for backward compatibility. |
+| num_sentences | int | Deprecated. Use max_characters. |
+| highlights_per_url | int | Deprecated. Use max_characters. |
 
 #### `ContextContentsOptions`
 
@@ -1262,10 +1016,10 @@ max_characters=10000 is returned by default.
 | text | Union[[TextContentsOptions](#textcontentsoptions), Literal[True]] | Options for text extraction, or True for defaults. |
 | highlights | Union[[HighlightsContentsOptions](#highlightscontentsoptions), Literal[True]] | Options for highlight extraction, or True for defaults. |
 | summary | Union[[SummaryContentsOptions](#summarycontentsoptions), Literal[True]] | Options for summary generation, or True for defaults. |
-| context | Union[[ContextContentsOptions](#contextcontentsoptions), Literal[True]] | DEPRECATED FIELD - do not use in new code. Use `highlights` or `text` instead. Will be removed in a future version. |
+| context | Union[[ContextContentsOptions](#contextcontentsoptions), Literal[True]] | Deprecated. Use `highlights` or `text`. |
 | max_age_hours | int | Maximum age of cached content in hours. If content is older, it will be fetched fresh. Special values: 0 = always fetch fresh content, -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days. |
-| subpages | int | Number of subpages to crawl. |
-| subpage_target | Union[str, List[str]] | Target subpage path(s) to crawl. |
+| subpages | int | DEPRECATED FIELD - do not use in new code. Subpage crawling on search is deprecated. Call `get_contents(urls, subpages=...)` instead. |
+| subpage_target | Union[str, List[str]] | DEPRECATED FIELD - do not use in new code. Call `get_contents(urls, subpage_target=...)` instead. |
 | extras | [ExtrasOptions](#extrasoptions) | Additional extraction options (links, images). |
 
 ### Response Types
@@ -1290,6 +1044,24 @@ Deep search output schema for structured JSON object output.
 | type | Literal['object'] | - |
 | properties | Dict[str, Any] | - |
 | required | List[str] | - |
+
+#### `UserLocationCountry`
+
+The user's country only. Equivalent to passing the country code as a string.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| country | str | The two-letter ISO 3166-1 country code of the user, e.g. ``"US"``. |
+
+#### `UserLocationCoordinates`
+
+The user's coordinates, with an optional country.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| latitude | float | The user's latitude in decimal degrees, from -90 to 90. |
+| longitude | float | The user's longitude in decimal degrees, from -180 to 180. |
+| country | NotRequired[str] | The two-letter ISO 3166-1 country code of the user, e.g. ``"US"``. |
 
 #### `JSONSchema`
 
@@ -1477,6 +1249,45 @@ A class representing a single chunk of streaming data.
 | content | Optional[str] | The partial text content of the streamed response. |
 | citations | Optional[List[[AnswerResult](#answerresult)]] | List of citations if provided in this chunk. |
 
+#### `ApiWarning`
+
+A warning the Exa API returns about a request, such as a field it ignores.
+
+A warning never changes the status code or the result. It is for whoever
+owns the code that builds the request: fix the request, and do not pass the
+warning to a model. Today /search returns them, in its response and stream.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| code | str | Machine-readable code in UPPER_SNAKE case, such as 'IGNORED_FIELD' (the field is accepted and has no effect). The set of codes is open, so handle codes you do not know. |
+| path | str | JSON Pointer to the request field the warning is about, such as '/startCrawlDate'. |
+| message | str | What to change in the request, in plain words. |
+
+#### `SearchNotice`
+
+A note about how the results of a search were produced.
+
+For example, a query restriction relaxed to return results. A notice is
+written to be shown to a model. Pass its `message` to the model that reads
+the results.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| code | str | Machine-readable code in UPPER_SNAKE case, such as 'RESTRICTIONS_RELAXED' (no results matched a restriction in the query, so the results come from a search with it removed). The set of codes is open, so handle codes you do not know. |
+| path | str | JSON Pointer to the request field the notice is about, such as '/query'. |
+| message | str | Complete on its own and written to be shown to a model. |
+| details | Optional[Dict[str, Any]] | Extra context, with keys as the API sent them. No schema is promised for its keys, and it never carries information that `message` lacks. |
+
+#### `SearchStreamChunk`
+
+A single chunk of a streaming search response.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| content | Optional[str] | The partial text content of the streamed response. |
+| citations | Optional[List[[AnswerResult](#answerresult)]] | List of citations if provided in this chunk. |
+| warnings | Optional[List[[ApiWarning](#apiwarning)]] | Notes about the request, such as a field the API ignores. When the API returns any, they arrive on one chunk of their own, after the streamed text. |
+
 #### `AnswerResponse`
 
 A class representing the response for an answer operation.
@@ -1499,9 +1310,24 @@ A class representing a streaming answer response.
 
 A class representing a streaming search response.
 
+Iterating yields SearchStreamChunk objects with partial text and citations,
+and one chunk with the request's warnings when the API returns any.
+
 #### `AsyncStreamSearchResponse`
 
 A class representing a streaming search response.
+
+Iterating yields SearchStreamChunk objects with partial text and citations,
+and one chunk with the request's warnings when the API returns any.
+
+#### `ContentStatusError`
+
+Error details for a URL whose content could not be retrieved.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| tag | Optional[str] | Specific error type. |
+| http_status_code | Optional[int] | The corresponding HTTP status code. |
 
 #### `ContentStatus`
 
@@ -1509,9 +1335,10 @@ A class representing the status of a content retrieval operation.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| id | str | - |
-| status | str | - |
-| source | str | - |
+| id | str | The URL or document ID that was requested. |
+| status | str | Status of the content fetch operation. |
+| source | Optional[str] | Where the returned content was sourced from. |
+| error | Optional[[ContentStatusError](#contentstatuserror)] | Error details, only present when status is "error". |
 
 #### `SearchResponse`
 
@@ -1522,11 +1349,13 @@ A class representing the response for a search operation.
 | results | List[T] | A list of search results. |
 | resolved_search_type | Optional[str] | 'neural' or 'keyword' if auto. |
 | auto_date | Optional[str] | A date for filtering if autoprompt found one. |
-| context | Optional[str] | DEPRECATED FIELD - do not use in new code. Combined context string from legacy context responses. Use highlights, text, or output instead. |
+| context | Optional[str] | Deprecated. Combined context string. Use highlights, text, or output. |
 | output | Optional['[DeepSearchOutput](#deepsearchoutput)'] | Search synthesized output object returned when output_schema is provided, containing content and field-level grounding. |
 | statuses | Optional[List[[ContentStatus](#contentstatus)]] | Status list from get_contents. |
 | cost_dollars | Optional[[CostDollars](#costdollars)] | Cost breakdown. |
 | search_time | Optional[float] | Time taken for the search in milliseconds. |
+| warnings | Optional[List[[ApiWarning](#apiwarning)]] | Notes about the search request, such as a field the API ignores. None when the API returned none. |
+| notices | Optional[List[[SearchNotice](#searchnotice)]] | Notes about how the results were produced, written to be shown to a model. None when the API returned none. |
 
 #### `DeepSearchOutputGroundingCitation`
 
@@ -1555,6 +1384,24 @@ Search synthesized output payload.
 | ----- | ---- | ----------- |
 | content | Union[str, dict[str, Any]] | - |
 | grounding | List[[DeepSearchOutputGrounding](#deepsearchoutputgrounding)] | - |
+
+#### `ExaWarning`
+
+A warning the Exa API returned about a request, such as a field it ignores.
+
+The SDK issues one through Python's `warnings` module for each warning in a
+response, attributed to the line of your code that made the call. Python's
+default warnings filter shows a given warning once per calling line.
+`warnings.filterwarnings("ignore", category=ExaWarning)` silences them, and
+`logging.captureWarnings(True)` routes them to the `py.warnings` logger.
+The response keeps its own `warnings` whatever the filter does.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| warning | [ApiWarning](#apiwarning) | The warning, with its `code`, `path` (a JSON Pointer to the request field) and `message`. |
+| endpoint | str | API path the request was sent to, such as '/search'. |
+| method | str | HTTP method of the request, in upper case, such as 'POST'. |
+| request_id | Optional[str] | The request's id, when the response carried one. |
 
 #### `CostDollars`
 
@@ -1837,8 +1684,8 @@ Options for highlights extraction in monitor results.
 | ----- | ---- | ----------- |
 | query | Optional[str] | - |
 | max_characters | Optional[int] | - |
-| num_sentences | Optional[int] | DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead. |
-| highlights_per_url | Optional[int] | DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead. |
+| num_sentences | Optional[int] | Deprecated. Use max_characters. |
+| highlights_per_url | Optional[int] | Deprecated. Use max_characters. |
 
 #### `SearchMonitorSummaryContents`
 
@@ -1872,7 +1719,7 @@ deprecated and kept only for backward compatibility.
 | highlights | Optional[Union[bool, [SearchMonitorHighlightsContents](#searchmonitorhighlightscontents)]] | - |
 | summary | Optional[Union[bool, [SearchMonitorSummaryContents](#searchmonitorsummarycontents)]] | - |
 | extras | Optional[[SearchMonitorExtrasContents](#searchmonitorextrascontents)] | - |
-| context | Optional[Union[bool, Dict[str, Any]]] | DEPRECATED FIELD - do not use in new code. Use highlights or text instead. |
+| context | Optional[Union[bool, Dict[str, Any]]] | Deprecated. Use highlights or text. |
 | livecrawl | Optional[[LIVECRAWL_OPTION](#livecrawl_option)] | - |
 | livecrawl_timeout | Optional[int] | - |
 | max_age_hours | Optional[int] | - |
@@ -2042,13 +1889,25 @@ Data category to focus on when searching. Each category returns results speciali
 
 Search type that determines the search algorithm.
 
+We recommend 'lite', 'auto' and 'deep'. 'fast', 'instant' and
+'deep-reasoning' are legacy search types. They are still accepted, and each
+has an alternative. Use 'lite' instead of 'instant'. Use 'lite' instead of
+'fast', or 'auto' when the request needs parameters 'lite' rejects. Instead
+of 'deep-reasoning', use 'deep', or Exa Agent for long-running research,
+list building and multi-hop enrichment. Start an Exa Agent run with
+``exa.agent.runs.create``.
+
 'auto' (default) automatically selects the best approach, 'fast' prioritizes
 speed, 'deep-lite', 'deep', and 'deep-reasoning' are deep-search variants,
 'neural' uses embedding-based semantic search, and 'instant' uses low-latency
-neural search.
+neural search. 'lite' (beta) is a low-cost search that supports a reduced set
+of parameters.
+
+Search methods also accept any other string as ``type`` and pass it through
+to the API as given.
 
 
-**Type:** Literal['auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', 'instant']
+**Type:** Literal['auto', 'fast', 'deep-lite', 'deep', 'deep-reasoning', 'neural', 'instant', 'lite']
 
 #### `DeepOutputSchema`
 
@@ -2061,6 +1920,20 @@ For object schemas, the API enforces max nesting depth 2 and max 10 total proper
 
 
 **Type:** Union[[DeepTextOutputSchema](#deeptextoutputschema), [DeepObjectOutputSchema](#deepobjectoutputschema)]
+
+#### `UserLocation`
+
+The end user's location, as a dict with ``country``, a ``latitude`` and
+``longitude`` pair, or both.
+
+``user_location`` also takes a two-letter ISO 3166-1 country code string, e.g.
+``"US"``. The country localizes results. Coordinates are used only for queries
+that name no place but depend on where the user is, such as "coffee near me".
+They do not set a country, so send ``country`` with them to localize results.
+Send only the precision your use case needs.
+
+
+**Type:** Union[[UserLocationCountry](#userlocationcountry), [UserLocationCoordinates](#userlocationcoordinates)]
 
 #### `VERBOSITY_OPTIONS`
 
@@ -2234,15 +2107,66 @@ A single work history entry for a person.
 | dates | Optional[[EntityDateRange](#entitydaterange)] | - |
 | company | Optional[[EntityPersonPropertiesCompanyRef](#entitypersonpropertiescompanyref)] | - |
 
+#### `EntityPersonPropertiesInstitutionRef`
+
+Reference to an institution in education history.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| id | Optional[str] | Referenced institution identifier. |
+| name | Optional[str] | Referenced institution name. |
+
+#### `EntityPersonPropertiesEducationHistoryEntry`
+
+A single education history entry for a person.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| degree | Optional[str] | Degree or credential. |
+| dates | Optional[[EntityDateRange](#entitydaterange)] | Education date range. |
+| institution | Optional[[EntityPersonPropertiesInstitutionRef](#entitypersonpropertiesinstitutionref)] | Education institution. |
+
+#### `EntityPersonPropertiesNotableWork`
+
+A notable publication by a person.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| title | Optional[str] | Publication title. |
+| year | Optional[int] | Publication year. |
+| venue | Optional[str] | Publication venue. |
+| citation_count | Optional[int] | Number of works citing this publication. |
+| doi | Optional[str] | Digital Object Identifier. |
+| id | Optional[str] | Resolved publication entity identifier, when available. |
+| type | Optional[str] | Publication type. |
+
+#### `EntityPersonPropertiesResearch`
+
+Research information for a person.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| works_count | Optional[int] | Lifetime number of works. |
+| citation_count | Optional[int] | Lifetime citation count. |
+| h_index | Optional[int] | Research h-index. |
+| first_publication_year | Optional[int] | Year of the first publication. |
+| latest_publication_year | Optional[int] | Year of the latest publication. |
+| areas | Optional[List[str]] | Ranked research areas, most active first. |
+| notable_works | Optional[List[[EntityPersonPropertiesNotableWork](#entitypersonpropertiesnotablework)]] | Most-cited notable works. |
+
 #### `EntityPersonProperties`
 
 Structured properties for a person entity.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| name | Optional[str] | - |
-| location | Optional[str] | - |
-| work_history | Optional[List[[EntityPersonPropertiesWorkHistoryEntry](#entitypersonpropertiesworkhistoryentry)]] | - |
+| name | Optional[str] | Person name. |
+| location | Optional[str] | Person location. |
+| work_history | Optional[List[[EntityPersonPropertiesWorkHistoryEntry](#entitypersonpropertiesworkhistoryentry)]] | Known professional roles for this person. |
+| first_name | Optional[str] | Person first name. |
+| last_name | Optional[str] | Person last name. |
+| education_history | Optional[List[[EntityPersonPropertiesEducationHistoryEntry](#entitypersonpropertieseducationhistoryentry)]] | Known education history for this person. |
+| research | Optional[[EntityPersonPropertiesResearch](#entitypersonpropertiesresearch)] | Person research information. |
 
 #### `CompanyEntity`
 

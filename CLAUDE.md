@@ -36,7 +36,7 @@ This SDK uses auto-generated documentation from code. When making modifications,
 - For Pydantic models, use `Field(description="...")` to document fields
 
 ### Adding New Types
-- New classes in the files the generator parses — `api.py`, `research/sync_client.py`,
+- New classes in the files the generator parses — `api.py`, `api_warnings.py`, `research/sync_client.py`,
   `research/models.py`, `monitors/client.py`, `monitors/types.py` — are auto-discovered
   and documented
 - Private classes (starting with `_`) are excluded unless explicitly listed in `scripts/gen_config.json`

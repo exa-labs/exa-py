@@ -1,3 +1,4 @@
+import importlib.metadata
 import json
 from typing import TYPE_CHECKING, Any, Optional, Union
 from openai.types.chat import ChatCompletion
@@ -168,7 +169,17 @@ def _convert_schema_input(schema_input: "JSONSchemaInput") -> dict[str, Any]:
 
 
 def _get_package_version() -> str:
-    """Get the package version from pyproject.toml."""
+    """Return the version of exa-py, or "unknown" when it cannot be found.
+
+    An installed package reports the version in its distribution metadata. A
+    source checkout that is imported without being installed has no metadata,
+    so the version comes from the pyproject.toml beside the package instead.
+    """
+    try:
+        return importlib.metadata.version("exa-py")
+    except importlib.metadata.PackageNotFoundError:
+        pass
+
     try:
         try:
             import tomllib  # Python 3.11+

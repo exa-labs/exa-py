@@ -18,7 +18,7 @@ from ..types import (
     ListImportsResponse,
     UpdateImport,
 )
-from ...errors import typed_timeouts
+from ...errors import reporting_failover_connect_timeouts, typed_timeouts
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
 from ...request_options import ExtraRequestOptions
@@ -37,12 +37,10 @@ class ImportsClient(WebsetsBaseClient):
         csv_data: Optional[Union[str, Path]] = None,
         **extra: Unpack[ExtraRequestOptions],
     ) -> Union[CreateImportResponse, Import]:
-        """Create a new import to upload your data into Websets.
-        
-        Imports can be used to:
-        - Enrich: Enhance your data with additional information using our AI-powered enrichment engine
-        - Search: Query your data using Websets' agentic search with natural language filters
-        - Exclude: Prevent duplicate or already known results from appearing in your searches
+        """Create an Import to bring your own data into Websets.
+
+        Use it to enrich your records, search within them, or exclude them from
+        other searches.
 
         Args:
             params (CreateImportParameters): The parameters for creating an import.
@@ -95,12 +93,13 @@ class ImportsClient(WebsetsBaseClient):
         if csv_data is None:
             return import_response
         
-        upload_response = requests.put(
-            import_response.upload_url,
-            data=csv_content,
-            headers={'Content-Type': 'text/csv'},
-            timeout=self._client.timeout,
-        )
+        with reporting_failover_connect_timeouts(self._client.timeout):
+            upload_response = requests.put(
+                import_response.upload_url,
+                data=csv_content,
+                headers={'Content-Type': 'text/csv'},
+                timeout=self._client.timeout,
+            )
         upload_response.raise_for_status()
         
         return self.get(import_response.id, **extra)
@@ -208,12 +207,10 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
         csv_data: Optional[Union[str, Path]] = None,
         **extra: Unpack[ExtraRequestOptions],
     ) -> Union[CreateImportResponse, Import]:
-        """Create a new import to upload your data into Websets.
-        
-        Imports can be used to:
-        - Enrich: Enhance your data with additional information using our AI-powered enrichment engine
-        - Search: Query your data using Websets' agentic search with natural language filters
-        - Exclude: Prevent duplicate or already known results from appearing in your searches
+        """Create an Import to bring your own data into Websets.
+
+        Use it to enrich your records, search within them, or exclude them from
+        other searches.
 
         Args:
             params (CreateImportParameters): The parameters for creating an import.
@@ -271,7 +268,7 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
         async with httpx.AsyncClient(timeout=self._client.timeout) as http_client:
             upload_response = await http_client.put(
                 import_response.upload_url,
-                data=csv_content,
+                content=csv_content,
                 headers={'Content-Type': 'text/csv'}
             )
             upload_response.raise_for_status()

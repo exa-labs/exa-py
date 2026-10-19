@@ -19,16 +19,6 @@ async def main():
 
     print(response)
 
-    print("SEARCH SUBPAGES")
-
-    response = await exa.search(
-        "canonical url of tesla motors",
-        num_results=1,
-        contents={"subpages": 2, "highlights": True},
-    )
-
-    print(response)
-
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())

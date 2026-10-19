@@ -30,16 +30,19 @@ class ExtraRequestOptions(TypedDict, total=False):
 
     Attributes:
         extra_headers: Extra HTTP headers. A header the SDK also sets is
-            replaced, whatever its case; one set to None is skipped. The
-            ``Accept: text/event-stream`` of a streaming method stays.
+            replaced, whatever its case. One set to None is skipped, so the
+            SDK's own value is sent. An extra ``Accept`` never makes a call
+            stream. The Agent streams keep the ``Accept: text/event-stream``
+            they send, and any other ``Accept`` is replaced.
         extra_query: Extra query parameters, merged over the request's own,
             except ``stream``. One set to None is skipped, and True and False
-            are sent as ``true`` and ``false``. A ``cursor`` given to a
-            helper that pages through a listing selects its first page only.
+            are sent as ``true`` and ``false``, inside lists too, where None
+            elements are skipped. A ``cursor`` given to a helper that pages
+            through a listing selects its first page only.
         extra_body: Extra fields merged over the JSON request body, except
-            ``stream``: the method called decides whether the response
+            ``stream``, because the method called decides whether the response
             streams. Sent with requests that carry a JSON body (``POST`` and
-            ``PATCH``); other requests take ``extra_query`` instead.
+            ``PATCH``). Other requests take ``extra_query`` instead.
 
     Examples:
         >>> exa.get_contents(
@@ -116,10 +119,14 @@ def _query_value(value: Any) -> Any:
     """Return `value` as both HTTP stacks should send it: booleans as JSON spells them.
 
     Requests sends True as ``True`` and HTTPX as ``true``; the API and the
-    JavaScript SDK use ``true``.
+    JavaScript SDK use ``true``. A list or tuple is sent as one parameter per
+    element, so the same applies to each element, and an element set to None
+    is skipped: Requests leaves it out, where HTTPX would send it empty.
     """
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, (list, tuple)):
+        return [_query_value(element) for element in value if element is not None]
     return value
 
 
@@ -129,9 +136,10 @@ def merge_query(
     """Return the query parameters to send: `params` with `extra_query` merged over them.
 
     ``stream`` is never taken from `extra_query`, and a parameter set to None
-    is skipped rather than clearing the request's own. True and False are sent
-    as ``true`` and ``false`` by both clients. Returns `params` itself when
-    there is nothing to add.
+    is skipped rather than clearing the request's own, as is a None element
+    of a list value. True and False are sent as ``true`` and ``false`` by both
+    clients, inside lists too. Returns `params` itself when there is nothing
+    to add.
     """
     extra = {
         key: _query_value(value)

@@ -50,7 +50,8 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
         Args:
             betas: Beta feature identifiers to enable for this request.
             monitor_id: The ID of the Agent Monitor.
-            entities: Entities to add, each with a name and a unique domain.
+            entities: Entities to add, each with a name and a domain.
+                Each name and domain pair must be unique.
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
@@ -365,21 +366,23 @@ class AsyncAgentMonitorBacktestsClient(AsyncAgentMonitorsBaseClient):
         end_time: str,
         **extra: Unpack[ExtraRequestOptions],
     ) -> AgentMonitorBacktest:
-        """Start an async backtest of entities x fields over a past news window.
+        """Start a backtest that fills fields for entities over a past window.
 
-        The backtest runs one ordinary monitor refresh over the requested
-        window, then tears down its temporary monitor.
+        Fields answered from news use only news published between
+        `start_time` and `end_time`. Other fields return present values.
+        No monitor is created.
 
         Args:
             betas: Beta feature identifiers to enable for this request.
-            entities: Entities to backtest, each with a name and a unique domain.
+            entities: Entities to backtest, each with a name and a domain.
+                Each name and domain pair must be unique.
             fields: Fields to populate from news over the window.
             start_time: Start of the news window as an ISO-8601 UTC timestamp.
             end_time: End of the news window as an ISO-8601 UTC timestamp.
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
         Returns:
-            The running backtest job; poll it with `get` or use `create_and_wait`.
+            The running backtest job. Poll it with `get` or use `create_and_wait`.
 
         Examples:
             from exa_py import AsyncExa
@@ -507,7 +510,8 @@ class AsyncAgentMonitorBacktestsClient(AsyncAgentMonitorsBaseClient):
 
         Args:
             betas: Beta feature identifiers to enable for this request.
-            entities: Entities to backtest, each with a name and a unique domain.
+            entities: Entities to backtest, each with a name and a domain.
+                Each name and domain pair must be unique.
             fields: Fields to populate from news over the window.
             start_time: Start of the news window as an ISO-8601 UTC timestamp.
             end_time: End of the news window as an ISO-8601 UTC timestamp.
@@ -592,10 +596,9 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
             betas: Beta feature identifiers to enable for this request.
             cadence: How often the monitor refreshes, e.g. `"12h"` or `"7d"`
                 (minimum 6h). Also each refresh's news lookback window.
-            entities: Entities to track, each with a name and a unique domain.
-            fields: Fields to keep fresh; dynamic by default (tracked from news
-                on every refresh), `mode: "static"` fields are answered once
-                over the live web.
+            entities: Entities to track, each with a name and a domain.
+                Each name and domain pair must be unique.
+            fields: Fields to keep fresh for every entity.
             idempotency_key: Sent as the `Idempotency-Key` header. A retried
                 create with the same key returns the monitor the first attempt
                 created instead of creating a duplicate.
@@ -616,11 +619,7 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
                 entities=[{"name": "Acme Corp", "domain": "acme.com"}],
                 fields=[
                     {"name": "ceo", "description": "The company's current CEO"},
-                    {
-                        "name": "funding",
-                        "description": "New funding rounds",
-                        "mode": "dynamic",
-                    },
+                    {"name": "funding", "description": "New funding rounds"},
                 ],
             )
             print(monitor.id, monitor.status)

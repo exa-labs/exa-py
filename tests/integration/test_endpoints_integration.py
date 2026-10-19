@@ -27,6 +27,20 @@ def test_search_with_user_location(exa):
     assert resp.results
 
 
+@pytest.mark.parametrize(
+    "user_location",
+    [
+        {"country": "US"},
+        {"latitude": 37.7749, "longitude": -122.4194},
+        {"country": "US", "latitude": 37.7749, "longitude": -122.4194},
+    ],
+    ids=["country", "coordinates", "country-and-coordinates"],
+)
+def test_search_with_user_location_object(exa, user_location):
+    resp = exa.search("weather", num_results=1, user_location=user_location)
+    assert resp.results
+
+
 def test_find_similar(exa):
     with pytest.warns(DeprecationWarning, match="find_similar"):
         resp = exa.find_similar("https://example.com", num_results=1)

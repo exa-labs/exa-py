@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from typing import (
     Any,
     Dict,
@@ -19,7 +18,7 @@ from typing_extensions import Unpack
 
 from pydantic import BaseModel, TypeAdapter
 
-from .base import ResearchBaseClient
+from .base import ResearchBaseClient, raise_research_retired
 from .models import (
     ResearchDto,
     ResearchEvent,
@@ -59,7 +58,11 @@ class ResearchTyped(Generic[T]):
 
 
 class ResearchClient(ResearchBaseClient):
-    """Synchronous client for the Research API."""
+    """Client for the Research API, which has been retired.
+
+    Every method raises ValueError without sending a request. Use the Agent API
+    (``exa.agent.runs.create``) for asynchronous, multi-step research.
+    """
 
     @overload
     def create(
@@ -331,8 +334,7 @@ class ResearchClient(ResearchBaseClient):
             Completed research object with results.
 
         Raises:
-            TimeoutError: If research doesn't complete within timeout.
-            RuntimeError: If polling fails too many times.
+            ValueError: Always. The Research API has been retired.
 
         Examples:
             # Create and poll a task until completion
@@ -352,43 +354,5 @@ class ResearchClient(ResearchBaseClient):
             result = exa.research.poll_until_finished(task.research_id)
             print(f"Research complete: {result.output}")
         """
-        # Checked here: the loop below retries any error, and a mistyped
-        # option is not a failed poll.
-        extra = given_request_options(extra)
-        poll_interval_sec = poll_interval / 1000
-        timeout_sec = timeout_ms / 1000
-        max_consecutive_failures = 5
-        start_time = time.time()
-        consecutive_failures = 0
-
-        while True:
-            try:
-                if output_schema:
-                    result = self.get(
-                        research_id, events=events, output_schema=output_schema,
-                        **extra,
-                    )
-                else:
-                    result = self.get(research_id, events=events, **extra)
-
-                consecutive_failures = 0
-
-                # Check if research is finished
-                status = result.status if hasattr(result, "status") else None
-                if status in ["completed", "failed", "canceled"]:
-                    return result
-
-            except Exception as e:
-                consecutive_failures += 1
-                if consecutive_failures >= max_consecutive_failures:
-                    raise RuntimeError(
-                        f"Polling failed {max_consecutive_failures} times in a row "
-                        f"for research {research_id}: {e}"
-                    )
-
-            if time.time() - start_time > timeout_sec:
-                raise TimeoutError(
-                    f"Research {research_id} did not complete within {timeout_ms}ms"
-                )
-
-            time.sleep(poll_interval_sec)
+        given_request_options(extra)
+        raise_research_retired()

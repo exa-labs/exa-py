@@ -22,12 +22,9 @@ class MonitorsClient(WebsetsBaseClient):
         self.runs = MonitorRunsClient(client)
 
     def create(self, params: Union[Dict[str, Any], CreateMonitorParameters], **extra: Unpack[ExtraRequestOptions]) -> Monitor:
-        """Create a new Monitor to continuously keep your Websets updated with fresh data.
-        
-        Monitors automatically run on your defined schedule to ensure your Websets stay current without manual intervention:
-        - Find new content: Execute search operations to discover fresh items matching your criteria
-        - Update existing content: Run refresh operations to update items contents and enrichments
-        - Automated scheduling: Configure frequency, timezone, and execution times
+        """Create a Monitor that searches for new Items for a Webset.
+
+        The Monitor runs on the `cron` schedule in the given `timezone`.
         
         Args:
             params (CreateMonitorParameters): The parameters for creating a monitor.
@@ -113,7 +110,9 @@ class AsyncMonitorsClient(WebsetsAsyncBaseClient):
         self.runs = AsyncMonitorRunsClient(client)
 
     async def create(self, params: Union[Dict[str, Any], CreateMonitorParameters], **extra: Unpack[ExtraRequestOptions]) -> Monitor:
-        """Create a new Monitor to continuously keep your Websets updated with fresh data.
+        """Create a Monitor that searches for new Items for a Webset.
+
+        The Monitor runs on the `cron` schedule in the given `timezone`.
 
         Args:
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).

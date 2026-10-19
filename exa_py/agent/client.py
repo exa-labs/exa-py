@@ -207,19 +207,19 @@ class AgentRunsClient(AgentBaseClient):
             input: Optional structured input data for the Agent.
             output_schema: Optional JSON schema or Pydantic model for structured output.
             effort: Optional cost and reasoning effort preference. Defaults to auto.
-            budget: Optional per-run spend ceiling for `auto` and `ultra`; the API
-                validates this field and applies defaults when omitted.
+            budget: Optional per-run spend ceiling for `auto` and `ultra` effort. A
+                default applies when omitted.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
             data_sources: Optional Exa Connect data providers to enable for the run.
-            user_identifier: Optional opaque identifier you generate for the end
-                user this run is made on behalf of, such as a UUID or a hash. Never
-                send personal information such as an email address, name or phone
-                number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa
-                records it with the run and its searches so usage can be attributed
-                to one end user; it does not change results. A follow-up run
-                (``previous_run_id``) that omits it keeps the identifier of the run
-                it continues.
+            user_identifier: Optional opaque ID you assign to the end user this run
+                is made for, such as a UUID, used to attribute usage to that end user.
+                Must not contain personal information such as an email address, phone
+                number, username or name. Hash such values before sending them. 1 to
+                64 characters: letters, digits, ``_`` and ``-``. Retained even when
+                your team has Zero Data Retention enabled. Does not affect results. A
+                follow-up run (``previous_run_id``) that omits it inherits the
+                identifier of the run it continues.
             stream: Whether to stream server-sent Agent events instead of returning a run.
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
 
@@ -480,19 +480,19 @@ class AgentRunsClient(AgentBaseClient):
             input: Optional structured input data for the Agent.
             output_schema: Optional JSON schema or Pydantic model for structured output.
             effort: Optional cost and reasoning effort preference. Defaults to auto.
-            budget: Optional per-run spend ceiling for `auto` and `ultra`; the API
-                validates this field and applies defaults when omitted.
+            budget: Optional per-run spend ceiling for `auto` and `ultra` effort. A
+                default applies when omitted.
             previous_run_id: Optional prior run ID to continue from.
             metadata: Optional metadata to attach to the run.
             data_sources: Optional Exa Connect data providers to enable for the run.
-            user_identifier: Optional opaque identifier you generate for the end
-                user this run is made on behalf of, such as a UUID or a hash. Never
-                send personal information such as an email address, name or phone
-                number. 1 to 64 characters: letters, digits, ``_`` and ``-``. Exa
-                records it with the run and its searches so usage can be attributed
-                to one end user; it does not change results. A follow-up run
-                (``previous_run_id``) that omits it keeps the identifier of the run
-                it continues.
+            user_identifier: Optional opaque ID you assign to the end user this run
+                is made for, such as a UUID, used to attribute usage to that end user.
+                Must not contain personal information such as an email address, phone
+                number, username or name. Hash such values before sending them. 1 to
+                64 characters: letters, digits, ``_`` and ``-``. Retained even when
+                your team has Zero Data Retention enabled. Does not affect results. A
+                follow-up run (``previous_run_id``) that omits it inherits the
+                identifier of the run it continues.
             poll_interval: Delay between polls in milliseconds.
             timeout_ms: Maximum time to wait in milliseconds.
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).

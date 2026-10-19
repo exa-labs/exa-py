@@ -71,20 +71,20 @@ class SearchMonitorHighlightsContents(BaseModel):
         default=None,
         alias="numSentences",  # DEPRECATED FIELD: legacy API key.
         deprecated=(
-            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+            "Deprecated. Use max_characters."
         ),
         description=(
-            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+            "Deprecated. Use max_characters."
         ),
     )
     highlights_per_url: Optional[int] = Field(
         default=None,
         alias="highlightsPerUrl",  # DEPRECATED FIELD: legacy API key.
         deprecated=(
-            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+            "Deprecated. Use max_characters."
         ),
         description=(
-            "DEPRECATED FIELD - do not use in new code. Use max_characters/maxCharacters instead."
+            "Deprecated. Use max_characters."
         ),
     )
 
@@ -124,10 +124,10 @@ class SearchMonitorContents(BaseModel):
     context: Optional[Union[bool, Dict[str, Any]]] = Field(
         default=None,
         deprecated=(
-            "DEPRECATED FIELD - do not use in new code. Use highlights or text instead."
+            "Deprecated. Use highlights or text."
         ),
         description=(
-            "DEPRECATED FIELD - do not use in new code. Use highlights or text instead."
+            "Deprecated. Use highlights or text."
         ),
     )
     livecrawl: Optional[LIVECRAWL_OPTION] = None

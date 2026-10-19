@@ -2,15 +2,30 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, NoReturn, Optional, Union
 from typing_extensions import Unpack
 
 import httpx
 import requests
-from ..request_options import ExtraRequestOptions, given_request_options
+from ..request_options import ExtraRequestOptions
 
 if TYPE_CHECKING:
     from exa_py.api import Exa, AsyncExa
+
+
+RESEARCH_RETIRED_MESSAGE = (
+    "The Exa Research API has been retired and no longer accepts requests. "
+    "Use the Agent API (exa.agent.runs.create) for asynchronous, multi-step research."
+)
+
+
+def raise_research_retired() -> NoReturn:
+    """Raise the error that every Research API method raises.
+
+    Raises:
+        ValueError: Always, with a message that names the Agent API as the replacement.
+    """
+    raise ValueError(RESEARCH_RETIRED_MESSAGE)
 
 
 class ResearchBaseClient:
@@ -46,35 +61,11 @@ class ResearchBaseClient:
 
         Returns:
             The API response as a dict or raw Response for streaming.
-        """
-        extra = given_request_options(extra)
-        full_endpoint = f"{self.base_path}{endpoint}"
 
-        if stream:
-            # For streaming, handle differently based on method
-            if method == "GET":
-                # For GET requests, streaming is controlled by params
-                # The params should already have stream=true set by the caller
-                return self._client.request(
-                    full_endpoint, data=None, method=method, params=params,
-                    **extra,
-                )
-            else:
-                # For POST requests, add stream flag to data
-                if data is None:
-                    data = {}
-                if isinstance(data, dict):
-                    data["stream"] = True
-                # The client's request method returns raw Response when streaming
-                return self._client.request(
-                    full_endpoint, data=data, method=method, params=params,
-                    **extra,
-                )
-        else:
-            return self._client.request(
-                full_endpoint, data=data, method=method, params=params,
-                **extra,
-            )
+        Raises:
+            ValueError: Always. The Research API has been retired.
+        """
+        raise_research_retired()
 
     def build_pagination_params(
         self, cursor: Optional[str] = None, limit: Optional[int] = None
@@ -129,35 +120,11 @@ class AsyncResearchBaseClient:
 
         Returns:
             The API response as a dict or raw Response for streaming.
-        """
-        extra = given_request_options(extra)
-        full_endpoint = f"{self.base_path}{endpoint}"
 
-        if stream:
-            # For streaming, handle differently based on method
-            if method == "GET":
-                # For GET requests, streaming is controlled by params
-                # The params should already have stream=true set by the caller
-                return await self._client.async_request(
-                    full_endpoint, data=None, method=method, params=params,
-                    **extra,
-                )
-            else:
-                # For POST requests, add stream flag to data
-                if data is None:
-                    data = {}
-                if isinstance(data, dict):
-                    data["stream"] = True
-                # The async_request method returns raw Response when streaming
-                return await self._client.async_request(
-                    full_endpoint, data=data, method=method, params=params,
-                    **extra,
-                )
-        else:
-            return await self._client.async_request(
-                full_endpoint, data=data, method=method, params=params,
-                **extra,
-            )
+        Raises:
+            ValueError: Always. The Research API has been retired.
+        """
+        raise_research_retired()
 
     def build_pagination_params(
         self, cursor: Optional[str] = None, limit: Optional[int] = None
