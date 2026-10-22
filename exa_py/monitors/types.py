@@ -9,29 +9,39 @@ from pydantic import BaseModel, Field
 
 # --- Enums as Literal types ---
 
-SearchMonitorStatus = Literal["active", "paused", "disabled"]
+KnownSearchMonitorStatus = Literal["active", "paused", "disabled"]
+SearchMonitorStatus = Union[KnownSearchMonitorStatus, str]
+"""Search Monitor status. A value not in ``KnownSearchMonitorStatus`` is kept as a string."""
 
-SearchMonitorRunStatus = Literal[
+KnownSearchMonitorRunStatus = Literal[
     "pending", "running", "completed", "failed", "cancelled"
 ]
+SearchMonitorRunStatus = Union[KnownSearchMonitorRunStatus, str]
+"""Search Monitor run status. A value not in ``KnownSearchMonitorRunStatus`` is kept as a string."""
 
-SearchMonitorRunFailReason = Literal[
+KnownSearchMonitorRunFailReason = Literal[
     "api_key_invalid",
     "insufficient_credits",
     "invalid_params",
     "rate_limited",
+    "source_not_available",
+    "forbidden",
     "search_unavailable",
     "search_failed",
     "internal_error",
 ]
+SearchMonitorRunFailReason = Union[KnownSearchMonitorRunFailReason, str]
+"""Why a monitor run failed. A value not in ``KnownSearchMonitorRunFailReason`` is kept as a string."""
 
-SearchMonitorWebhookEvent = Literal[
+KnownSearchMonitorWebhookEvent = Literal[
     "monitor.created",
     "monitor.updated",
     "monitor.deleted",
     "monitor.run.created",
     "monitor.run.completed",
 ]
+SearchMonitorWebhookEvent = Union[KnownSearchMonitorWebhookEvent, str]
+"""Search Monitor webhook event. A value not in ``KnownSearchMonitorWebhookEvent`` is kept as a string."""
 
 
 # --- Contents types ---
@@ -51,11 +61,11 @@ class SearchMonitorTextContents(BaseModel):
 
     max_characters: Optional[int] = Field(default=None, alias="maxCharacters")
     include_html_tags: Optional[bool] = Field(default=None, alias="includeHtmlTags")
-    verbosity: Optional[VERBOSITY_OPTION] = None
-    include_sections: Optional[List[SECTION_TAG]] = Field(
+    verbosity: Optional[Union[VERBOSITY_OPTION, str]] = None
+    include_sections: Optional[List[Union[SECTION_TAG, str]]] = Field(
         default=None, alias="includeSections"
     )
-    exclude_sections: Optional[List[SECTION_TAG]] = Field(
+    exclude_sections: Optional[List[Union[SECTION_TAG, str]]] = Field(
         default=None, alias="excludeSections"
     )
 
@@ -130,7 +140,7 @@ class SearchMonitorContents(BaseModel):
             "Deprecated. Use highlights or text."
         ),
     )
-    livecrawl: Optional[LIVECRAWL_OPTION] = None
+    livecrawl: Optional[Union[LIVECRAWL_OPTION, str]] = None
     livecrawl_timeout: Optional[int] = Field(default=None, alias="livecrawlTimeout")
     max_age_hours: Optional[int] = Field(default=None, alias="maxAgeHours")
     filter_empty_results: Optional[bool] = Field(
@@ -162,7 +172,7 @@ class SearchMonitorSearch(BaseModel):
 
 
 class SearchMonitorTrigger(BaseModel):
-    type: Literal["interval"]
+    type: Union[Literal["interval"], str]
     period: str
 
     model_config = {"populate_by_name": True}
@@ -185,7 +195,7 @@ class GroundingCitation(BaseModel):
 class GroundingEntry(BaseModel):
     field: str
     citations: List[GroundingCitation]
-    confidence: Literal["low", "medium", "high"]
+    confidence: Union[Literal["low", "medium", "high"], str]
 
     model_config = {"populate_by_name": True}
 
@@ -262,7 +272,7 @@ class CreateSearchMonitorParams(BaseModel):
 
 class UpdateSearchMonitorParams(BaseModel):
     name: Optional[str] = None
-    status: Optional[SearchMonitorStatus] = None
+    status: Optional[KnownSearchMonitorStatus] = None
     search: Optional[SearchMonitorSearch] = None
     trigger: Optional[SearchMonitorTrigger] = None
     output_schema: Optional[Dict[str, Any]] = Field(

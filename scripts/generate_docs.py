@@ -16,12 +16,46 @@ Usage:
 """
 
 import ast
+import copy
 import json
 import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
+
+OPEN_UNION_MARKERS = {"Tag", "tag_discriminator"}
+"""Calls that tag the variants of an open union (see exa_py._open_union)."""
+
+
+class _PlainOpenUnions(ast.NodeTransformer):
+    """Rewrite ``Annotated[X, Tag(...)]`` and ``Annotated[Union[...], tag_discriminator(...)]`` to the bare type.
+
+    The tags only route payloads at runtime, so the docs show an open tagged
+    union as the plain ``Union`` of its variants.
+    """
+
+    def visit_Subscript(self, node: ast.Subscript) -> ast.expr:
+        node = self.generic_visit(node)
+        if (
+            isinstance(node.value, ast.Name)
+            and node.value.id == "Annotated"
+            and isinstance(node.slice, ast.Tuple)
+            and len(node.slice.elts) >= 2
+        ):
+            base, *metadata = node.slice.elts
+            if all(
+                isinstance(m, ast.Call) and isinstance(m.func, ast.Name) and m.func.id in OPEN_UNION_MARKERS
+                for m in metadata
+            ):
+                return base
+        return node
+
+
+def unparse_type(node: ast.expr) -> str:
+    """Unparse a type expression, showing open tagged unions as plain unions."""
+    return ast.unparse(_PlainOpenUnions().visit(copy.deepcopy(node)))
 
 
 @dataclass
@@ -113,7 +147,7 @@ class DocGenerator:
         """Convert an AST type annotation node to a string representation."""
         if node is None:
             return "Any"
-        return ast.unparse(node)
+        return unparse_type(node)
 
     def escape_mdx_braces(self, text: str) -> str:
         """Escape curly braces in text for MDX compatibility."""
@@ -404,7 +438,7 @@ class DocGenerator:
         if name.startswith('_') or not name[0].isupper() or name in self.exclude_type_aliases:
             return None
 
-        definition = ast.unparse(node.value)
+        definition = unparse_type(node.value)
 
         # Check if this looks like a type alias (contains Literal, Union, etc.)
         if not any(kw in definition for kw in ['Literal', 'Union', 'Optional', 'List', 'Dict']):

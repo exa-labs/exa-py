@@ -13,7 +13,8 @@ from .types import (
     ListSearchMonitorsResponse,
     SearchMonitor,
     SearchMonitorRun,
-    SearchMonitorStatus,
+    KnownSearchMonitorStatus,
+    SearchMonitorStatus,  # noqa: F401  re-exported: earlier releases imported it from here
     TriggerSearchMonitorResponse,
     UpdateSearchMonitorParams,
 )
@@ -146,7 +147,7 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
     async def list(
         self,
         *,
-        status: Optional[SearchMonitorStatus] = None,
+        status: Optional[KnownSearchMonitorStatus] = None,
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
         **extra: Unpack[ExtraRequestOptions],
@@ -202,7 +203,7 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
         response = await self.request(f"/{monitor_id}", method="DELETE", **extra)
         return SearchMonitor.model_validate(response)
 
-    async def list_all(self, *, status: Optional[SearchMonitorStatus] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> AsyncIterator[SearchMonitor]:
+    async def list_all(self, *, status: Optional[KnownSearchMonitorStatus] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> AsyncIterator[SearchMonitor]:
         """Iterate through all Search Monitors, handling pagination automatically.
 
         Args:
@@ -223,7 +224,7 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
             cursor = response.next_cursor
             extra = options_for_next_page(extra)
 
-    async def get_all(self, *, status: Optional[SearchMonitorStatus] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[SearchMonitor]:
+    async def get_all(self, *, status: Optional[KnownSearchMonitorStatus] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[SearchMonitor]:
         """Collect all Search Monitors into a list.
 
         Args:

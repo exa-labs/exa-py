@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, Tag
+
+from .._open_union import UNKNOWN_TAG, tag_discriminator
 
 
-ResearchModel = Literal["exa-research-fast", "exa-research", "exa-research-pro"]
+KnownResearchModel = Literal["exa-research-fast", "exa-research", "exa-research-pro"]
+ResearchModel = Union[KnownResearchModel, str]
+"""Research model. A value not in ``KnownResearchModel`` is kept as a string."""
 
 
 class CostDollars(BaseModel):
@@ -27,7 +31,8 @@ class ResearchThinkOperation(BaseModel):
 class ResearchSearchOperation(BaseModel):
     type: Literal["search"]
     search_type: Annotated[
-        Literal["neural", "keyword", "auto", "fast"], Field(alias="searchType")
+        Union[Literal["neural", "keyword", "auto", "fast"], str],
+        Field(alias="searchType"),
     ]
     query: str
     results: List[Result]
@@ -42,10 +47,26 @@ class ResearchCrawlOperation(BaseModel):
     goal: Optional[str] = None
 
 
+class ResearchUnknownOperation(BaseModel):
+    """An operation whose ``type`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    type: str
+
+    model_config = ConfigDict(extra="allow")
+
+
 ResearchOperation = Annotated[
-    Union[ResearchThinkOperation, ResearchSearchOperation, ResearchCrawlOperation],
-    Field(discriminator="type"),
+    Union[
+        Annotated[ResearchThinkOperation, Tag("think")],
+        Annotated[ResearchSearchOperation, Tag("search")],
+        Annotated[ResearchCrawlOperation, Tag("crawl")],
+        Annotated[ResearchUnknownOperation, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator(
+        "type", ResearchThinkOperation, ResearchSearchOperation, ResearchCrawlOperation
+    ),
 ]
+"""One operation of a research plan or task. A ``type`` this SDK version does not list parses as ``ResearchUnknownOperation``."""
 
 
 class ResearchDefinitionEvent(BaseModel):
@@ -72,6 +93,14 @@ class ResearchOutputFailed(BaseModel):
     error: str
 
 
+class ResearchUnknownOutput(BaseModel):
+    """An output whose ``outputType`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    output_type: Annotated[str, Field(alias="outputType")]
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+
 class ResearchOutputEvent(BaseModel):
     event_type: Annotated[Literal["research-output"], Field(alias="eventType")]
     research_id: Annotated[str, Field(alias="researchId")]
@@ -79,8 +108,12 @@ class ResearchOutputEvent(BaseModel):
         float, Field(alias="createdAt", description="Milliseconds since epoch time")
     ]
     output: Annotated[
-        Union[ResearchOutputCompleted, ResearchOutputFailed],
-        Field(discriminator="output_type"),
+        Union[
+            Annotated[ResearchOutputCompleted, Tag("completed")],
+            Annotated[ResearchOutputFailed, Tag("failed")],
+            Annotated[ResearchUnknownOutput, Tag(UNKNOWN_TAG)],
+        ],
+        tag_discriminator("output_type", ResearchOutputCompleted, ResearchOutputFailed),
     ]
 
 
@@ -115,6 +148,12 @@ class ResearchPlanOutputStop(BaseModel):
     reasoning: str
 
 
+class ResearchUnknownPlanOutput(ResearchUnknownOutput):
+    """A plan output whose ``outputType`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    reasoning: str
+
+
 class ResearchPlanOutputEvent(BaseModel):
     event_type: Annotated[Literal["plan-output"], Field(alias="eventType")]
     research_id: Annotated[str, Field(alias="researchId")]
@@ -123,8 +162,12 @@ class ResearchPlanOutputEvent(BaseModel):
         float, Field(alias="createdAt", description="Milliseconds since epoch time")
     ]
     output: Annotated[
-        Union[ResearchPlanOutputTasks, ResearchPlanOutputStop],
-        Field(discriminator="output_type"),
+        Union[
+            Annotated[ResearchPlanOutputTasks, Tag("tasks")],
+            Annotated[ResearchPlanOutputStop, Tag("stop")],
+            Annotated[ResearchUnknownPlanOutput, Tag(UNKNOWN_TAG)],
+        ],
+        tag_discriminator("output_type", ResearchPlanOutputTasks, ResearchPlanOutputStop),
     ]
 
 
@@ -174,7 +217,46 @@ ResearchPlanEvent = Union[
 ResearchTaskEvent = Union[
     ResearchTaskDefinitionEvent, ResearchTaskOperationEvent, ResearchTaskOutputEvent
 ]
-ResearchEvent = Union[ResearchMetaEvent, ResearchPlanEvent, ResearchTaskEvent]
+
+
+class ResearchUnknownEvent(BaseModel):
+    """An event whose ``eventType`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    event_type: Annotated[str, Field(alias="eventType")]
+    research_id: Annotated[str, Field(alias="researchId")]
+    created_at: Annotated[
+        float,
+        Field(alias="createdAt", description="Milliseconds since epoch time"),
+    ]
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+
+ResearchEvent = Annotated[
+    Union[
+        Annotated[ResearchDefinitionEvent, Tag("research-definition")],
+        Annotated[ResearchOutputEvent, Tag("research-output")],
+        Annotated[ResearchPlanDefinitionEvent, Tag("plan-definition")],
+        Annotated[ResearchPlanOperationEvent, Tag("plan-operation")],
+        Annotated[ResearchPlanOutputEvent, Tag("plan-output")],
+        Annotated[ResearchTaskDefinitionEvent, Tag("task-definition")],
+        Annotated[ResearchTaskOperationEvent, Tag("task-operation")],
+        Annotated[ResearchTaskOutputEvent, Tag("task-output")],
+        Annotated[ResearchUnknownEvent, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator(
+        "event_type",
+        ResearchDefinitionEvent,
+        ResearchOutputEvent,
+        ResearchPlanDefinitionEvent,
+        ResearchPlanOperationEvent,
+        ResearchPlanOutputEvent,
+        ResearchTaskDefinitionEvent,
+        ResearchTaskOperationEvent,
+        ResearchTaskOutputEvent,
+    ),
+]
+"""Any research event. An ``eventType`` this SDK version does not list parses as ``ResearchUnknownEvent``."""
 
 
 class ResearchOutput(BaseModel):
@@ -243,16 +325,33 @@ class ResearchFailedDto(ResearchBaseDto):
     ]
 
 
+class ResearchUnknownDto(ResearchBaseDto):
+    """A research request whose ``status`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    status: str
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+
 ResearchDto = Annotated[
     Union[
+        Annotated[ResearchPendingDto, Tag("pending")],
+        Annotated[ResearchRunningDto, Tag("running")],
+        Annotated[ResearchCompletedDto, Tag("completed")],
+        Annotated[ResearchCanceledDto, Tag("canceled")],
+        Annotated[ResearchFailedDto, Tag("failed")],
+        Annotated[ResearchUnknownDto, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator(
+        "status",
         ResearchPendingDto,
         ResearchRunningDto,
         ResearchCompletedDto,
         ResearchCanceledDto,
         ResearchFailedDto,
-    ],
-    Field(discriminator="status"),
+    ),
 ]
+"""A research request in any status. A ``status`` this SDK version does not list parses as ``ResearchUnknownDto``."""
 
 
 class ListResearchResponseDto(BaseModel):
@@ -276,7 +375,7 @@ class ListResearchResponseDto(BaseModel):
 
 
 class ResearchCreateRequestDto(BaseModel):
-    model: ResearchModel = "exa-research"
+    model: KnownResearchModel = "exa-research"
     instructions: Annotated[
         str,
         Field(
@@ -316,7 +415,13 @@ __all__ = [
     "ResearchTaskOutput",
     "ResearchTaskOutputEvent",
     "ResearchMetaEvent",
+    "KnownResearchModel",
     "ResearchModel",
+    "ResearchUnknownDto",
+    "ResearchUnknownEvent",
+    "ResearchUnknownOperation",
+    "ResearchUnknownOutput",
+    "ResearchUnknownPlanOutput",
     "ResearchPlanEvent",
     "ResearchTaskEvent",
     "ResearchEvent",

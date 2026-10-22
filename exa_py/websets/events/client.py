@@ -1,53 +1,42 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import List, Optional
 from typing_extensions import Unpack
 
+from pydantic import TypeAdapter
+
 from ..types import (
+    Event,
     EventType,
     ListEventsResponse,
+)
+
+# Re-exported: code written against earlier releases imports the event classes from this module.
+from ..types import (  # noqa: F401
+    ImportCompletedEvent,
+    ImportCreatedEvent,
+    MonitorCreatedEvent,
+    MonitorDeletedEvent,
+    MonitorRunCompletedEvent,
+    MonitorRunCreatedEvent,
+    MonitorUpdatedEvent,
     WebsetCreatedEvent,
     WebsetDeletedEvent,
     WebsetIdleEvent,
-    WebsetPausedEvent,
     WebsetItemCreatedEvent,
     WebsetItemEnrichedEvent,
-    WebsetSearchCreatedEvent,
-    WebsetSearchUpdatedEvent,
+    WebsetPausedEvent,
     WebsetSearchCanceledEvent,
     WebsetSearchCompletedEvent,
-    ImportCreatedEvent,
-    ImportCompletedEvent,
-    MonitorCreatedEvent,
-    MonitorUpdatedEvent,
-    MonitorDeletedEvent,
-    MonitorRunCreatedEvent,
-    MonitorRunCompletedEvent,
+    WebsetSearchCreatedEvent,
+    WebsetSearchUpdatedEvent,
 )
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
 from ...request_options import ExtraRequestOptions
 
-# Type alias for all event types
-Event = Union[
-    WebsetCreatedEvent,
-    WebsetDeletedEvent,
-    WebsetIdleEvent,
-    WebsetPausedEvent,
-    WebsetItemCreatedEvent,
-    WebsetItemEnrichedEvent,
-    WebsetSearchCreatedEvent,
-    WebsetSearchUpdatedEvent,
-    WebsetSearchCanceledEvent,
-    WebsetSearchCompletedEvent,
-    ImportCreatedEvent,
-    ImportCompletedEvent,
-    MonitorCreatedEvent,
-    MonitorUpdatedEvent,
-    MonitorDeletedEvent,
-    MonitorRunCreatedEvent,
-    MonitorRunCompletedEvent,
-]
+_EVENT_ADAPTER: TypeAdapter[Event] = TypeAdapter(Event)
+"""Validates one event. A type this SDK version does not list parses as ``UnknownEvent``."""
 
 class EventsClient(WebsetsBaseClient):
     """Client for managing Events."""
@@ -91,45 +80,7 @@ class EventsClient(WebsetsBaseClient):
             Event: The retrieved event.
         """
         response = self.request(f"/v0/events/{id}", method="GET", **extra)
-        
-        # The response should contain a 'type' field that helps us determine
-        # which specific event class to use for validation
-        event_type = response.get('type')
-        
-        # Map event types to their corresponding classes
-        event_type_map = {
-            'webset.created': WebsetCreatedEvent,
-            'webset.deleted': WebsetDeletedEvent,
-            'webset.idle': WebsetIdleEvent,
-            'webset.paused': WebsetPausedEvent,
-            'webset.item.created': WebsetItemCreatedEvent,
-            'webset.item.enriched': WebsetItemEnrichedEvent,
-            'webset.search.created': WebsetSearchCreatedEvent,
-            'webset.search.updated': WebsetSearchUpdatedEvent,
-            'webset.search.canceled': WebsetSearchCanceledEvent,
-            'webset.search.completed': WebsetSearchCompletedEvent,
-            'import.created': ImportCreatedEvent,
-            'import.completed': ImportCompletedEvent,
-            'monitor.created': MonitorCreatedEvent,
-            'monitor.updated': MonitorUpdatedEvent,
-            'monitor.deleted': MonitorDeletedEvent,
-            'monitor.run.created': MonitorRunCreatedEvent,
-            'monitor.run.completed': MonitorRunCompletedEvent,
-        }
-        
-        event_class = event_type_map.get(event_type)
-        if event_class:
-            return event_class.model_validate(response)
-        else:
-            # Fallback - try each type until one validates
-            # This shouldn't happen in normal operation
-            for event_class in event_type_map.values():
-                try:
-                    return event_class.model_validate(response)
-                except Exception:
-                    continue
-            
-            raise ValueError(f"Unknown event type: {event_type}")
+        return _EVENT_ADAPTER.validate_python(response)
 
 
 class AsyncEventsClient(WebsetsAsyncBaseClient):
@@ -174,42 +125,4 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
             Event: The retrieved event.
         """
         response = await self.request(f"/v0/events/{id}", method="GET", **extra)
-        
-        # The response should contain a 'type' field that helps us determine
-        # which specific event class to use for validation
-        event_type = response.get('type')
-        
-        # Map event types to their corresponding classes
-        event_type_map = {
-            'webset.created': WebsetCreatedEvent,
-            'webset.deleted': WebsetDeletedEvent,
-            'webset.idle': WebsetIdleEvent,
-            'webset.paused': WebsetPausedEvent,
-            'webset.item.created': WebsetItemCreatedEvent,
-            'webset.item.enriched': WebsetItemEnrichedEvent,
-            'webset.search.created': WebsetSearchCreatedEvent,
-            'webset.search.updated': WebsetSearchUpdatedEvent,
-            'webset.search.canceled': WebsetSearchCanceledEvent,
-            'webset.search.completed': WebsetSearchCompletedEvent,
-            'import.created': ImportCreatedEvent,
-            'import.completed': ImportCompletedEvent,
-            'monitor.created': MonitorCreatedEvent,
-            'monitor.updated': MonitorUpdatedEvent,
-            'monitor.deleted': MonitorDeletedEvent,
-            'monitor.run.created': MonitorRunCreatedEvent,
-            'monitor.run.completed': MonitorRunCompletedEvent,
-        }
-        
-        event_class = event_type_map.get(event_type)
-        if event_class:
-            return event_class.model_validate(response)
-        else:
-            # Fallback - try each type until one validates
-            # This shouldn't happen in normal operation
-            for event_class in event_type_map.values():
-                try:
-                    return event_class.model_validate(response)
-                except Exception:
-                    continue
-            
-            raise ValueError(f"Unknown event type: {event_type}")
+        return _EVENT_ADAPTER.validate_python(response)

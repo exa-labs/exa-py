@@ -367,6 +367,85 @@ def test_list_agent_runs(run_client, mock_client):
     )
 
 
+def _make_budget_capped_run(run_id: str = "agent_run_123") -> dict:
+    """A metered run whose charge was capped at its budget, so its usage is scaled down."""
+    run = _make_run(run_id)
+    run["usage"] = {
+        "agentComputeUnits": 48.2089,
+        "searches": 35.643,
+        "emails": 0.8911,
+        "phoneNumbers": 1.7822,
+    }
+    run["costDollars"] = {
+        "total": 5,
+        "agentCompute": 4.8209,
+        "search": 0.1791,
+        "emails": 0.0178,
+        "phoneNumbers": 0.1248,
+    }
+    return run
+
+
+def test_list_agent_runs_accepts_fractional_usage_counts(run_client, mock_client):
+    mock_client.request.return_value = {
+        "object": "list",
+        "data": [_make_budget_capped_run("agent_run_1"), _make_run("agent_run_2")],
+        "hasMore": False,
+        "nextCursor": None,
+    }
+
+    result = run_client.list(limit=2)
+
+    capped_usage = result.data[0].usage
+    assert capped_usage.searches == 35.643
+    assert capped_usage.emails == 0.8911
+    assert capped_usage.phone_numbers == 1.7822
+    assert result.data[1].usage.searches == 2
+
+
+def test_get_agent_run_accepts_fractional_usage_counts(run_client, mock_client):
+    mock_client.request.return_value = _make_budget_capped_run()
+
+    usage = run_client.get("agent_run_123").usage
+
+    assert usage.agent_compute_units == 48.2089
+    assert usage.searches == 35.643
+    assert usage.emails == 0.8911
+    assert usage.phone_numbers == 1.7822
+
+
+def test_list_agent_runs_accepts_limit_stop_reasons(run_client, mock_client):
+    mock_client.request.return_value = {
+        "object": "list",
+        "data": [
+            {**_make_run("agent_run_1"), "stopReason": "iteration_limit_reached"},
+            {**_make_run("agent_run_2"), "stopReason": "token_limit_reached"},
+        ],
+        "hasMore": False,
+        "nextCursor": None,
+    }
+
+    result = run_client.list(limit=2)
+
+    assert [run.stop_reason for run in result.data] == [
+        "iteration_limit_reached",
+        "token_limit_reached",
+    ]
+
+
+def test_get_agent_run_keeps_unlisted_status_and_stop_reason(run_client, mock_client):
+    mock_client.request.return_value = {
+        **_make_run(),
+        "status": "paused",
+        "stopReason": "timeout_partial",
+    }
+
+    run = run_client.get("agent_run_123")
+
+    assert run.status == "paused"
+    assert run.stop_reason == "timeout_partial"
+
+
 def test_list_all_and_get_all_agent_runs(run_client, mock_client):
     mock_client.request.side_effect = [
         {
@@ -830,6 +909,30 @@ async def test_async_list_all_and_get_all_agent_runs():
     assert [item.id for item in await run.get_all(betas=AGENT_BETAS, limit=1)] == [
         "agent_run_3"
     ]
+
+
+@pytest.mark.asyncio
+async def test_async_list_and_get_accept_fractional_usage_counts():
+    client = MagicMock()
+    client.async_request = AsyncMock(
+        side_effect=[
+            {
+                "object": "list",
+                "data": [_make_budget_capped_run("agent_run_1")],
+                "hasMore": False,
+                "nextCursor": None,
+            },
+            _make_budget_capped_run("agent_run_1"),
+        ]
+    )
+    runs = AsyncAgentNamespace(client).runs
+
+    listed = await runs.list(limit=1)
+    fetched = await runs.get("agent_run_1")
+
+    assert listed.data[0].usage.searches == 35.643
+    assert fetched.usage.searches == 35.643
+    assert fetched.usage.phone_numbers == 1.7822
 
 
 @pytest.mark.asyncio

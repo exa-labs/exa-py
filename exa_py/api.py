@@ -135,6 +135,27 @@ def _decode_json_body(res: Union[requests.Response, httpx.Response]) -> Any:
         raise ValueError(message) from error
 
 
+def _is_json_content_type(content_type: Any) -> bool:
+    """Whether a ``Content-Type`` value names JSON.
+
+    That is ``application/json`` or a ``+json`` media type, with any parameters.
+    """
+    if not isinstance(content_type, str):
+        return False
+    media_type = content_type.split(";", 1)[0].strip().lower()
+    return media_type == "application/json" or media_type.endswith("+json")
+
+
+def _is_json_response(response: Any) -> bool:
+    """Whether a streamed response arrived whole as JSON instead of as an event stream.
+
+    A response object without headers is read as an event stream, as before
+    this check existed.
+    """
+    headers = getattr(response, "headers", None)
+    return headers is not None and _is_json_content_type(headers.get("content-type"))
+
+
 # Exa-Beta token required for Dynamic Highlights (research preview).
 DYNAMIC_HIGHLIGHTS_BETA = "dynamic-highlights-2026-08-28"
 
@@ -1796,15 +1817,77 @@ class AsyncStreamAnswerResponse:
         raise RuntimeError("Use `await stream.aclose()` for asynchronous streams")
 
 
+def _citations_from_results(results: Any) -> Optional[List[AnswerResult]]:
+    """The ``results`` of a search response as stream citations.
+
+    Each citation keeps the fields an `AnswerResult` has. Returns None when
+    there are no results, so the chunk carrying them is left out.
+    """
+    if not isinstance(results, list):
+        return None
+    citations = [
+        AnswerResult(
+            id=result.get("id"),
+            url=result.get("url"),
+            title=result.get("title"),
+            published_date=result.get("publishedDate"),
+            author=result.get("author"),
+            text=result.get("text"),
+        )
+        for result in results
+        if isinstance(result, dict)
+    ]
+    return citations or None
+
+
+def _search_json_chunks(payload: Any) -> List[SearchStreamChunk]:
+    """The chunks for a search response the API sent whole as JSON instead of streaming it.
+
+    The first carries the results as ``citations``, the second the request's
+    ``warnings``. A chunk with nothing in it is left out, as in a stream.
+    Issues no warnings: the caller reports them once for the whole response.
+    """
+    if not isinstance(payload, dict):
+        return []
+    chunks = [
+        SearchStreamChunk(citations=_citations_from_results(payload.get("results"))),
+        SearchStreamChunk(warnings=parse_search_warnings(payload.get("warnings"))),
+    ]
+    return [chunk for chunk in chunks if chunk.has_data()]
+
+
 class StreamSearchResponse(StreamAnswerResponse):
     """A class representing a streaming search response.
 
     Iterating yields SearchStreamChunk objects with partial text and citations,
     and one chunk with the request's warnings when the API returns any.
+    A search without ``output_schema`` has no text to stream. Its stream yields
+    one chunk with the results as ``citations``, then the warnings chunk when
+    the API returns warnings.
     """
 
     def __iter__(self) -> Iterator[SearchStreamChunk]:
+        if _is_json_response(self._raw_response):
+            return self._iter_json()
         return cast(Iterator[SearchStreamChunk], super().__iter__())
+
+    @typed_timeouts
+    def _iter_json(self) -> Iterator[SearchStreamChunk]:
+        """Yield the chunks of a search response the API sent whole as JSON.
+
+        Reports the response's warnings once, before the first chunk.
+
+        Raises:
+            ValueError: If the body is empty or not valid JSON.
+        """
+        try:
+            payload = _decode_json_body(self._raw_response)
+        finally:
+            self._raw_response.close()
+        issue_body_warnings(
+            "/search", "POST", payload, self._raw_response.headers.get("x-request-id")
+        )
+        yield from _search_json_chunks(payload)
 
     def _build_chunk(
         self,
@@ -1826,10 +1909,35 @@ class AsyncStreamSearchResponse(AsyncStreamAnswerResponse):
 
     Iterating yields SearchStreamChunk objects with partial text and citations,
     and one chunk with the request's warnings when the API returns any.
+    A search without ``output_schema`` has no text to stream. Its stream yields
+    one chunk with the results as ``citations``, then the warnings chunk when
+    the API returns warnings.
     """
 
     def __aiter__(self) -> AsyncIterator[SearchStreamChunk]:
+        if _is_json_response(self._raw_response):
+            return self._aiter_json()
         return cast(AsyncIterator[SearchStreamChunk], super().__aiter__())
+
+    @typed_timeouts
+    async def _aiter_json(self) -> AsyncIterator[SearchStreamChunk]:
+        """Yield the chunks of a search response the API sent whole as JSON.
+
+        Reports the response's warnings once, before the first chunk.
+
+        Raises:
+            ValueError: If the body is empty or not valid JSON.
+        """
+        try:
+            await self._raw_response.aread()
+            payload = _decode_json_body(self._raw_response)
+        finally:
+            await self._raw_response.aclose()
+        issue_body_warnings(
+            "/search", "POST", payload, self._raw_response.headers.get("x-request-id")
+        )
+        for chunk in _search_json_chunks(payload):
+            yield chunk
 
     def _build_chunk(
         self,
@@ -2611,11 +2719,16 @@ class Exa:
             StreamSearchResponse: An iterator yielding OpenAI-style streaming chunks with
                 partial ``content`` and optional ``citations``. When the API returns
                 ``warnings`` about the request, one chunk after the text carries them.
+                A search without ``output_schema`` has no text to stream. Its stream
+                yields one chunk with the results as ``citations``, then the warnings
+                chunk when the API returns warnings. Call ``search()`` for every field
+                of the results.
 
         Examples:
             stream = exa.stream_search(
                 "What are the latest battery breakthroughs?",
-                type="auto"
+                type="auto",
+                output_schema={"type": "text"},
             )
 
             for chunk in stream:
@@ -4268,13 +4381,17 @@ class AsyncExa(Exa):
         Returns:
             AsyncStreamSearchResponse: An async iterator yielding OpenAI-style streaming chunks.
                 When the API returns ``warnings`` about the request, one chunk after the
-                text carries them.
+                text carries them. A search without ``output_schema`` has no text to
+                stream. Its stream yields one chunk with the results as ``citations``,
+                then the warnings chunk when the API returns warnings. Call ``search()``
+                for every field of the results.
 
         Examples:
             >>> async_exa = AsyncExa(api_key="your-api-key")
             >>> stream = await async_exa.stream_search(
             ...     "What are the latest battery breakthroughs?",
-            ...     type="auto"
+            ...     type="auto",
+            ...     output_schema={"type": "text"},
             ... )
             >>> async for chunk in stream:
             ...     if chunk.content:
