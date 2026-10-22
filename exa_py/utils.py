@@ -122,13 +122,23 @@ class InlineJsonSchemaGenerator(GenerateJsonSchema):
     def _inline_refs(self, obj, definitions):
         """Recursively replace all $ref with actual definitions."""
         if isinstance(obj, dict):
-            if "$ref" in obj and len(obj) == 1:  # Pure ref object
+            if "$ref" in obj:
                 ref_path = obj["$ref"]
                 if ref_path.startswith("#/$defs/"):
                     def_name = ref_path[8:]  # Remove '#/$defs/'
                     if def_name in definitions:
-                        # Replace the ref with the actual definition (recursively processed)
-                        return self._inline_refs(definitions[def_name], definitions)
+                        resolved = self._inline_refs(definitions[def_name], definitions)
+                        siblings = {
+                            key: self._inline_refs(value, definitions)
+                            for key, value in obj.items()
+                            if key != "$ref"
+                        }
+                        if siblings:
+                            # A $ref and its siblings both apply. Keep the referenced
+                            # constraints separate instead of overwriting either side.
+                            all_of = siblings.pop("allOf", [])
+                            return {**siblings, "allOf": [resolved, *all_of]}
+                        return resolved
                 return obj  # Return as-is if we can't resolve
             else:
                 # Process all values in the dict
