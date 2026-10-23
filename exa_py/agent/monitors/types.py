@@ -13,16 +13,28 @@ from pydantic import BaseModel, Field, model_validator
 
 AGENT_MONITORS_BETA_HEADER = "agent-monitors-2026-08-04"
 
-AgentMonitorStatus = Literal["creating", "pending_first_refresh", "active"]
-AgentMonitorFieldMode = Literal["static", "dynamic"]
-"""How a field is kept fresh: dynamic (every refresh) or static (answered once)."""
+KnownAgentMonitorStatus = Literal["creating", "pending_first_refresh", "active"]
+AgentMonitorStatus = Union[KnownAgentMonitorStatus, str]
+"""Agent Monitor status. A value not in ``KnownAgentMonitorStatus`` is kept as a string."""
+KnownAgentMonitorFieldMode = Literal["static", "dynamic"]
+AgentMonitorFieldMode = Union[KnownAgentMonitorFieldMode, str]
+"""How a field is kept fresh: dynamic (every refresh) or static (answered once).
+A value not in ``KnownAgentMonitorFieldMode`` is kept as a string."""
 AgentMonitorFieldValueType = Literal[
     "string", "number", "boolean", "date", "url", "email", "phone"
 ]
 """The type of a field's cell values."""
 AgentMonitorFieldType = AgentMonitorFieldMode
 """Deprecated: renamed to `AgentMonitorFieldMode`."""
-AgentMonitorBacktestStatus = Literal["running", "completed", "failed"]
+KnownAgentMonitorBacktestStatus = Literal["running", "completed", "failed"]
+AgentMonitorBacktestStatus = Union[KnownAgentMonitorBacktestStatus, str]
+"""Backtest status. A value not in ``KnownAgentMonitorBacktestStatus`` is kept as a string."""
+KnownAgentMonitorProgressState = Literal["idle", "running"]
+AgentMonitorProgressState = Union[KnownAgentMonitorProgressState, str]
+"""Creation or refresh progress state. A value not in ``KnownAgentMonitorProgressState`` is kept as a string."""
+KnownAgentMonitorChangeType = Literal["content.upserted"]
+AgentMonitorChangeType = Union[KnownAgentMonitorChangeType, str]
+"""Kind of change in the change feed. A value not in ``KnownAgentMonitorChangeType`` is kept as a string."""
 
 
 class AgentMonitorField(BaseModel):
@@ -85,7 +97,7 @@ class AgentMonitorContent(BaseModel):
 class AgentMonitorRefresh(BaseModel):
     """Refresh progress on the monitor object; `idle` outside an active refresh."""
 
-    state: Literal["idle", "running"]
+    state: AgentMonitorProgressState
     entities_processed: Optional[int] = Field(default=None, alias="entitiesProcessed")
     entities_total: Optional[int] = Field(default=None, alias="entitiesTotal")
     started_at: Optional[str] = Field(default=None, alias="startedAt")
@@ -96,7 +108,7 @@ class AgentMonitorRefresh(BaseModel):
 class AgentMonitorCreation(BaseModel):
     """Creation progress on the monitor object; `idle` once the monitor is set up."""
 
-    state: Literal["idle", "running"]
+    state: AgentMonitorProgressState
     entities_processed: Optional[int] = Field(default=None, alias="entitiesProcessed")
     entities_total: Optional[int] = Field(default=None, alias="entitiesTotal")
     started_at: Optional[str] = Field(default=None, alias="startedAt")
@@ -168,7 +180,7 @@ class AgentMonitorChangeField(BaseModel):
 class AgentMonitorChange(BaseModel):
     """One content change from the monitor's change feed."""
 
-    type: Literal["content.upserted"]
+    type: AgentMonitorChangeType
     entity: AgentMonitorChangeEntity
     field: AgentMonitorChangeField
     content: AgentMonitorContent
@@ -200,7 +212,7 @@ class AgentMonitorFieldParam(BaseModel):
     """The type of the field's values. Defaults to "string". Values are
     converted to this type where possible. An unsupported type fails the
     request, including the deprecated values "static" and "dynamic"."""
-    mode: Optional[AgentMonitorFieldMode] = None
+    mode: Optional[KnownAgentMonitorFieldMode] = None
     """Deprecated. Omit this field. The API rejects requests that set it."""
 
     model_config = {"populate_by_name": True, "extra": "allow"}

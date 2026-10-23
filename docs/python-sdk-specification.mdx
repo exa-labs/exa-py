@@ -598,7 +598,7 @@ print([monitor.name for monitor in monitors.data])
 
 | Parameter | Type | Description | Default |
 | --------- | ---- | ----------- | ------- |
-| status | Optional[[SearchMonitorStatus](#searchmonitorstatus)] | - | None |
+| status | Optional[[KnownSearchMonitorStatus](#knownsearchmonitorstatus)] | - | None |
 | cursor | Optional[str] | - | None |
 | limit | Optional[int] | - | None |
 | extra_headers | Optional[Mapping[str, Optional[str]]] | Extra headers to send with the request. | None |
@@ -1312,6 +1312,9 @@ A class representing a streaming search response.
 
 Iterating yields SearchStreamChunk objects with partial text and citations,
 and one chunk with the request's warnings when the API returns any.
+A search without ``output_schema`` has no text to stream. Its stream yields
+one chunk with the results as ``citations``, then the warnings chunk when
+the API returns warnings.
 
 #### `AsyncStreamSearchResponse`
 
@@ -1319,6 +1322,9 @@ A class representing a streaming search response.
 
 Iterating yields SearchStreamChunk objects with partial text and citations,
 and one chunk with the request's warnings when the API returns any.
+A search without ``output_schema`` has no text to stream. Its stream yields
+one chunk with the results as ``citations``, then the warnings chunk when
+the API returns warnings.
 
 #### `ContentStatusError`
 
@@ -1430,7 +1436,7 @@ The response keeps its own `warnings` whatever the filter does.
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | type | Literal['search'] | - |
-| search_type | Literal['neural', 'keyword', 'auto', 'fast'] | - |
+| search_type | Union[Literal['neural', 'keyword', 'auto', 'fast'], str] | - |
 | query | str | - |
 | results | List[[Result](#result)] | - |
 | page_tokens | float | - |
@@ -1444,6 +1450,14 @@ The response keeps its own `warnings` whatever the filter does.
 | result | [Result](#result) | - |
 | page_tokens | float | - |
 | goal | Optional[str] | - |
+
+#### `ResearchUnknownOperation`
+
+An operation whose ``type`` this SDK version does not list. Its other fields are kept as extra attributes.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| type | str | - |
 
 #### `ResearchDefinitionEvent`
 
@@ -1471,6 +1485,14 @@ The response keeps its own `warnings` whatever the filter does.
 | output_type | Literal['failed'] | - |
 | error | str | - |
 
+#### `ResearchUnknownOutput`
+
+An output whose ``outputType`` this SDK version does not list. Its other fields are kept as extra attributes.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| output_type | str | - |
+
 #### `ResearchOutputEvent`
 
 | Field | Type | Description |
@@ -1478,7 +1500,7 @@ The response keeps its own `warnings` whatever the filter does.
 | event_type | Literal['research-output'] | - |
 | research_id | str | - |
 | created_at | float | Milliseconds since epoch time |
-| output | Union[[ResearchOutputCompleted](#researchoutputcompleted), [ResearchOutputFailed](#researchoutputfailed)] | - |
+| output | Union[[ResearchOutputCompleted](#researchoutputcompleted), [ResearchOutputFailed](#researchoutputfailed), [ResearchUnknownOutput](#researchunknownoutput)] | - |
 
 #### `ResearchPlanDefinitionEvent`
 
@@ -1515,6 +1537,15 @@ The response keeps its own `warnings` whatever the filter does.
 | output_type | Literal['stop'] | - |
 | reasoning | str | - |
 
+#### `ResearchUnknownPlanOutput`
+
+A plan output whose ``outputType`` this SDK version does not list. Its other fields are kept as extra attributes.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| output_type | str | - |
+| reasoning | str | - |
+
 #### `ResearchPlanOutputEvent`
 
 | Field | Type | Description |
@@ -1523,7 +1554,7 @@ The response keeps its own `warnings` whatever the filter does.
 | research_id | str | - |
 | plan_id | str | - |
 | created_at | float | Milliseconds since epoch time |
-| output | Union[[ResearchPlanOutputTasks](#researchplanoutputtasks), [ResearchPlanOutputStop](#researchplanoutputstop)] | - |
+| output | Union[[ResearchPlanOutputTasks](#researchplanoutputtasks), [ResearchPlanOutputStop](#researchplanoutputstop), [ResearchUnknownPlanOutput](#researchunknownplanoutput)] | - |
 
 #### `ResearchTaskDefinitionEvent`
 
@@ -1565,6 +1596,16 @@ The response keeps its own `warnings` whatever the filter does.
 | task_id | str | - |
 | created_at | float | Milliseconds since epoch time |
 | output | [ResearchTaskOutput](#researchtaskoutput) | - |
+
+#### `ResearchUnknownEvent`
+
+An event whose ``eventType`` this SDK version does not list. Its other fields are kept as extra attributes.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| event_type | str | - |
+| research_id | str | - |
+| created_at | float | Milliseconds since epoch time |
 
 #### `ResearchOutput`
 
@@ -1648,6 +1689,19 @@ The response keeps its own `warnings` whatever the filter does.
 | events | Optional[List[[ResearchEvent](#researchevent)]] | - |
 | error | str | A message indicating why the request failed |
 
+#### `ResearchUnknownDto`
+
+A research request whose ``status`` this SDK version does not list. Its other fields are kept as extra attributes.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| research_id | str | The unique identifier for the research request |
+| created_at | float | Milliseconds since epoch time |
+| model | [ResearchModel](#researchmodel) | The model used for the research request |
+| instructions | str | The instructions given to this research request |
+| output_schema | Optional[Dict[str, Any]] | - |
+| status | str | - |
+
 #### `ListResearchResponseDto`
 
 | Field | Type | Description |
@@ -1660,7 +1714,7 @@ The response keeps its own `warnings` whatever the filter does.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| model | [ResearchModel](#researchmodel) | - |
+| model | [KnownResearchModel](#knownresearchmodel) | - |
 | instructions | str | Instructions for what research should be conducted |
 | output_schema | Optional[Dict[str, Any]] | - |
 
@@ -1672,9 +1726,9 @@ Options for text extraction in monitor results.
 | ----- | ---- | ----------- |
 | max_characters | Optional[int] | - |
 | include_html_tags | Optional[bool] | - |
-| verbosity | Optional[[VERBOSITY_OPTION](#verbosity_option)] | - |
-| include_sections | Optional[List[[SECTION_TAG](#section_tag)]] | - |
-| exclude_sections | Optional[List[[SECTION_TAG](#section_tag)]] | - |
+| verbosity | Optional[Union[[VERBOSITY_OPTION](#verbosity_option), str]] | - |
+| include_sections | Optional[List[Union[[SECTION_TAG](#section_tag), str]]] | - |
+| exclude_sections | Optional[List[Union[[SECTION_TAG](#section_tag), str]]] | - |
 
 #### `SearchMonitorHighlightsContents`
 
@@ -1720,7 +1774,7 @@ deprecated and kept only for backward compatibility.
 | summary | Optional[Union[bool, [SearchMonitorSummaryContents](#searchmonitorsummarycontents)]] | - |
 | extras | Optional[[SearchMonitorExtrasContents](#searchmonitorextrascontents)] | - |
 | context | Optional[Union[bool, Dict[str, Any]]] | Deprecated. Use highlights or text. |
-| livecrawl | Optional[[LIVECRAWL_OPTION](#livecrawl_option)] | - |
+| livecrawl | Optional[Union[[LIVECRAWL_OPTION](#livecrawl_option), str]] | - |
 | livecrawl_timeout | Optional[int] | - |
 | max_age_hours | Optional[int] | - |
 | filter_empty_results | Optional[bool] | - |
@@ -1741,7 +1795,7 @@ deprecated and kept only for backward compatibility.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| type | Literal['interval'] | - |
+| type | Union[Literal['interval'], str] | - |
 | period | str | - |
 
 #### `SearchMonitorWebhook`
@@ -1764,7 +1818,7 @@ deprecated and kept only for backward compatibility.
 | ----- | ---- | ----------- |
 | field | str | - |
 | citations | List[[GroundingCitation](#groundingcitation)] | - |
-| confidence | Literal['low', 'medium', 'high'] | - |
+| confidence | Union[Literal['low', 'medium', 'high'], str] | - |
 
 #### `SearchMonitorRunOutput`
 
@@ -1840,7 +1894,7 @@ deprecated and kept only for backward compatibility.
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | name | Optional[str] | - |
-| status | Optional[[SearchMonitorStatus](#searchmonitorstatus)] | - |
+| status | Optional[[KnownSearchMonitorStatus](#knownsearchmonitorstatus)] | - |
 | search | Optional[[SearchMonitorSearch](#searchmonitorsearch)] | - |
 | trigger | Optional[[SearchMonitorTrigger](#searchmonitortrigger)] | - |
 | output_schema | Optional[Dict[str, Any]] | - |
@@ -1961,13 +2015,21 @@ Confidence levels for a grounded output field.
 
 **Type:** Literal['low', 'medium', 'high']
 
-#### `ResearchModel`
+#### `KnownResearchModel`
 
 **Type:** Literal['exa-research-fast', 'exa-research', 'exa-research-pro']
 
+#### `ResearchModel`
+
+Research model. A value not in ``[KnownResearchModel](#knownresearchmodel)`` is kept as a string.
+
+**Type:** Union[[KnownResearchModel](#knownresearchmodel), str]
+
 #### `ResearchOperation`
 
-**Type:** Annotated[Union[[ResearchThinkOperation](#researchthinkoperation), [ResearchSearchOperation](#researchsearchoperation), [ResearchCrawlOperation](#researchcrawloperation)], Field(discriminator='type')]
+One operation of a research plan or task. A ``type`` this SDK version does not list parses as ``[ResearchUnknownOperation](#researchunknownoperation)``.
+
+**Type:** Union[[ResearchThinkOperation](#researchthinkoperation), [ResearchSearchOperation](#researchsearchoperation), [ResearchCrawlOperation](#researchcrawloperation), [ResearchUnknownOperation](#researchunknownoperation)]
 
 #### `ResearchMetaEvent`
 
@@ -1983,27 +2045,55 @@ Confidence levels for a grounded output field.
 
 #### `ResearchEvent`
 
-**Type:** Union[[ResearchMetaEvent](#researchmetaevent), [ResearchPlanEvent](#researchplanevent), [ResearchTaskEvent](#researchtaskevent)]
+Any research event. An ``eventType`` this SDK version does not list parses as ``[ResearchUnknownEvent](#researchunknownevent)``.
+
+**Type:** Union[[ResearchDefinitionEvent](#researchdefinitionevent), [ResearchOutputEvent](#researchoutputevent), [ResearchPlanDefinitionEvent](#researchplandefinitionevent), [ResearchPlanOperationEvent](#researchplanoperationevent), [ResearchPlanOutputEvent](#researchplanoutputevent), [ResearchTaskDefinitionEvent](#researchtaskdefinitionevent), [ResearchTaskOperationEvent](#researchtaskoperationevent), [ResearchTaskOutputEvent](#researchtaskoutputevent), [ResearchUnknownEvent](#researchunknownevent)]
 
 #### `ResearchDto`
 
-**Type:** Annotated[Union[[ResearchPendingDto](#researchpendingdto), [ResearchRunningDto](#researchrunningdto), [ResearchCompletedDto](#researchcompleteddto), [ResearchCanceledDto](#researchcanceleddto), [ResearchFailedDto](#researchfaileddto)], Field(discriminator='status')]
+A research request in any status. A ``status`` this SDK version does not list parses as ``[ResearchUnknownDto](#researchunknowndto)``.
 
-#### `SearchMonitorStatus`
+**Type:** Union[[ResearchPendingDto](#researchpendingdto), [ResearchRunningDto](#researchrunningdto), [ResearchCompletedDto](#researchcompleteddto), [ResearchCanceledDto](#researchcanceleddto), [ResearchFailedDto](#researchfaileddto), [ResearchUnknownDto](#researchunknowndto)]
+
+#### `KnownSearchMonitorStatus`
 
 **Type:** Literal['active', 'paused', 'disabled']
 
-#### `SearchMonitorRunStatus`
+#### `SearchMonitorStatus`
+
+Search Monitor status. A value not in ``[KnownSearchMonitorStatus](#knownsearchmonitorstatus)`` is kept as a string.
+
+**Type:** Union[[KnownSearchMonitorStatus](#knownsearchmonitorstatus), str]
+
+#### `KnownSearchMonitorRunStatus`
 
 **Type:** Literal['pending', 'running', 'completed', 'failed', 'cancelled']
 
+#### `SearchMonitorRunStatus`
+
+Search Monitor run status. A value not in ``[KnownSearchMonitorRunStatus](#knownsearchmonitorrunstatus)`` is kept as a string.
+
+**Type:** Union[[KnownSearchMonitorRunStatus](#knownsearchmonitorrunstatus), str]
+
+#### `KnownSearchMonitorRunFailReason`
+
+**Type:** Literal['api_key_invalid', 'insufficient_credits', 'invalid_params', 'rate_limited', 'source_not_available', 'forbidden', 'search_unavailable', 'search_failed', 'internal_error']
+
 #### `SearchMonitorRunFailReason`
 
-**Type:** Literal['api_key_invalid', 'insufficient_credits', 'invalid_params', 'rate_limited', 'search_unavailable', 'search_failed', 'internal_error']
+Why a monitor run failed. A value not in ``[KnownSearchMonitorRunFailReason](#knownsearchmonitorrunfailreason)`` is kept as a string.
+
+**Type:** Union[[KnownSearchMonitorRunFailReason](#knownsearchmonitorrunfailreason), str]
+
+#### `KnownSearchMonitorWebhookEvent`
+
+**Type:** Literal['monitor.created', 'monitor.updated', 'monitor.deleted', 'monitor.run.created', 'monitor.run.completed']
 
 #### `SearchMonitorWebhookEvent`
 
-**Type:** Literal['monitor.created', 'monitor.updated', 'monitor.deleted', 'monitor.run.created', 'monitor.run.completed']
+Search Monitor webhook event. A value not in ``[KnownSearchMonitorWebhookEvent](#knownsearchmonitorwebhookevent)`` is kept as a string.
+
+**Type:** Union[[KnownSearchMonitorWebhookEvent](#knownsearchmonitorwebhookevent), str]
 
 #### `VERBOSITY_OPTION`
 

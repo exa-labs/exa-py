@@ -72,6 +72,7 @@ print(results.output.content if results.output else None)
 for chunk in exa.stream_search(
     "What are the latest battery breakthroughs?",
     type="auto",
+    output_schema={"type": "text"},
 ):
     if chunk.content:
         print(chunk.content, end="", flush=True)
@@ -83,6 +84,7 @@ Search `output_schema` modes:
 
 `system_prompt` and `output_schema` are supported on every search type.
 Search streaming is available via `stream_search(...)`, which yields OpenAI-style chat completion chunks.
+A search without `output_schema` has no text to stream. Its stream yields one chunk with the results as `citations`.
 
 For `type: "object"`, search currently enforces:
 - max nesting depth: `2`
