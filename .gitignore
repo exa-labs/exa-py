@@ -30,6 +30,9 @@ build/
 .mypy_cache
 
 .env
+.env.*
+*.env
+!.env.example
 
 test/
 .coverage
