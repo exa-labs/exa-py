@@ -284,6 +284,23 @@ def test_get_contents_warns_on_top_level_deprecated_highlights_options():
     assert deprecation_messages(caught) == ["highlights num_sentences is deprecated. Use max_characters instead."]
 
 
+LIVECRAWL_DEPRECATION = "livecrawl is deprecated. Use max_age_hours instead. It cannot be combined with max_age_hours."
+
+
+def test_livecrawl_issues_a_deprecation_warning_naming_max_age_hours():
+    exa = Exa(API_KEY)
+
+    with patch("exa_py.api.requests.post", return_value=_http_response(search_payload())):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            exa.get_contents(["http://example.com"], livecrawl="always")
+            exa.search("rust release notes", contents={"text": True, "livecrawl": "always"})
+            exa.search("rust release notes", contents={"text": True, "max_age_hours": 0})
+
+    assert deprecation_messages(caught) == [LIVECRAWL_DEPRECATION, LIVECRAWL_DEPRECATION]
+    assert {w.filename for w in caught if issubclass(w.category, DeprecationWarning)} == {__file__}
+
+
 def test_current_options_issue_no_deprecation_warning():
     exa = Exa(API_KEY)
 

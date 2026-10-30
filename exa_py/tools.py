@@ -413,7 +413,7 @@ class ToolNamespace:
 
         Args:
             **kwargs: Optional contents options passed through to
-                ``Exa.get_contents`` (e.g. ``text``, ``summary``, ``livecrawl``).
+                ``Exa.get_contents`` (e.g. ``text``, ``summary``, ``max_age_hours``).
                 ``name`` (default ``"get_contents"``) and ``description``
                 override the advertised tool name and description instead.
 

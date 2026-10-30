@@ -72,6 +72,7 @@ print(results.output.content if results.output else None)
 for chunk in exa.stream_search(
     "What are the latest battery breakthroughs?",
     type="auto",
+    output_schema={"type": "text"},
 ):
     if chunk.content:
         print(chunk.content, end="", flush=True)
@@ -83,6 +84,7 @@ Search `output_schema` modes:
 
 `system_prompt` and `output_schema` are supported on every search type.
 Search streaming is available via `stream_search(...)`, which yields OpenAI-style chat completion chunks.
+A search without `output_schema` has no text to stream. Its stream yields one chunk with the results as `citations`.
 
 For `type: "object"`, search currently enforces:
 - max nesting depth: `2`
@@ -125,8 +127,12 @@ print(response.answer)
 ```
 
 ```python
-for chunk in exa.stream_answer("Explain quantum computing"):
+stream = exa.stream_answer("Explain quantum computing")
+for chunk in stream:
     print(chunk, end="", flush=True)
+
+# The cost arrives at the end of the stream.
+print(stream.cost_dollars)
 ```
 
 ## Web Search and Contents tools
@@ -187,7 +193,7 @@ completion = openai_client.chat.completions.create(
     messages=messages,
     tools=[
         exa.openai.web_search(),
-        exa.openai.get_contents(summary=True, livecrawl="preferred"),
+        exa.openai.get_contents(summary=True, max_age_hours=1),
     ],
 )
 ```

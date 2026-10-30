@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from exa_py.websets.events.client import EventsClient
-from exa_py.websets.types import EventType
+from exa_py.websets.types import EventType, UnknownEvent
 
 # ============================================================================
 # Fixtures
@@ -262,7 +262,7 @@ def test_get_event_different_types(events_client, parent_mock, sample_webset_dat
         assert result.type == event_type
 
 def test_get_event_unknown_type(events_client, parent_mock):
-    """Test getting an event with unknown type raises error."""
+    """Test getting an event with a type this SDK does not list keeps it as an UnknownEvent."""
     unknown_event = {
         "id": "event_unknown",
         "object": "event",
@@ -272,8 +272,10 @@ def test_get_event_unknown_type(events_client, parent_mock):
     }
     parent_mock.request.return_value = unknown_event
 
-    with pytest.raises(ValueError, match="Unknown event type: unknown.type"):
-        events_client.get("event_unknown")
+    event = events_client.get("event_unknown")
+    assert isinstance(event, UnknownEvent)
+    assert event.type == "unknown.type"
+    assert event.data == {}
 
 def test_list_events_type_enum_handling(events_client, parent_mock, sample_list_events_response):
     """Test that EventType enums are properly converted to string values."""

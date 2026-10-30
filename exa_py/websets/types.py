@@ -8,8 +8,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, Annotated
 
-from pydantic import AnyUrl, Field, PositiveInt
+from pydantic import AnyUrl, Field, PositiveInt, Tag
 from .core.base import ExaBaseModel
+from .._open_union import UNKNOWN_TAG, tag_discriminator
 
 
 class WebsetPriority(Enum):
@@ -47,13 +48,7 @@ class MonitorBehaviorSearchConfig(ExaBaseModel):
     """
     The criteria to search for. By default, the criteria from the last search is used.
     """
-    entity: Optional[Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
-    ]] = Field(None, title='WebsetEntity')
+    entity: Optional[WebsetEntity] = Field(None, title='WebsetEntity')
     """
     The entity to search for. By default, the entity from the last search/import is used.
     """
@@ -233,7 +228,7 @@ class SearchCriterion(ExaBaseModel):
 
 class EnrichmentResult(ExaBaseModel):
     object: Literal['enrichment_result']
-    format: WebsetEnrichmentFormat
+    format: Union[WebsetEnrichmentFormat, str]
     result: Optional[List[str]] = None
     """
     The result of the enrichment. None if the enrichment wasn't successful.
@@ -352,31 +347,11 @@ class PreviewWebsetResponseEnrichmentsFormat(Enum):
     options = 'options'
     email = 'email'
     phone = 'phone'
+    url = 'url'
 
 
 class ListEventsResponse(ExaBaseModel):
-    data: List[Annotated[
-      Union[
-          WebsetCreatedEvent,
-          WebsetDeletedEvent,
-          WebsetIdleEvent,
-          WebsetPausedEvent,
-          WebsetItemCreatedEvent,
-          WebsetItemEnrichedEvent,
-          WebsetSearchCreatedEvent,
-          WebsetSearchUpdatedEvent,
-          WebsetSearchCanceledEvent,
-          WebsetSearchCompletedEvent,
-          ImportCreatedEvent,
-          ImportCompletedEvent,
-          MonitorCreatedEvent,
-          MonitorUpdatedEvent,
-          MonitorDeletedEvent,
-          MonitorRunCreatedEvent,
-          MonitorRunCompletedEvent,
-      ],
-      Field(discriminator='type')
-  ]]
+    data: List[Event]
     """
     The list of events
     """
@@ -484,7 +459,7 @@ class ImportItem(ExaBaseModel):
     """
     Represents a source to import from.
     """
-    source: ImportSource
+    source: Union[ImportSource, str]
     """
     The type of source (import or webset)
     """
@@ -498,7 +473,7 @@ class ExcludeItem(ExaBaseModel):
     """
     Represents a source to exclude from search results.
     """
-    source: ImportSource
+    source: Union[ImportSource, str]
     """
     The type of source (import or webset)
     """
@@ -526,7 +501,7 @@ class ScopeItem(ExaBaseModel):
     """
     Represents a source to limit search scope to.
     """
-    source: ScopeSourceType
+    source: Union[ScopeSourceType, str]
     """
     The type of source (import)
     """
@@ -569,7 +544,7 @@ class PreviewWebsetResponseEnrichment(ExaBaseModel):
     """
     Description of the enrichment.
     """
-    format: PreviewWebsetResponseEnrichmentsFormat
+    format: Union[PreviewWebsetResponseEnrichmentsFormat, str]
     """
     Format of the enrichment.
     """
@@ -593,13 +568,7 @@ class PreviewWebsetResponseSearch(ExaBaseModel):
     """
     Search information in preview response.
     """
-    entity: Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
-    ]
+    entity: WebsetEntity
     """
     Detected entity from the query.
     """
@@ -687,21 +656,15 @@ class CreateImportResponse(ExaBaseModel):
     """
     The type of object
     """
-    status: ImportStatus
+    status: Union[ImportStatus, str]
     """
     The status of the Import
     """
-    format: ImportFormat
+    format: Union[ImportFormat, str]
     """
     The format of the import
     """
-    entity: Optional[Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
-    ]] = None
+    entity: Optional[WebsetEntity] = None
     """
     The type of entity the import contains
     """
@@ -717,7 +680,7 @@ class CreateImportResponse(ExaBaseModel):
     """
     Set of key-value pairs associated with this object
     """
-    failed_reason: Annotated[Optional[ImportFailedReason], Field(alias='failedReason')] = None
+    failed_reason: Annotated[Optional[Union[ImportFailedReason, str]], Field(alias='failedReason')] = None
     """
     The reason the import failed, if applicable
     """
@@ -759,21 +722,15 @@ class Import(ExaBaseModel):
     """
     The type of object
     """
-    status: ImportStatus
+    status: Union[ImportStatus, str]
     """
     The status of the Import
     """
-    format: ImportFormat
+    format: Union[ImportFormat, str]
     """
     The format of the import
     """
-    entity: Optional[Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
-    ]] = None
+    entity: Optional[WebsetEntity] = None
     """
     The type of entity the import contains
     """
@@ -789,7 +746,7 @@ class Import(ExaBaseModel):
     """
     Set of key-value pairs associated with this object
     """
-    failed_reason: Annotated[Optional[ImportFailedReason], Field(alias='failedReason')] = None
+    failed_reason: Annotated[Optional[Union[ImportFailedReason, str]], Field(alias='failedReason')] = None
     """
     The reason the import failed, if applicable
     """
@@ -1011,7 +968,7 @@ class Monitor(ExaBaseModel):
     """
     The type of object
     """
-    status: MonitorStatus
+    status: Union[MonitorStatus, str]
     """
     The status of the Monitor
     """
@@ -1023,9 +980,7 @@ class Monitor(ExaBaseModel):
     """
     How often the monitor will run
     """
-    behavior: Union[MonitorBehaviorSearch, MonitorBehaviorRefresh] = Field(
-        ..., discriminator='type'
-    )
+    behavior: MonitorBehavior
     """
     Behavior to perform when monitor runs
     """
@@ -1053,9 +1008,7 @@ class Monitor(ExaBaseModel):
 
 class MonitorBehaviorRefresh(ExaBaseModel):
     type: Literal['refresh']
-    config: Union[
-        MonitorRefreshBehaviorEnrichmentsConfig, MonitorRefreshBehaviorContentsConfig
-    ] = Field(..., discriminator='target')
+    config: MonitorRefreshBehaviorConfig
 
 
 class MonitorBehaviorSearch(ExaBaseModel):
@@ -1092,7 +1045,7 @@ class MonitorRun(ExaBaseModel):
     """
     The type of object
     """
-    status: MonitorRunStatus
+    status: Union[MonitorRunStatus, str]
     """
     The status of the Monitor Run
     """
@@ -1100,7 +1053,7 @@ class MonitorRun(ExaBaseModel):
     """
     The monitor that the run is associated with
     """
-    type: Type
+    type: Union[Type, str]
     """
     The type of the Monitor Run
     """
@@ -1174,11 +1127,11 @@ class Webhook(ExaBaseModel):
     The unique identifier for the webhook
     """
     object: Literal['webhook']
-    status: WebhookStatus = Field(..., title='WebhookStatus')
+    status: Union[WebhookStatus, str] = Field(..., title='WebhookStatus')
     """
     The status of the webhook
     """
-    events: List[EventType]
+    events: List[Union[EventType, str]]
     """
     The events to trigger the webhook
     """
@@ -1214,7 +1167,7 @@ class WebhookAttempt(ExaBaseModel):
     """
     The unique identifier for the event
     """
-    event_type: Annotated[EventType, Field(alias='eventType')]
+    event_type: Annotated[Union[EventType, str], Field(alias='eventType')]
     """
     The type of event
     """
@@ -1267,7 +1220,7 @@ class Webset(ExaBaseModel):
     The unique identifier for the webset
     """
     object: Literal['webset']
-    status: WebsetStatus = Field(..., title='WebsetStatus')
+    status: Union[WebsetStatus, str] = Field(..., title='WebsetStatus')
     """
     The status of the webset
     """
@@ -1359,7 +1312,7 @@ class WebsetEnrichment(ExaBaseModel):
     The unique identifier for the enrichment
     """
     object: Literal['webset_enrichment']
-    status: WebsetEnrichmentStatus = Field(..., title='WebsetEnrichmentStatus')
+    status: Union[WebsetEnrichmentStatus, str] = Field(..., title='WebsetEnrichmentStatus')
     """
     The status of the enrichment
     """
@@ -1377,7 +1330,7 @@ class WebsetEnrichment(ExaBaseModel):
     """
     The description of the enrichment task provided during the creation of the enrichment.
     """
-    format: Optional[WebsetEnrichmentFormat]
+    format: Optional[Union[WebsetEnrichmentFormat, str]]
     """
     The format of the enrichment response.
     """
@@ -1451,7 +1404,7 @@ class WebsetItem(ExaBaseModel):
     The unique identifier for the Webset Item
     """
     object: Literal['webset_item']
-    source: Source
+    source: Union[Source, str]
     """
     The source of the Item
     """
@@ -1463,13 +1416,7 @@ class WebsetItem(ExaBaseModel):
     """
     The unique identifier for the Webset this Item belongs to.
     """
-    properties: Union[
-        WebsetItemPersonProperties,
-        WebsetItemCompanyProperties,
-        WebsetItemArticleProperties,
-        WebsetItemResearchPaperProperties,
-        WebsetItemCustomProperties,
-    ]
+    properties: WebsetItemProperties
     """
     The properties of the Item
     """
@@ -1777,7 +1724,7 @@ class WebsetSearchRecallExpected(ExaBaseModel):
     """
     Total expected matches
     """
-    confidence: WebsetSearchRecallConfidence
+    confidence: Union[WebsetSearchRecallConfidence, str]
     """
     Confidence level of the estimate
     """
@@ -1807,7 +1754,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The unique identifier for the Webset this search belongs to
     """
-    status: WebsetSearchStatus = Field(..., title='WebsetSearchStatus')
+    status: Union[WebsetSearchStatus, str] = Field(..., title='WebsetSearchStatus')
     """
     The status of the search
     """
@@ -1815,13 +1762,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The query used to create the search.
     """
-    entity: Optional[Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
-    ]] = None
+    entity: Optional[WebsetEntity] = None
     """
     The entity the search will return results for.
 
@@ -1870,7 +1811,7 @@ class WebsetSearch(ExaBaseModel):
     """
     The date and time the search was canceled
     """
-    canceled_reason: Annotated[Optional[WebsetSearchCanceledReason], Field(alias='canceledReason')] = None
+    canceled_reason: Annotated[Optional[Union[WebsetSearchCanceledReason, str]], Field(alias='canceledReason')] = None
     """
     The reason the search was canceled
     """
@@ -2072,3 +2013,153 @@ class GetWebsetResponse(Webset):
     """
     The items in the webset
     """
+
+
+# --- Open tagged unions ---
+# Each union below routes a tag this SDK version does not list to an
+# `Unknown*` model that keeps the whole payload, so a variant the API adds
+# later parses instead of failing validation (see `exa_py._open_union`).
+
+
+class UnknownWebsetEntity(ExaBaseModel):
+    """An entity whose ``type`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    type: str
+
+
+class UnknownWebsetItemProperties(ExaBaseModel):
+    """Item properties whose ``type`` this SDK version does not list. Their other fields are kept as extra attributes."""
+
+    type: str
+    url: AnyUrl
+    description: str
+
+
+class UnknownMonitorBehavior(ExaBaseModel):
+    """A monitor behavior whose ``type`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    type: str
+    config: Any
+
+
+class UnknownMonitorRefreshBehaviorConfig(ExaBaseModel):
+    """A refresh config whose ``target`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    target: str
+
+
+class UnknownEvent(ExaBaseModel):
+    """An event whose ``type`` this SDK version does not list. Its other fields are kept as extra attributes."""
+
+    id: str
+    object: str
+    type: str
+    data: Any
+    created_at: Annotated[datetime, Field(alias='createdAt')]
+
+
+WebsetEntity = Annotated[
+    Union[
+        Annotated[WebsetCompanyEntity, Tag('company')],
+        Annotated[WebsetPersonEntity, Tag('person')],
+        Annotated[WebsetArticleEntity, Tag('article')],
+        Annotated[WebsetResearchPaperEntity, Tag('research_paper')],
+        Annotated[WebsetCustomEntity, Tag('custom')],
+        Annotated[UnknownWebsetEntity, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator(
+        'type',
+        WebsetCompanyEntity,
+        WebsetPersonEntity,
+        WebsetArticleEntity,
+        WebsetResearchPaperEntity,
+        WebsetCustomEntity,
+    ),
+]
+"""The entity a search, import or monitor returns results for."""
+
+WebsetItemProperties = Annotated[
+    Union[
+        Annotated[WebsetItemPersonProperties, Tag('person')],
+        Annotated[WebsetItemCompanyProperties, Tag('company')],
+        Annotated[WebsetItemArticleProperties, Tag('article')],
+        Annotated[WebsetItemResearchPaperProperties, Tag('research_paper')],
+        Annotated[WebsetItemCustomProperties, Tag('custom')],
+        Annotated[UnknownWebsetItemProperties, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator(
+        'type',
+        WebsetItemPersonProperties,
+        WebsetItemCompanyProperties,
+        WebsetItemArticleProperties,
+        WebsetItemResearchPaperProperties,
+        WebsetItemCustomProperties,
+    ),
+]
+"""The properties of a Webset Item."""
+
+MonitorBehavior = Annotated[
+    Union[
+        Annotated[MonitorBehaviorSearch, Tag('search')],
+        Annotated[MonitorBehaviorRefresh, Tag('refresh')],
+        Annotated[UnknownMonitorBehavior, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator('type', MonitorBehaviorSearch, MonitorBehaviorRefresh),
+]
+"""Behavior a monitor performs when it runs."""
+
+MonitorRefreshBehaviorConfig = Annotated[
+    Union[
+        Annotated[MonitorRefreshBehaviorEnrichmentsConfig, Tag('enrichments')],
+        Annotated[MonitorRefreshBehaviorContentsConfig, Tag('contents')],
+        Annotated[UnknownMonitorRefreshBehaviorConfig, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator(
+        'target', MonitorRefreshBehaviorEnrichmentsConfig, MonitorRefreshBehaviorContentsConfig
+    ),
+]
+"""What a refresh monitor refreshes."""
+
+Event = Annotated[
+    Union[
+        Annotated[WebsetCreatedEvent, Tag('webset.created')],
+        Annotated[WebsetDeletedEvent, Tag('webset.deleted')],
+        Annotated[WebsetIdleEvent, Tag('webset.idle')],
+        Annotated[WebsetPausedEvent, Tag('webset.paused')],
+        Annotated[WebsetItemCreatedEvent, Tag('webset.item.created')],
+        Annotated[WebsetItemEnrichedEvent, Tag('webset.item.enriched')],
+        Annotated[WebsetSearchCreatedEvent, Tag('webset.search.created')],
+        Annotated[WebsetSearchUpdatedEvent, Tag('webset.search.updated')],
+        Annotated[WebsetSearchCanceledEvent, Tag('webset.search.canceled')],
+        Annotated[WebsetSearchCompletedEvent, Tag('webset.search.completed')],
+        Annotated[ImportCreatedEvent, Tag('import.created')],
+        Annotated[ImportCompletedEvent, Tag('import.completed')],
+        Annotated[MonitorCreatedEvent, Tag('monitor.created')],
+        Annotated[MonitorUpdatedEvent, Tag('monitor.updated')],
+        Annotated[MonitorDeletedEvent, Tag('monitor.deleted')],
+        Annotated[MonitorRunCreatedEvent, Tag('monitor.run.created')],
+        Annotated[MonitorRunCompletedEvent, Tag('monitor.run.completed')],
+        Annotated[UnknownEvent, Tag(UNKNOWN_TAG)],
+    ],
+    tag_discriminator(
+        'type',
+        WebsetCreatedEvent,
+        WebsetDeletedEvent,
+        WebsetIdleEvent,
+        WebsetPausedEvent,
+        WebsetItemCreatedEvent,
+        WebsetItemEnrichedEvent,
+        WebsetSearchCreatedEvent,
+        WebsetSearchUpdatedEvent,
+        WebsetSearchCanceledEvent,
+        WebsetSearchCompletedEvent,
+        ImportCreatedEvent,
+        ImportCompletedEvent,
+        MonitorCreatedEvent,
+        MonitorUpdatedEvent,
+        MonitorDeletedEvent,
+        MonitorRunCreatedEvent,
+        MonitorRunCompletedEvent,
+    ),
+]
+"""Any Webset event."""
