@@ -305,3 +305,57 @@ class TestIntegrationMocking:
         converted_schema = payload["outputSchema"]
         assert isinstance(converted_schema, dict)
         assert converted_schema["type"] == "object"
+
+
+class DescribedNestedModel(BaseModel):
+    child: SimpleModel = Field(description="Child-specific description")
+
+
+@pytest.mark.parametrize("annotations", [
+    {"description": "A described child"},
+    {"title": "Child title"},
+    {"json_schema_extra": {"allOf": [{"maxProperties": 2}]}},
+    {"description": "A described child", "examples": [{"name": "Ada"}]},
+])
+def test_nested_ref_with_siblings_is_fully_inlined(annotations):
+    from pydantic import create_model
+
+    model = create_model("AnnotatedParent", child=(SimpleModel, Field(**annotations)))
+    schema = _convert_schema_input(model)
+    assert "$defs" not in schema
+    assert "$ref" not in repr(schema)
+    child = schema["properties"]["child"]
+    for key, value in annotations.items():
+        if key == "json_schema_extra":
+            assert child["allOf"][1:] == value["allOf"]
+        else:
+            assert child[key] == value
+    # Field annotations must not erase the referenced model's validation rules.
+    nested = child["allOf"][0]
+    assert nested["type"] == "object"
+    assert nested["properties"]["name"]["type"] == "string"
+    assert "name" in nested["required"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("asynchronous", [False, True])
+async def test_answer_sends_resolved_described_nested_schema(asynchronous):
+    from unittest.mock import Mock
+    from exa_py import Exa, AsyncExa
+
+    response = {"answer": "test", "citations": []}
+    if asynchronous:
+        client = AsyncExa("test")
+        client.async_request = AsyncMock(return_value=response)
+        await client.answer("test", output_schema=DescribedNestedModel)
+    else:
+        client = Exa("test")
+        client.request = Mock(return_value=response)
+        client.answer("test", output_schema=DescribedNestedModel)
+    request_mock = client.async_request if asynchronous else client.request
+    schema = request_mock.call_args.args[1]["outputSchema"]
+    assert "$defs" not in schema
+    assert "$ref" not in repr(schema)
+    child = schema["properties"]["child"]
+    assert child["description"] == "Child-specific description"
+    assert child["allOf"][0]["properties"]["name"]["type"] == "string"
