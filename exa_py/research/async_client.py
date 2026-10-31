@@ -23,7 +23,8 @@ from .models import (
     ResearchDto,
     ResearchEvent,
     ListResearchResponseDto,
-    ResearchModel,
+    KnownResearchModel,
+    ResearchModel,  # noqa: F401  re-exported: earlier releases imported it from here
 )
 from .utils import (
     async_stream_sse_events,
@@ -70,7 +71,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         self,
         *,
         instructions: str,
-        model: ResearchModel = "exa-research-fast",
+        model: KnownResearchModel = "exa-research-fast",
         **extra: Unpack[ExtraRequestOptions],
     ) -> ResearchDto: ...
 

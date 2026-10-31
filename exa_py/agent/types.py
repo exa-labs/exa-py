@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -10,16 +10,26 @@ from pydantic import BaseModel, Field
 AGENT_BETA_HEADER = "agent-2026-05-07"
 AGENT_MAX_EFFORT_BETA = "agent-max-effort-2026-07-27"
 
-AgentRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
-AgentStopReason = Literal[
+KnownAgentRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+AgentRunStatus = Union[KnownAgentRunStatus, str]
+"""Agent run status. A value not in ``KnownAgentRunStatus`` is kept as a string."""
+
+KnownAgentStopReason = Literal[
     "schema_satisfied",
     "budget_reached",
     "time_limit_reached",
+    "token_limit_reached",
+    "iteration_limit_reached",
     "stopped",
     "error",
     "cancelled",
 ]
-AgentConfidence = Literal["low", "medium", "high"]
+AgentStopReason = Union[KnownAgentStopReason, str]
+"""Why an Agent run stopped. A value not in ``KnownAgentStopReason`` is kept as a string."""
+
+KnownAgentConfidence = Literal["low", "medium", "high"]
+AgentConfidence = Union[KnownAgentConfidence, str]
+"""Confidence of a grounding entry. A value not in ``KnownAgentConfidence`` is kept as a string."""
 AgentEffort = Literal[
     "minimal", "low", "medium", "high", "xhigh", "auto", "ultra", "max"
 ]
@@ -31,7 +41,7 @@ AgentDataSourceProvider = str
 class AgentDataSource(BaseModel):
     """Exa Connect data source to enable for an Agent run.
 
-    See https://exa.ai/docs/reference/agent-api/connect/overview for available providers.
+    See https://exa.ai/docs/agent/connect/overview for available providers.
     """
 
     provider: AgentDataSourceProvider
@@ -71,10 +81,18 @@ class AgentOutput(BaseModel):
 
 
 class AgentUsage(BaseModel):
+    """Billed usage for an Agent run.
+
+    When an ``auto`` or ``ultra`` run's metered cost exceeds its budget, the run
+    is billed the budget and each quantity except ``data_sources`` is scaled down
+    in proportion, so quantities can be fractional. A whole quantity stays an
+    ``int``.
+    """
+
     agent_compute_units: Optional[float] = Field(default=None, alias="agentComputeUnits")
-    searches: Optional[int] = None
-    emails: Optional[int] = None
-    phone_numbers: Optional[int] = Field(default=None, alias="phoneNumbers")
+    searches: Optional[Union[int, float]] = None
+    emails: Optional[Union[int, float]] = None
+    phone_numbers: Optional[Union[int, float]] = Field(default=None, alias="phoneNumbers")
     data_sources: Optional[Dict[str, int]] = Field(default=None, alias="dataSources")
     """Per-provider tool call counts for Exa Connect data sources used during the run."""
 

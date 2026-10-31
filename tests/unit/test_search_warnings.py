@@ -40,7 +40,7 @@ SEARCH_STREAM_LINES = [
     '"warnings":[{"code":"IGNORED_FIELD","path":"/startCrawlDate",'
     '"message":"startCrawlDate is no longer supported and is ignored. Remove it from the request."}]}',
     "",
-    'data: {"requestId":"req-1","type":"done","output":null,"searchTime":12.5,'
+    'data: {"requestId":"req-1","type":"done","output":null,"searchTime":12.5,"costDollars":{"total":0.007},'
     '"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}',
     "",
     "data: [DONE]",
@@ -200,12 +200,14 @@ def test_stream_search_yields_warnings_chunk_offline():
     with patch.object(
         exa, "request", return_value=_FakeStreamResponse(SEARCH_STREAM_LINES)
     ):
-        chunks = list(exa.stream_search("rust release notes"))
+        stream = exa.stream_search("rust release notes")
+        chunks = list(stream)
 
     assert chunks == [
         SearchStreamChunk(content="Hello"),
         SearchStreamChunk(warnings=[EXPECTED_STREAM_WARNING]),
     ]
+    assert stream.cost_dollars == exa_api.CostDollars(total=0.007)
 
 
 def test_stream_search_without_warnings_yields_text_only_offline():

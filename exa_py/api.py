@@ -135,6 +135,27 @@ def _decode_json_body(res: Union[requests.Response, httpx.Response]) -> Any:
         raise ValueError(message) from error
 
 
+def _is_json_content_type(content_type: Any) -> bool:
+    """Whether a ``Content-Type`` value names JSON.
+
+    That is ``application/json`` or a ``+json`` media type, with any parameters.
+    """
+    if not isinstance(content_type, str):
+        return False
+    media_type = content_type.split(";", 1)[0].strip().lower()
+    return media_type == "application/json" or media_type.endswith("+json")
+
+
+def _is_json_response(response: Any) -> bool:
+    """Whether a streamed response arrived whole as JSON instead of as an event stream.
+
+    A response object without headers is read as an event stream, as before
+    this check existed.
+    """
+    headers = getattr(response, "headers", None)
+    return headers is not None and _is_json_content_type(headers.get("content-type"))
+
+
 # Exa-Beta token required for Dynamic Highlights (research preview).
 DYNAMIC_HIGHLIGHTS_BETA = "dynamic-highlights-2026-08-28"
 
@@ -628,7 +649,7 @@ CONTENTS_OPTIONS_TYPES = {
     "context": [dict, bool],  # DEPRECATED FIELD: use highlights or text instead.
     "metadata": [dict, bool],
     "livecrawl_timeout": [int],
-    "livecrawl": [LIVECRAWL_OPTIONS],
+    "livecrawl": [LIVECRAWL_OPTIONS],  # DEPRECATED FIELD: use max_age_hours instead.
     "max_age_hours": [int],
     "snapshot_as_of": [str],
     "filter_empty_results": [bool],
@@ -863,6 +884,8 @@ class ContentsOptions(TypedDict, total=False):
         max_age_hours (int): Maximum age of cached content in hours. If content is older, it will be
             fetched fresh. Special values: 0 = always fetch fresh content,
             -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days.
+        livecrawl (str): Deprecated. Use ``max_age_hours`` instead. Does not guarantee freshly fetched
+            content. Cannot be combined with ``max_age_hours``.
         snapshot_as_of (str): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
         subpages (int): DEPRECATED FIELD - do not use in new code. Subpage crawling on
             search is deprecated. Call ``get_contents(urls, subpages=...)`` instead.
@@ -875,7 +898,7 @@ class ContentsOptions(TypedDict, total=False):
     highlights: Union[HighlightsContentsOptions, Literal[True]]
     summary: Union[SummaryContentsOptions, Literal[True]]
     context: Union[ContextContentsOptions, Literal[True]]  # DEPRECATED FIELD: use highlights or text.
-    livecrawl: LIVECRAWL_OPTIONS
+    livecrawl: LIVECRAWL_OPTIONS  # DEPRECATED FIELD: use max_age_hours. Cannot be combined with it.
     livecrawl_timeout: int
     max_age_hours: int
     snapshot_as_of: str
@@ -1650,12 +1673,36 @@ class AnswerResponse:
         return output
 
 
+def _stream_cost_dollars(payload: Any) -> Optional[CostDollars]:
+    """The cost breakdown one stream event carries, or None for an event without one."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("costDollars"), dict):
+        return None
+    return parse_cost_dollars(payload["costDollars"])
+
+
 class StreamAnswerResponse:
-    """A class representing a streaming answer response."""
+    """A streaming answer response.
+
+    Iterating yields StreamChunk objects with partial text and citations.
+
+    Attributes:
+        cost_dollars (CostDollars, optional): The cost breakdown for this request.
+            The API sends it at the end of the stream, so it is None until the
+            stream has been read to the end.
+    """
+
+    cost_dollars: Optional[CostDollars]
 
     def __init__(self, raw_response: requests.Response):
         self._raw_response = raw_response
+        self.cost_dollars = None
         self._ensure_ok_status()
+
+    def _record_cost(self, payload: Any) -> None:
+        """Keep the cost breakdown when this stream event carries one."""
+        cost_dollars = _stream_cost_dollars(payload)
+        if cost_dollars is not None:
+            self.cost_dollars = cost_dollars
 
     def _ensure_ok_status(self):
         if self._raw_response.status_code != 200:
@@ -1674,6 +1721,7 @@ class StreamAnswerResponse:
             except json.JSONDecodeError:
                 continue
 
+            self._record_cost(chunk)
             content = None
             citations = None
 
@@ -1719,11 +1767,29 @@ class StreamAnswerResponse:
 
 
 class AsyncStreamAnswerResponse:
-    """A class representing a streaming answer response."""
+    """A streaming answer response for the async client.
+
+    Iterating with ``async for`` yields StreamChunk objects with partial text
+    and citations.
+
+    Attributes:
+        cost_dollars (CostDollars, optional): The cost breakdown for this request.
+            The API sends it at the end of the stream, so it is None until the
+            stream has been read to the end.
+    """
+
+    cost_dollars: Optional[CostDollars]
 
     def __init__(self, raw_response: httpx.Response):
         self._raw_response = raw_response
+        self.cost_dollars = None
         self._ensure_ok_status()
+
+    def _record_cost(self, payload: Any) -> None:
+        """Keep the cost breakdown when this stream event carries one."""
+        cost_dollars = _stream_cost_dollars(payload)
+        if cost_dollars is not None:
+            self.cost_dollars = cost_dollars
 
     def _ensure_ok_status(self):
         if self._raw_response.status_code != 200:
@@ -1744,6 +1810,7 @@ class AsyncStreamAnswerResponse:
                     except json.JSONDecodeError:
                         continue
 
+                    self._record_cost(chunk)
                     content = None
                     citations = None
 
@@ -1796,15 +1863,82 @@ class AsyncStreamAnswerResponse:
         raise RuntimeError("Use `await stream.aclose()` for asynchronous streams")
 
 
+def _citations_from_results(results: Any) -> Optional[List[AnswerResult]]:
+    """The ``results`` of a search response as stream citations.
+
+    Each citation keeps the fields an `AnswerResult` has. Returns None when
+    there are no results, so the chunk carrying them is left out.
+    """
+    if not isinstance(results, list):
+        return None
+    citations = [
+        AnswerResult(
+            id=result.get("id"),
+            url=result.get("url"),
+            title=result.get("title"),
+            published_date=result.get("publishedDate"),
+            author=result.get("author"),
+            text=result.get("text"),
+        )
+        for result in results
+        if isinstance(result, dict)
+    ]
+    return citations or None
+
+
+def _search_json_chunks(payload: Any) -> List[SearchStreamChunk]:
+    """The chunks for a search response the API sent whole as JSON instead of streaming it.
+
+    The first carries the results as ``citations``, the second the request's
+    ``warnings``. A chunk with nothing in it is left out, as in a stream.
+    Issues no warnings: the caller reports them once for the whole response.
+    """
+    if not isinstance(payload, dict):
+        return []
+    chunks = [
+        SearchStreamChunk(citations=_citations_from_results(payload.get("results"))),
+        SearchStreamChunk(warnings=parse_search_warnings(payload.get("warnings"))),
+    ]
+    return [chunk for chunk in chunks if chunk.has_data()]
+
+
 class StreamSearchResponse(StreamAnswerResponse):
     """A class representing a streaming search response.
 
     Iterating yields SearchStreamChunk objects with partial text and citations,
     and one chunk with the request's warnings when the API returns any.
+    A search without ``output_schema`` has no text to stream. Its stream yields
+    one chunk with the results as ``citations``, then the warnings chunk when
+    the API returns warnings.
+
+    Attributes:
+        cost_dollars (CostDollars, optional): The cost breakdown for this request.
+            It is None until the stream has been read to the end.
     """
 
     def __iter__(self) -> Iterator[SearchStreamChunk]:
+        if _is_json_response(self._raw_response):
+            return self._iter_json()
         return cast(Iterator[SearchStreamChunk], super().__iter__())
+
+    @typed_timeouts
+    def _iter_json(self) -> Iterator[SearchStreamChunk]:
+        """Yield the chunks of a search response the API sent whole as JSON.
+
+        Reports the response's warnings once, before the first chunk.
+
+        Raises:
+            ValueError: If the body is empty or not valid JSON.
+        """
+        try:
+            payload = _decode_json_body(self._raw_response)
+        finally:
+            self._raw_response.close()
+        self._record_cost(payload)
+        issue_body_warnings(
+            "/search", "POST", payload, self._raw_response.headers.get("x-request-id")
+        )
+        yield from _search_json_chunks(payload)
 
     def _build_chunk(
         self,
@@ -1826,10 +1960,40 @@ class AsyncStreamSearchResponse(AsyncStreamAnswerResponse):
 
     Iterating yields SearchStreamChunk objects with partial text and citations,
     and one chunk with the request's warnings when the API returns any.
+    A search without ``output_schema`` has no text to stream. Its stream yields
+    one chunk with the results as ``citations``, then the warnings chunk when
+    the API returns warnings.
+
+    Attributes:
+        cost_dollars (CostDollars, optional): The cost breakdown for this request.
+            It is None until the stream has been read to the end.
     """
 
     def __aiter__(self) -> AsyncIterator[SearchStreamChunk]:
+        if _is_json_response(self._raw_response):
+            return self._aiter_json()
         return cast(AsyncIterator[SearchStreamChunk], super().__aiter__())
+
+    @typed_timeouts
+    async def _aiter_json(self) -> AsyncIterator[SearchStreamChunk]:
+        """Yield the chunks of a search response the API sent whole as JSON.
+
+        Reports the response's warnings once, before the first chunk.
+
+        Raises:
+            ValueError: If the body is empty or not valid JSON.
+        """
+        try:
+            await self._raw_response.aread()
+            payload = _decode_json_body(self._raw_response)
+        finally:
+            await self._raw_response.aclose()
+        self._record_cost(payload)
+        issue_body_warnings(
+            "/search", "POST", payload, self._raw_response.headers.get("x-request-id")
+        )
+        for chunk in _search_json_chunks(payload):
+            yield chunk
 
     def _build_chunk(
         self,
@@ -2611,11 +2775,17 @@ class Exa:
             StreamSearchResponse: An iterator yielding OpenAI-style streaming chunks with
                 partial ``content`` and optional ``citations``. When the API returns
                 ``warnings`` about the request, one chunk after the text carries them.
+                A search without ``output_schema`` has no text to stream. Its stream
+                yields one chunk with the results as ``citations``, then the warnings
+                chunk when the API returns warnings. Call ``search()`` for every field
+                of the results. Once the stream has been read to the end, its
+                ``cost_dollars`` holds the cost breakdown for this request.
 
         Examples:
             stream = exa.stream_search(
                 "What are the latest battery breakthroughs?",
-                type="auto"
+                type="auto",
+                output_schema={"type": "text"},
             )
 
             for chunk in stream:
@@ -2882,6 +3052,8 @@ class Exa:
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
                 it will be fetched fresh. Special values: 0 = always fetch fresh content,
                 -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
+            livecrawl (str, optional): Deprecated. Use ``max_age_hours`` instead. Does not guarantee
+                freshly fetched content. Cannot be combined with ``max_age_hours``.
             snapshot_as_of (str, optional): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
@@ -3720,8 +3892,9 @@ class Exa:
             extra_body (Mapping[str, Any], optional): Extra fields merged over the JSON request body, except stream.
 
         Returns:
-            StreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
-                Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
+            StreamAnswerResponse: Iterating yields StreamChunk objects with partial text
+                (``content``) and ``citations``. Once the stream has been read to the end,
+                its ``cost_dollars`` holds the cost breakdown for this request.
 
         Examples:
             stream = exa.stream_answer("What is the capital of France?", text=True)
@@ -3732,6 +3905,9 @@ class Exa:
                 if chunk.citations:
                     for citation in chunk.citations:
                         print("Citation found:", citation.url)
+
+            if stream.cost_dollars:
+                print("Cost:", stream.cost_dollars.total)
         """
         _validate_user_location(user_location)
         options = {
@@ -4268,13 +4444,18 @@ class AsyncExa(Exa):
         Returns:
             AsyncStreamSearchResponse: An async iterator yielding OpenAI-style streaming chunks.
                 When the API returns ``warnings`` about the request, one chunk after the
-                text carries them.
+                text carries them. A search without ``output_schema`` has no text to
+                stream. Its stream yields one chunk with the results as ``citations``,
+                then the warnings chunk when the API returns warnings. Call ``search()``
+                for every field of the results. Once the stream has been read to the
+                end, its ``cost_dollars`` holds the cost breakdown for this request.
 
         Examples:
             >>> async_exa = AsyncExa(api_key="your-api-key")
             >>> stream = await async_exa.stream_search(
             ...     "What are the latest battery breakthroughs?",
-            ...     type="auto"
+            ...     type="auto",
+            ...     output_schema={"type": "text"},
             ... )
             >>> async for chunk in stream:
             ...     if chunk.content:
@@ -4539,6 +4720,8 @@ class AsyncExa(Exa):
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
                 it will be fetched fresh. Special values: 0 = always fetch fresh content,
                 -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
+            livecrawl (str, optional): Deprecated. Use ``max_age_hours`` instead. Does not guarantee
+                freshly fetched content. Cannot be combined with ``max_age_hours``.
             snapshot_as_of (str, optional): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
             filter_empty_results (bool, optional): Whether to filter out empty results.
             subpages (int, optional): Number of subpages to retrieve.
@@ -5192,22 +5375,27 @@ class AsyncExa(Exa):
             extra_body (Mapping[str, Any], optional): Extra fields merged over the JSON request body, except stream.
 
         Returns:
-            AsyncStreamAnswerResponse: An object that can be iterated over to retrieve (partial text, partial citations).
-                Each iteration yields a tuple of (Optional[str], Optional[List[AnswerResult]]).
+            AsyncStreamAnswerResponse: Iterating with ``async for`` yields StreamChunk objects
+                with partial text (``content``) and ``citations``. Once the stream has been
+                read to the end, its ``cost_dollars`` holds the cost breakdown for this request.
 
         Examples:
             Stream an answer asynchronously:
             >>> async_exa = AsyncExa(api_key="your-api-key")
-            >>> async for chunk in async_exa.stream_answer("What is quantum computing?"):
-            ...     if chunk.text:
-            ...         print(chunk.text, end="", flush=True)
+            >>> stream = await async_exa.stream_answer("What is quantum computing?")
+            >>> async for chunk in stream:
+            ...     if chunk.content:
+            ...         print(chunk.content, end="", flush=True)
 
-            Async stream with citations:
-            >>> async for chunk in async_exa.stream_answer("Explain climate change", text=True):
-            ...     if chunk.text:
-            ...         print(chunk.text, end="")
+            Async stream with citations and cost:
+            >>> stream = await async_exa.stream_answer("Explain climate change", text=True)
+            >>> async for chunk in stream:
+            ...     if chunk.content:
+            ...         print(chunk.content, end="")
             ...     if chunk.citations:
             ...         print(f"\\nCitations: {[c.url for c in chunk.citations]}")
+            >>> if stream.cost_dollars:
+            ...     print(f"\\nCost: {stream.cost_dollars.total}")
         """
         _validate_user_location(user_location)
         options = {

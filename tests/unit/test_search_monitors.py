@@ -7,6 +7,7 @@ from exa_py.monitors.types import (
     SearchMonitor,
     SearchMonitorSearch,
     SearchMonitorWebhook,
+    UpdateSearchMonitorParams,
 )
 
 
@@ -73,6 +74,17 @@ class TestSearchMonitorsListAll:
         list(monitors_client.list_all(status="active"))
         call_args = mock_client.request.call_args
         assert "active" in str(call_args)
+
+    def test_monitor_status_passes_back_as_update_and_list_params(
+        self, monitors_client, mock_client
+    ):
+        monitor = SearchMonitor.model_validate({**_make_monitor("sm_1"), "status": "archived"})
+        update = UpdateSearchMonitorParams(status=monitor.status)
+        assert update.status == "archived"
+
+        mock_client.request.return_value = {"data": [], "hasMore": False, "nextCursor": None}
+        list(monitors_client.list_all(status=monitor.status))
+        assert "archived" in str(mock_client.request.call_args)
 
     def test_get_all_returns_list(self, monitors_client, mock_client):
         mock_client.request.return_value = {
@@ -234,3 +246,50 @@ class TestSearchMonitorRunOutputContent:
         }
         runs = monitors_client.runs.list("sm_123")
         assert runs.data[0].output.content == structured
+
+
+class TestSearchMonitorRunFailReason:
+    """Every ``failReason`` the API documents parses on ``get`` and ``list``."""
+
+    FAIL_REASONS = [
+        "api_key_invalid",
+        "insufficient_credits",
+        "invalid_params",
+        "rate_limited",
+        "source_not_available",
+        "forbidden",
+        "search_unavailable",
+        "search_failed",
+        "internal_error",
+    ]
+
+    def _make_failed_run(self, fail_reason: str) -> dict:
+        run = _make_run("run_1")
+        run.update(
+            status="failed",
+            failReason=fail_reason,
+            completedAt=None,
+            failedAt="2026-01-01T00:05:00Z",
+        )
+        return run
+
+    @pytest.mark.parametrize("fail_reason", FAIL_REASONS)
+    def test_get_failed_run(self, monitors_client, mock_client, fail_reason):
+        mock_client.request.return_value = self._make_failed_run(fail_reason)
+        run = monitors_client.runs.get("sm_123", "run_1")
+        assert run.fail_reason == fail_reason
+
+    @pytest.mark.parametrize("fail_reason", FAIL_REASONS)
+    def test_list_failed_runs(self, monitors_client, mock_client, fail_reason):
+        mock_client.request.return_value = {
+            "data": [self._make_failed_run(fail_reason)],
+            "hasMore": False,
+            "nextCursor": None,
+        }
+        runs = monitors_client.runs.list("sm_123")
+        assert runs.data[0].fail_reason == fail_reason
+
+    def test_get_failed_run_with_unlisted_reason(self, monitors_client, mock_client):
+        mock_client.request.return_value = self._make_failed_run("some_future_reason")
+        run = monitors_client.runs.get("sm_123", "run_1")
+        assert run.fail_reason == "some_future_reason"

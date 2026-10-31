@@ -42,6 +42,9 @@ _DEPRECATED_HIGHLIGHTS_FIELDS = {
     "numSentences": "highlights num_sentences is deprecated. Use max_characters instead.",
     "highlightsPerUrl": "highlights highlights_per_url is deprecated. Use max_characters instead.",
 }
+_DEPRECATED_CONTENTS_FIELDS = {
+    "livecrawl": "livecrawl is deprecated. Use max_age_hours instead. It cannot be combined with max_age_hours.",
+}
 
 # The endpoints whose request bodies take those fields.
 _DEPRECATION_CHECKED_ENDPOINTS = frozenset({"/search", "/contents", "/findSimilar"})
@@ -157,8 +160,8 @@ def warn_deprecated_fields(endpoint: str, body: Any) -> None:
 
     Reads the body as it is sent, after `extra_body` is merged, so a field
     set either way is caught and one an override removed is not. Checks the
-    top-level fields and the highlights fields, whether highlights sit at the
-    top level (/contents) or under `contents`.
+    top-level fields, and the contents and highlights fields, whether contents
+    options sit at the top level (/contents) or under `contents`.
 
     Args:
         endpoint: The API path the body is sent to; other endpoints are skipped.
@@ -170,10 +173,13 @@ def warn_deprecated_fields(endpoint: str, body: Any) -> None:
         message for field, message in _DEPRECATED_TOP_LEVEL_FIELDS.items() if body.get(field) is not None
     ]
     contents = body.get("contents")
-    for highlights in (
-        body.get("highlights"),
-        contents.get("highlights") if isinstance(contents, Mapping) else None,
-    ):
+    for options in (body, contents):
+        if not isinstance(options, Mapping):
+            continue
+        messages.extend(
+            message for field, message in _DEPRECATED_CONTENTS_FIELDS.items() if options.get(field) is not None
+        )
+        highlights = options.get("highlights")
         if isinstance(highlights, Mapping):
             messages.extend(
                 message
