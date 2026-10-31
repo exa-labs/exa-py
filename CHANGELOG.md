@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.27.0](https://github.com/exa-labs/exa-py/compare/v2.26.0...v2.27.0) (2026-10-31)
+
+
+### Features
+
+* add `cost_dollars` to streaming answer and search responses ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+* add forward-compatible handling for unknown response variants and enum values ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+* deprecate `livecrawl` in favor of `max_age_hours` ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+* preserve unknown `AgentRunStatus` and `AgentStopReason` values ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+* response enums also accept unlisted strings and response unions include `Unknown*` models, so exhaustive type checks need a default case; `websets.events.get` returns `UnknownEvent` instead of raising `ValueError` ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+* support JSON search responses in `stream_search` ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+
+
+### Bug Fixes
+
+* fix `AgentOutput` usage counts to accept fractional values ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+* fix response models for unknown research plan outputs and fractional Agent usage ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+
+
+### Documentation
+
+* document the `AgentDataSourceProvider` provider reference ([2fca0ea](https://github.com/exa-labs/exa-py/commit/2fca0eadb0489e8148404845563f56b9815d935f))
+
 ## [2.26.0](https://github.com/exa-labs/exa-py/compare/v2.25.0...v2.26.0) (2026-10-19)
 
 
