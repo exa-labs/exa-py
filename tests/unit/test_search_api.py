@@ -1413,3 +1413,22 @@ def test_research_client_attrs():
     exa = Exa(API_KEY)
     aexa = AsyncExa(API_KEY)
     assert hasattr(exa, "research") and hasattr(aexa, "research")
+
+
+def test_result_str_leaves_out_text_and_summary_that_were_not_returned():
+    result = exa_api.Result(url="https://example.com", id="1", title="Example", highlights=["A point"])
+
+    rendered = str(result)
+
+    assert "Text:" not in rendered
+    assert "Summary:" not in rendered
+    assert "Highlights: ['A point']" in rendered
+
+
+def test_result_str_shows_text_and_summary_when_returned():
+    result = exa_api.Result(url="https://example.com", id="1", text="Page text", summary="Short")
+
+    rendered = str(result)
+
+    assert "Text: Page text\n" in rendered
+    assert "Summary: Short\n" in rendered
