@@ -305,3 +305,106 @@ class TestIntegrationMocking:
         converted_schema = payload["outputSchema"]
         assert isinstance(converted_schema, dict)
         assert converted_schema["type"] == "object"
+
+
+class DescribedNestedModel(BaseModel):
+    child: SimpleModel = Field(description="Child-specific description")
+
+
+@pytest.mark.parametrize(
+    "annotations",
+    [
+        {"description": "A described child"},
+        {"title": "Child title"},
+        {"description": "A described child", "examples": [{"name": "Ada"}]},
+    ],
+)
+def test_a_ref_with_annotations_is_inlined_with_them(annotations):
+    from pydantic import create_model
+
+    model = create_model("AnnotatedParent", child=(SimpleModel, Field(**annotations)))
+    schema = _convert_schema_input(model)
+
+    assert "$defs" not in schema
+    assert "$ref" not in repr(schema)
+    child = schema["properties"]["child"]
+    for key, value in annotations.items():
+        assert child[key] == value
+    # The field's annotations must not drop the referenced model's own rules.
+    assert child["type"] == "object"
+    assert child["properties"]["name"]["type"] == "string"
+    assert "name" in child["required"]
+
+
+@pytest.mark.parametrize(
+    "constraints",
+    [
+        # The model requires `name`; the field adds `age`. Both must hold.
+        {"required": ["age"]},
+        # Must still see the properties the model's schema evaluates.
+        {"unevaluatedProperties": False},
+        {"allOf": [{"maxProperties": 2}]},
+    ],
+)
+def test_a_ref_with_constraints_keeps_them_beside_the_model_schema(constraints):
+    from pydantic import create_model
+
+    model = create_model(
+        "ConstrainedParent",
+        child=(SimpleModel, Field(description="A child", json_schema_extra=constraints)),
+    )
+    schema = _convert_schema_input(model)
+
+    assert "$ref" not in repr(schema)
+    child = schema["properties"]["child"]
+    model_schema = _convert_schema_input(SimpleModel)
+    # The $ref's siblings stay at the field's level, and the model schema is applied
+    # in place through allOf, ahead of any allOf entries the field already had.
+    assert child == {
+        "description": "A child",
+        **constraints,
+        "allOf": [model_schema, *constraints.get("allOf", [])],
+    }
+
+
+def test_an_unresolvable_ref_is_kept_and_its_siblings_are_still_inlined():
+    from exa_py.utils import InlineJsonSchemaGenerator
+
+    definitions = {"Child": {"type": "object", "properties": {"name": {"type": "string"}}}}
+    schema = {
+        "$ref": "https://example.com/external.json",
+        "properties": {"child": {"$ref": "#/$defs/Child"}},
+    }
+
+    inlined = InlineJsonSchemaGenerator()._inline_refs(schema, definitions)
+
+    assert inlined == {
+        "$ref": "https://example.com/external.json",
+        "properties": {"child": definitions["Child"]},
+    }
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_answer_sends_a_described_nested_schema_fully_inlined(asynchronous):
+    import asyncio
+    from unittest.mock import Mock
+    from exa_py import Exa, AsyncExa
+
+    response = {"answer": "test", "citations": []}
+    if asynchronous:
+        client = AsyncExa("test")
+        client.async_request = AsyncMock(return_value=response)
+        asyncio.run(client.answer("test", output_schema=DescribedNestedModel))
+        request_mock = client.async_request
+    else:
+        client = Exa("test")
+        client.request = Mock(return_value=response)
+        client.answer("test", output_schema=DescribedNestedModel)
+        request_mock = client.request
+
+    schema = request_mock.call_args.args[1]["outputSchema"]
+    assert "$defs" not in schema
+    assert "$ref" not in repr(schema)
+    child = schema["properties"]["child"]
+    assert child["description"] == "Child-specific description"
+    assert child["properties"]["name"]["type"] == "string"

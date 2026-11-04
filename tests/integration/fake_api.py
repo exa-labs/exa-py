@@ -544,6 +544,17 @@ def render_context(results: List[dict], options: Any) -> str:
     return _limit("\n".join(blocks), options)
 
 
+def result_scores(search_type: Optional[str], count: int) -> List[Optional[float]]:
+    """The `score` the hosted API returns on each of ``count`` ranked results.
+
+    ``search_type`` is None for the deprecated `/findSimilar`, which still returns
+    a legacy similarity score. `/search` returns none.
+    """
+    if search_type is None:
+        return [round(0.99 - 0.01 * index, 2) for index in range(1, count + 1)]
+    return [None] * count
+
+
 def search_response(
     documents: List[Document],
     request: Mapping[str, Any],
@@ -552,15 +563,16 @@ def search_response(
     search_type: Optional[str],
 ) -> dict:
     """The response body shared by `/search` and `/findSimilar`."""
+    scores = result_scores(search_type, len(documents))
     results = [
         render_result(
             document,
             contents,
             index=index,
-            score=round(0.99 - 0.01 * index, 2),
+            score=score,
             category=request.get("category"),
         )
-        for index, document in enumerate(documents, start=1)
+        for index, (document, score) in enumerate(zip(documents, scores), start=1)
     ]
     response: Dict[str, Any] = {
         "requestId": secrets.token_hex(16),

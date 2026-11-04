@@ -209,7 +209,8 @@ class GroundingEntry(BaseModel):
 
 class SearchMonitorRunOutput(BaseModel):
     results: Optional[List[Dict[str, Any]]] = None
-    content: Optional[Union[str, Dict[str, Any]]] = None
+    # Any JSON value. Text for a text outputSchema, otherwise JSON matching the schema.
+    content: Optional[Any] = None
     grounding: Optional[List[GroundingEntry]] = None
 
     model_config = {"populate_by_name": True}

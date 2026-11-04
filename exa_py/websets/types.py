@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, Annotated
 
-from pydantic import AnyUrl, Field, PositiveInt, Tag
+from pydantic import AnyUrl, Field, PositiveInt, Tag, model_validator
 from .core.base import ExaBaseModel
 from .._open_union import UNKNOWN_TAG, tag_discriminator
 
@@ -124,6 +124,14 @@ class CreateWebhookParameters(ExaBaseModel):
 
 
 class CreateWebsetParameters(ExaBaseModel):
+    title: Optional[str] = Field(
+        default=None,
+        description="Optional name that appears anywhere the Webset is displayed. Leave empty to have Exa generate one automatically.",
+    )
+    exclude: Optional[List[ExcludeItem]] = Field(
+        None,
+        description="Global exclusion sources (existing imports or websets) that apply to all operations within this Webset. Any results found within these sources will be omitted across all search and import operations.",
+    )
     search: Optional[CreateWebsetParametersSearch] = None
     """
     Create initial search for the Webset.
@@ -149,6 +157,10 @@ class CreateWebsetParameters(ExaBaseModel):
 
 
 class CreateWebsetSearchParameters(ExaBaseModel):
+    recall: Optional[bool] = Field(
+        default=None,
+        description="Whether to estimate how many relevant results exist for this search. The estimate is returned in the search's `recall` field.",
+    )
     count: int
     """
     Number of Items the Search will attempt to find.
@@ -515,25 +527,46 @@ class ScopeItem(ExaBaseModel):
     """
 
 
+class PreviewWebsetSearchParameters(ExaBaseModel):
+    """Search parameters for a Webset preview."""
+
+    query: str = Field(
+        min_length=1, max_length=5000,
+        description="Natural language search query describing what you are looking for.",
+    )
+    entity: Optional[WebsetEntity] = Field(
+        default=None,
+        description="Entity to search for. Detected from the query when omitted.",
+    )
+    count: Optional[int] = Field(
+        default=None, ge=1, le=10,
+        description="When query parameter search=true, the number of preview items to return. Defaults to 10.",
+    )
+
+
 class PreviewWebsetParameters(ExaBaseModel):
+    """Parameters for previewing a Webset query.
+
+    Use search for the nested request body. The flat query and entity fields
+    remain supported for compatibility.
     """
-    Parameters for previewing a webset query.
-    """
-    query: str
-    """
-    Natural language search query describing what you are looking for.
-    """
-    entity: Optional[Union[
-        WebsetCompanyEntity,
-        WebsetPersonEntity,
-        WebsetArticleEntity,
-        WebsetResearchPaperEntity,
-        WebsetCustomEntity,
-    ]] = None
-    """
-    Entity used to inform the decomposition. Not required - we automatically detect 
-    the entity from the query. Only use when you need more fine control.
-    """
+
+    search: Optional[PreviewWebsetSearchParameters] = Field(
+        default=None, description="Search parameters for the preview.",
+    )
+    query: Optional[str] = Field(
+        default=None, description="Natural language search query in the legacy flat request form.",
+    )
+    entity: Optional[WebsetEntity] = Field(
+        default=None, description="Entity to search for in the legacy flat request form.",
+    )
+
+    @model_validator(mode='after')
+    def _require_query_or_search(self) -> PreviewWebsetParameters:
+        """Require a query in either the nested or the legacy request shape."""
+        if self.search is None and self.query is None:
+            raise ValueError("Provide search with a query, or a legacy query")
+        return self
 
 
 class PreviewWebsetResponseEnrichment(ExaBaseModel):
@@ -582,6 +615,9 @@ class PreviewWebsetResponse(ExaBaseModel):
     """
     Response from previewing a webset query.
     """
+    items: List[WebsetItemPreview] = Field(
+        default_factory=list, description="Preview items matching the search criteria.",
+    )
     search: PreviewWebsetResponseSearch
     """
     Search analysis from the query.
@@ -875,6 +911,10 @@ class CreateWebsetParametersSearch(ExaBaseModel):
     """
     Create initial search for the Webset.
     """
+    recall: Optional[bool] = Field(
+        default=None,
+        description="Whether to estimate how many relevant results exist for this search. The estimate is returned in the search's `recall` field.",
+    )
 
     query: str = Field(
         ...,
@@ -1115,6 +1155,10 @@ class UpdateWebhookParameters(ExaBaseModel):
 
 
 class UpdateWebsetRequest(ExaBaseModel):
+    title: Optional[str] = Field(
+        default=None,
+        description="Optional name that appears anywhere the Webset is displayed.",
+    )
     metadata: Optional[Dict[str, str]] = None
     """
     Set of key-value pairs you want to associate with this object.
@@ -2097,6 +2141,17 @@ WebsetItemProperties = Annotated[
     ),
 ]
 """The properties of a Webset Item."""
+
+# Define after the property union to avoid reapplying discriminator metadata on rebuild.
+class WebsetItemPreview(ExaBaseModel):
+    """An item returned by a Webset preview."""
+
+    id: str = Field(description='The unique identifier for the preview item.')
+    properties: WebsetItemProperties = Field(description='The properties of the preview item.')
+    created_at: Annotated[datetime, Field(
+        alias='createdAt', description='The date and time the preview was created.',
+    )]
+
 
 MonitorBehavior = Annotated[
     Union[
