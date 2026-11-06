@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.28.0](https://github.com/exa-labs/exa-py/compare/v2.27.0...v2.28.0) (2026-11-06)
+
+
+### Features
+
+* add `exclude` to `CreateWebhookParameters` for global exclusion sources ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* add `list_all` and `get_all` pagination helpers for webset events, imports, and monitors ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* add `recall` options to webset search creation parameters ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* add `title` options to webhook create and update parameters ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* add nested search parameters and a `search` option to `websets.preview` ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* omit absent fields from Result string output ([8ca7b44](https://github.com/exa-labs/exa-py/commit/8ca7b446a18f3c6db52327c5544e868ca628d599))
+
+
+### Bug Fixes
+
+* add `exclude` to `CreateWebhookParameters` for global Webset source exclusions ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+* add `recall` to Webset search creation parameters ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+* add `title` to `CreateWebhookParameters` and `UpdateWebhookParameters` ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+* add nested search parameters and a `search` option to `WebsetsClient.preview` ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+* allow `GroundingEntry.content` to contain any JSON value ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+* fix `GroundingEntry.content` to accept any JSON value ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* fix `Result` string output to omit unavailable text and summaries ([8ca7b44](https://github.com/exa-labs/exa-py/commit/8ca7b446a18f3c6db52327c5544e868ca628d599))
+* fix JSON Schema inlining for `$ref` fields with annotations or constraints ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+* fix JSON schema inlining for referenced definitions with sibling constraints ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+
+
+### Documentation
+
+* document `Result.highlight_scores` as a legacy field no longer returned by the API ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* document `Result.score` as a legacy field absent from current search results ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* document `score` as a legacy field that is absent from current search results ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+* document that `system_prompt` and `output_schema` exclude lite searches ([6083229](https://github.com/exa-labs/exa-py/commit/6083229aa5478defbe8108e4481015753435018d))
+* document that `system_prompt` and `output_schema` exclude the `lite` search type ([31fa7b6](https://github.com/exa-labs/exa-py/commit/31fa7b6c710ca8a1abf2f0faaba3f3d327a93b72))
+
 ## [2.27.0](https://github.com/exa-labs/exa-py/compare/v2.26.0...v2.27.0) (2026-10-31)
 
 
