@@ -1234,7 +1234,7 @@ class Result(_Result):
         text (str, optional): The text content of the page.
         summary (str, optional): A summary of the page content.
         highlights (List[str], optional): Relevant sentences from the page.
-        highlight_scores (List[float], optional): Scores for each highlight.
+        highlight_scores (List[float], optional): Legacy field. The API no longer returns it.
     """
 
     text: Optional[str] = None

@@ -524,7 +524,6 @@ def render_result(
     if contents.get("highlights"):
         highlights = render_highlights(document, contents["highlights"])
         result["highlights"] = highlights
-        result["highlightScores"] = [0.9 - 0.1 * i for i in range(len(highlights))]
     if contents.get("summary"):
         result["summary"] = render_summary(document, contents["summary"])
     entities = render_entities(document, index, category)
