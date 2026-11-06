@@ -25,7 +25,7 @@ from .webhooks import WebsetWebhooksClient, AsyncWebsetWebhooksClient
 from .monitors import MonitorsClient, AsyncMonitorsClient
 from .imports import ImportsClient, AsyncImportsClient
 from .events import EventsClient, AsyncEventsClient
-from ..request_options import ExtraRequestOptions, options_for_next_page
+from ..request_options import ExtraRequestOptions, merge_query, options_for_next_page
 
 class WebsetsClient(WebsetsBaseClient):
     """Client for managing Websets."""
@@ -56,7 +56,7 @@ class WebsetsClient(WebsetsBaseClient):
         response = self.request("/v0/websets", data=params, options=options, **extra)
         return Webset.model_validate(response)
 
-    def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters], **extra: Unpack[ExtraRequestOptions]) -> PreviewWebsetResponse:
+    def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters], *, search: Optional[bool] = None, **extra: Unpack[ExtraRequestOptions]) -> PreviewWebsetResponse:
         """Preview a webset query.
         
         Returns how a search query will be interpreted before you create a Webset,
@@ -64,11 +64,21 @@ class WebsetsClient(WebsetsBaseClient):
         
         Args:
             params (PreviewWebsetParameters): The parameters for previewing a webset.
+            search (bool, optional): Whether to search for preview items.
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             PreviewWebsetResponse: How the query will be interpreted.
+
+        Examples:
+            preview = exa.websets.preview(
+                {"search": {"query": "Climate tech companies", "count": 3}},
+                search=True,
+            )
+            print(preview.items)
         """
+        if search is not None:
+            extra = {**extra, "extra_query": merge_query({"search": search}, extra.get("extra_query"))}
         response = self.request("/v0/websets/preview", data=params, **extra)
         return PreviewWebsetResponse.model_validate(response)
 
@@ -246,16 +256,26 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         response = await self.request("/v0/websets", data=params, options=options, **extra)
         return Webset.model_validate(response)
 
-    async def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters], **extra: Unpack[ExtraRequestOptions]) -> PreviewWebsetResponse:
+    async def preview(self, params: Union[Dict[str, Any], PreviewWebsetParameters], *, search: Optional[bool] = None, **extra: Unpack[ExtraRequestOptions]) -> PreviewWebsetResponse:
         """Preview a Webset before creating it.
         
         Args:
             params (PreviewWebsetParameters): The parameters for previewing a webset.
+            search (bool, optional): Whether to search for preview items.
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         
         Returns:
             PreviewWebsetResponse: The preview results.
+
+        Examples:
+            preview = await exa.websets.preview(
+                {"search": {"query": "Climate tech companies", "count": 3}},
+                search=True,
+            )
+            print(preview.items)
         """
+        if search is not None:
+            extra = {**extra, "extra_query": merge_query({"search": search}, extra.get("extra_query"))}
         response = await self.request("/v0/websets/preview", data=params, **extra)
         return PreviewWebsetResponse.model_validate(response)
 
