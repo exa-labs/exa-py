@@ -7,7 +7,7 @@ import io
 import asyncio
 import requests
 import httpx
-from typing import Dict, Any, Union, Optional
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Union
 from typing_extensions import Unpack
 from pathlib import Path
 
@@ -21,7 +21,7 @@ from ..types import (
 from ...errors import reporting_failover_connect_timeouts, typed_timeouts
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
-from ...request_options import ExtraRequestOptions
+from ...request_options import ExtraRequestOptions, options_for_next_page
 
 class ImportsClient(WebsetsBaseClient):
     """Client for managing Imports."""
@@ -192,6 +192,55 @@ class ImportsClient(WebsetsBaseClient):
                 
             time.sleep(poll_interval)
 
+    def list_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> Iterator[Import]:
+        """Iterate through all Imports, handling pagination automatically.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Yields:
+            Import: Each import.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+            for import_obj in exa.websets.imports.list_all():
+                print(import_obj.id)
+        """
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit, **extra)
+            for import_obj in response.data:
+                yield import_obj
+
+            if not response.has_more or not response.next_cursor:
+                break
+
+            cursor = response.next_cursor
+            extra = options_for_next_page(extra)
+
+    def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Import]:
+        """Collect all Imports into a list.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Returns:
+            List[Import]: All imports.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+            imports = exa.websets.imports.get_all()
+        """
+        return list(self.list_all(limit=limit, **extra))
+
 
 class AsyncImportsClient(WebsetsAsyncBaseClient):
     """Async client for managing Imports."""
@@ -361,4 +410,56 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
             if asyncio.get_event_loop().time() - start_time > timeout:
                 raise TimeoutError(f"Import {import_id} did not complete within {timeout} seconds")
                 
-            await asyncio.sleep(poll_interval) 
+            await asyncio.sleep(poll_interval)
+
+    async def list_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> AsyncIterator[Import]:
+        """Iterate through all Imports, handling pagination automatically.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Yields:
+            Import: Each import.
+
+        Examples:
+            from exa_py import AsyncExa
+            import os
+
+            exa = AsyncExa(os.environ["EXA_API_KEY"])
+            async for import_obj in exa.websets.imports.list_all():
+                print(import_obj.id)
+        """
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit, **extra)
+            for import_obj in response.data:
+                yield import_obj
+
+            if not response.has_more or not response.next_cursor:
+                break
+
+            cursor = response.next_cursor
+            extra = options_for_next_page(extra)
+
+    async def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Import]:
+        """Collect all Imports into a list.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Returns:
+            List[Import]: All imports.
+
+        Examples:
+            from exa_py import AsyncExa
+            import os
+
+            exa = AsyncExa(os.environ["EXA_API_KEY"])
+            imports = await exa.websets.imports.get_all()
+        """
+        imports = []
+        async for import_obj in self.list_all(limit=limit, **extra):
+            imports.append(import_obj)
+        return imports

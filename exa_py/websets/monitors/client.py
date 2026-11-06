@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Any, Union, Optional
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Union
 from typing_extensions import Unpack
 
 from ..types import (
@@ -12,7 +12,7 @@ from ..types import (
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
 from .runs import MonitorRunsClient
-from ...request_options import ExtraRequestOptions
+from ...request_options import ExtraRequestOptions, options_for_next_page
 
 class MonitorsClient(WebsetsBaseClient):
     """Client for managing Monitors."""
@@ -100,6 +100,57 @@ class MonitorsClient(WebsetsBaseClient):
         response = self.request(f"/v0/monitors/{monitor_id}", method="DELETE", **extra)
         return Monitor.model_validate(response)
 
+    def list_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> Iterator[Monitor]:
+        """Iterate through all Monitors, handling pagination automatically.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            webset_id (str, optional): The id of the Webset to list monitors for.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Yields:
+            Monitor: Each monitor.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+            for monitor in exa.websets.monitors.list_all(webset_id="ws_123"):
+                print(monitor.id)
+        """
+        cursor = None
+        while True:
+            response = self.list(cursor=cursor, limit=limit, webset_id=webset_id, **extra)
+            for monitor in response.data:
+                yield monitor
+
+            if not response.has_more or not response.next_cursor:
+                break
+
+            cursor = response.next_cursor
+            extra = options_for_next_page(extra)
+
+    def get_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Monitor]:
+        """Collect all Monitors into a list.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            webset_id (str, optional): The id of the Webset to list monitors for.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Returns:
+            List[Monitor]: All monitors.
+
+        Examples:
+            from exa_py import Exa
+            import os
+
+            exa = Exa(os.environ["EXA_API_KEY"])
+            monitors = exa.websets.monitors.get_all(webset_id="ws_123")
+        """
+        return list(self.list_all(limit=limit, webset_id=webset_id, **extra))
+
 
 class AsyncMonitorsClient(WebsetsAsyncBaseClient):
     """Async client for managing Monitors."""
@@ -155,4 +206,58 @@ class AsyncMonitorsClient(WebsetsAsyncBaseClient):
             **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
         """
         response = await self.request(f"/v0/monitors/{monitor_id}", method="DELETE", **extra)
-        return Monitor.model_validate(response) 
+        return Monitor.model_validate(response)
+
+    async def list_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> AsyncIterator[Monitor]:
+        """Iterate through all Monitors, handling pagination automatically.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            webset_id (str, optional): The id of the Webset to list monitors for.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Yields:
+            Monitor: Each monitor.
+
+        Examples:
+            from exa_py import AsyncExa
+            import os
+
+            exa = AsyncExa(os.environ["EXA_API_KEY"])
+            async for monitor in exa.websets.monitors.list_all(webset_id="ws_123"):
+                print(monitor.id)
+        """
+        cursor = None
+        while True:
+            response = await self.list(cursor=cursor, limit=limit, webset_id=webset_id, **extra)
+            for monitor in response.data:
+                yield monitor
+
+            if not response.has_more or not response.next_cursor:
+                break
+
+            cursor = response.next_cursor
+            extra = options_for_next_page(extra)
+
+    async def get_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Monitor]:
+        """Collect all Monitors into a list.
+
+        Args:
+            limit (int, optional): The number of results to return per page (1-200, default 25).
+            webset_id (str, optional): The id of the Webset to list monitors for.
+            **extra: Per-call request options (``extra_headers``, ``extra_query``, ``extra_body``).
+
+        Returns:
+            List[Monitor]: All monitors.
+
+        Examples:
+            from exa_py import AsyncExa
+            import os
+
+            exa = AsyncExa(os.environ["EXA_API_KEY"])
+            monitors = await exa.websets.monitors.get_all(webset_id="ws_123")
+        """
+        monitors = []
+        async for monitor in self.list_all(limit=limit, webset_id=webset_id, **extra):
+            monitors.append(monitor)
+        return monitors

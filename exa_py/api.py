@@ -614,7 +614,7 @@ SEARCH_OPTIONS_TYPES = {
     "additional_queries": [
         list
     ],  # Alternative query formulations for deep search variants (max 5). Only used when type is deep-lite/deep/deep-reasoning.
-    "system_prompt": [str],  # Instructions for search planning and final synthesis across all search types.
+    "system_prompt": [str],  # Instructions for search planning and final synthesis on every search type except lite.
     "output_schema": [dict],  # Search output schema: {"type":"text"} or {"type":"object", ...}
     "objective": [str],  # The broader goal the search serves, beyond the query itself (max 4096 chars).
     "user_identifier": [str],  # Opaque, non-personal identifier of the end user the request is made for.
@@ -1143,7 +1143,9 @@ class _Result:
         title (str): The title of the search result.
         url (str): The URL of the search result.
         id (str): The temporary ID for the document.
-        score (float, optional): A number from 0 to 1 representing similarity.
+        score (float, optional): Legacy field. Current search types, including the
+            default "auto", do not return it, so it is None. Results arrive in relevance
+            order, so keep that order instead of sorting by score.
         published_date (str, optional): An estimate of the creation date, from parsing HTML content.
         author (str, optional): The author of the content (if available).
         image (str, optional): A URL to an image associated with the content (if available).
@@ -1232,7 +1234,7 @@ class Result(_Result):
         text (str, optional): The text content of the page.
         summary (str, optional): A summary of the page content.
         highlights (List[str], optional): Relevant sentences from the page.
-        highlight_scores (List[float], optional): Scores for each highlight.
+        highlight_scores (List[float], optional): Legacy field. The API no longer returns it.
     """
 
     text: Optional[str] = None
@@ -2579,13 +2581,13 @@ class Exa:
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             system_prompt (str, optional): Instructions that guide both the search process and
                 the final returned result. Use this to prefer certain sources, emphasize novelty,
-                avoid duplicates, or constrain the response style. Supported for all search types.
+                avoid duplicates, or constrain the response style. Supported for every search type except 'lite'.
             output_schema (DeepOutputSchema, optional): Search output schema for structured
                 synthesis. When provided, the API returns synthesized output in ``output``.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Supported for all search types.
+                Supported for every search type except 'lite'.
             objective (str, optional): The broader goal this search serves: the task the
                 caller is working on, beyond the query itself. When an agent picks the query
                 as one step of a larger task, pass the goal of that step: which documents
@@ -4252,13 +4254,13 @@ class AsyncExa(Exa):
                 Example: ["machine learning", "ML algorithms", "neural networks"]
             system_prompt (str, optional): Instructions that guide both the search process and
                 the final returned result. Use this to prefer certain sources, emphasize novelty,
-                avoid duplicates, or constrain the response style. Supported for all search types.
+                avoid duplicates, or constrain the response style. Supported for every search type except 'lite'.
             output_schema (DeepOutputSchema, optional): Search output schema for structured
                 synthesis. When provided, the API returns synthesized output in ``output``.
                 Use ``{"type": "text", "description": ...}`` for plain text output or
                 ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON.
                 For object schemas, max nesting depth is 2 and max total properties is 10.
-                Supported for all search types.
+                Supported for every search type except 'lite'.
             objective (str, optional): The broader goal this search serves: the task the
                 caller is working on, beyond the query itself. When an agent picks the query
                 as one step of a larger task, pass the goal of that step: which documents
@@ -4586,6 +4588,7 @@ class AsyncExa(Exa):
             data.get("resolvedSearchType"),
             data.get("autoDate"),
             context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
+            output=parse_deep_search_output(data.get("output")),
             cost_dollars=cost_dollars,
             search_time=data.get("searchTime"),
             warnings=parse_search_warnings(data.get("warnings")),

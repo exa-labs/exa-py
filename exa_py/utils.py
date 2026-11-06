@@ -99,6 +99,11 @@ class ExaOpenAICompletion(ChatCompletion):
 
 JSONSchemaInput = Union[type[BaseModel], dict[str, Any]]
 
+# Keywords that describe a schema without constraining what it accepts.
+_ANNOTATION_KEYWORDS = frozenset(
+    {"title", "description", "examples", "default", "deprecated", "readOnly", "writeOnly", "$comment"}
+)
+
 
 class InlineJsonSchemaGenerator(GenerateJsonSchema):
     """Custom JSON schema generator that inlines all schemas without creating $defs references."""
@@ -120,28 +125,45 @@ class InlineJsonSchemaGenerator(GenerateJsonSchema):
         return result
 
     def _inline_refs(self, obj, definitions):
-        """Recursively replace all $ref with actual definitions."""
+        """Recursively replace every resolvable ``#/$defs/`` reference with its definition.
+
+        A ``$ref`` with sibling keywords applies the definition in place beside the
+        siblings. When every sibling is an annotation (a field's description or
+        title), they are merged into the definition and win over its own. Otherwise
+        the siblings stay where they were and the definition moves into their
+        ``allOf``, which applies it in place exactly as the ``$ref`` did, so a
+        keyword that depends on what its neighbours evaluated
+        (``unevaluatedProperties``) or one the definition also sets (``required``)
+        keeps its meaning. A reference that cannot be resolved is kept, and its
+        siblings are still inlined.
+        """
         if isinstance(obj, dict):
-            if "$ref" in obj and len(obj) == 1:  # Pure ref object
-                ref_path = obj["$ref"]
-                if ref_path.startswith("#/$defs/"):
-                    def_name = ref_path[8:]  # Remove '#/$defs/'
-                    if def_name in definitions:
-                        # Replace the ref with the actual definition (recursively processed)
-                        return self._inline_refs(definitions[def_name], definitions)
-                return obj  # Return as-is if we can't resolve
-            else:
-                # Process all values in the dict
-                return {
-                    key: self._inline_refs(value, definitions)
-                    for key, value in obj.items()
-                }
+            definition = self._ref_definition(obj, definitions)
+            siblings = {
+                key: self._inline_refs(value, definitions)
+                for key, value in obj.items()
+                if definition is None or key != "$ref"
+            }
+            if definition is None:
+                return siblings
+            resolved = self._inline_refs(definition, definitions)
+            if siblings.keys() <= _ANNOTATION_KEYWORDS:
+                return {**resolved, **siblings}
+            return {**siblings, "allOf": [resolved, *siblings.get("allOf", [])]}
         elif isinstance(obj, list):
             # Process all items in the list
             return [self._inline_refs(item, definitions) for item in obj]
         else:
             # Primitive value, return as-is
             return obj
+
+    @staticmethod
+    def _ref_definition(obj, definitions):
+        """The definition ``obj["$ref"]`` points at in ``definitions``, or None."""
+        ref_path = obj.get("$ref")
+        if not isinstance(ref_path, str) or not ref_path.startswith("#/$defs/"):
+            return None
+        return definitions.get(ref_path[len("#/$defs/"):])
 
 
 def _convert_schema_input(schema_input: "JSONSchemaInput") -> dict[str, Any]:

@@ -82,7 +82,7 @@ Search `output_schema` modes:
 - `{"type": "text", "description": "..."}`: return plain text in `output.content`
 - `{"type": "object", ...}`: return structured JSON in `output.content`
 
-`system_prompt` and `output_schema` are supported on every search type.
+`system_prompt` and `output_schema` are supported on every search type except `lite`.
 Search streaming is available via `stream_search(...)`, which yields OpenAI-style chat completion chunks.
 A search without `output_schema` has no text to stream. Its stream yields one chunk with the results as `citations`.
 

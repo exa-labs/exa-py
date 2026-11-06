@@ -98,8 +98,8 @@ deep_result = exa.search(
 | moderation | Optional[bool] | If True, the search results will be moderated for safety. | None |
 | user_location | Optional[Union[str, [UserLocation](#userlocation)]] | The end user's location, as a two-letter ISO 3166-1 country code or a [UserLocation](#userlocation) dict. | None |
 | additional_queries | Optional[List[str]] | Alternative query formulations for deep search to skip automatic LLM-based query expansion. Max 5 queries. Only applicable when type is 'deep-lite', 'deep', or 'deep-reasoning'. Example: ["machine learning", "ML algorithms", "neural networks"] | None |
-| system_prompt | Optional[str] | Instructions that guide both the search process and the final returned result. Use this to prefer certain sources, emphasize novelty, avoid duplicates, or constrain the response style. Supported for all search types. | None |
-| output_schema | Optional[[DeepOutputSchema](#deepoutputschema)] | Search output schema for structured synthesis. When provided, the API returns synthesized output in ``output``. Use ``{"type": "text", "description": ...}`` for plain text output or ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON. For object schemas, max nesting depth is 2 and max total properties is 10. Supported for all search types. | None |
+| system_prompt | Optional[str] | Instructions that guide both the search process and the final returned result. Use this to prefer certain sources, emphasize novelty, avoid duplicates, or constrain the response style. Supported for every search type except 'lite'. | None |
+| output_schema | Optional[[DeepOutputSchema](#deepoutputschema)] | Search output schema for structured synthesis. When provided, the API returns synthesized output in ``output``. Use ``{"type": "text", "description": ...}`` for plain text output or ``{"type": "object", "properties": ..., "required": ...}`` for structured JSON. For object schemas, max nesting depth is 2 and max total properties is 10. Supported for every search type except 'lite'. | None |
 | objective | Optional[str] | The broader goal this search serves: the task the caller is working on, beyond the query itself. When an agent picks the query as one step of a larger task, pass the goal of that step: which documents should rank first, which should be excluded, and what to pull from them. Up to 4096 characters. | None |
 | user_identifier | Optional[str] | An opaque ID you assign to the end user this request is made for, such as a UUID, used to attribute usage to that end user. Must not contain personal information such as an email address, phone number, username or name. Hash such values before sending them. 1 to 64 characters: letters, digits, ``_`` and ``-``. Retained even when your team has Zero Data Retention enabled. Does not affect results. | None |
 | betas | Optional[Sequence[str]] | Exa-Beta tokens to send with the request (e.g. ``[DYNAMIC_HIGHLIGHTS_BETA]`` for Dynamic Highlights). | None |
@@ -140,7 +140,7 @@ deep_result = exa.search(
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -226,7 +226,7 @@ similar_results = exa.search(
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -282,7 +282,7 @@ contents = exa.get_contents([
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -1131,7 +1131,7 @@ A class representing the base fields of a search result.
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -1151,7 +1151,7 @@ A class representing a search result with optional text, summary, and highlights
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -1164,7 +1164,7 @@ A class representing a search result with optional text, summary, and highlights
 | text | Optional[str] | The text content of the page. |
 | summary | Optional[str] | A summary of the page content. |
 | highlights | Optional[List[str]] | Relevant sentences from the page. |
-| highlight_scores | Optional[List[float]] | Scores for each highlight. |
+| highlight_scores | Optional[List[float]] | Legacy field. The API no longer returns it. |
 
 #### `ResultWithText`
 
@@ -1175,7 +1175,7 @@ A class representing a search result with text present.
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -1196,7 +1196,7 @@ A class representing a search result with summary present.
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -1217,7 +1217,7 @@ A class representing a search result with text and summary present.
 | url | str | The URL of the search result. |
 | id | str | The temporary ID for the document. |
 | title | Optional[str] | The title of the search result. |
-| score | Optional[float] | A number from 0 to 1 representing similarity. |
+| score | Optional[float] | Legacy field. Current search types, including the default "auto", do not return it, so it is None. Results arrive in relevance order, so keep that order instead of sorting by score. |
 | published_date | Optional[str] | An estimate of the creation date, from parsing HTML content. |
 | author | Optional[str] | The author of the content (if available). |
 | image | Optional[str] | A URL to an image associated with the content (if available). |
@@ -1849,7 +1849,7 @@ deprecated and kept only for backward compatibility.
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | results | Optional[List[Dict[str, Any]]] | - |
-| content | Optional[Union[str, Dict[str, Any]]] | - |
+| content | Optional[Any] | - |
 | grounding | Optional[List[[GroundingEntry](#groundingentry)]] | - |
 
 #### `SearchMonitor`
