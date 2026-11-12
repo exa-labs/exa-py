@@ -343,7 +343,7 @@
       {"name": "highlights", "type": "Union[HighlightsContentsOptions, Literal[True]]", "description": "Options for highlight extraction, or True for defaults."},
       {"name": "summary", "type": "Union[SummaryContentsOptions, Literal[True]]", "description": "Options for summary generation, or True for defaults."},
       {"name": "context", "type": "Union[ContextContentsOptions, Literal[True]]", "description": "Deprecated. Use `highlights` or `text`."},
-      {"name": "max_age_hours", "type": "int", "description": "Maximum age of cached content in hours. If content is older, it will be fetched fresh. Special values: 0 = always fetch fresh content, -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days."},
+      {"name": "max_age_hours", "type": "int", "description": "Maximum age of cached content in hours. If content is older, it will be fetched fresh. If that fetch fails, the cached copy is currently returned with status \"success\" and source \"cached\", the same as a cache hit. Special values: 0 = always fetch fresh content (a failed fetch gives that URL status \"error\" and no result), -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days."},
       {"name": "subpages", "type": "int", "description": "DEPRECATED FIELD - do not use in new code. Subpage crawling on search is deprecated. Call `get_contents(urls, subpages=...)` instead."},
       {"name": "subpage_target", "type": "Union[str, List[str]]", "description": "DEPRECATED FIELD - do not use in new code. Call `get_contents(urls, subpage_target=...)` instead."},
       {"name": "extras", "type": "ExtrasOptions", "description": "Additional extraction options (links, images)."}
