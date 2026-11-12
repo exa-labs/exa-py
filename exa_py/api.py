@@ -882,8 +882,11 @@ class ContentsOptions(TypedDict, total=False):
         summary (SummaryContentsOptions | True): Options for summary generation, or True for defaults.
         context (ContextContentsOptions | True): Deprecated. Use ``highlights`` or ``text``.
         max_age_hours (int): Maximum age of cached content in hours. If content is older, it will be
-            fetched fresh. Special values: 0 = always fetch fresh content,
-            -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days.
+            fetched fresh. If that fetch fails, the cached copy is currently returned with status
+            "success" and source "cached", the same as a cache hit. Special values: 0 = always fetch
+            fresh content (a failed fetch gives that URL status "error" and no result),
+            -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages
+            older than 7 days.
         livecrawl (str): Deprecated. Use ``max_age_hours`` instead. Does not guarantee freshly fetched
             content. Cannot be combined with ``max_age_hours``.
         snapshot_as_of (str): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
@@ -3056,8 +3059,11 @@ class Exa:
             text (TextContentsOptions | True, optional): Options for text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
-                it will be fetched fresh. Special values: 0 = always fetch fresh content,
-                -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
+                it will be fetched fresh. If that fetch fails, the cached copy is currently returned
+                with status "success" and source "cached", the same as a cache hit. Special values:
+                0 = always fetch fresh content (a failed fetch gives that URL status "error" and no
+                result), -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages
+                older than 7 days.
             livecrawl (str, optional): Deprecated. Use ``max_age_hours`` instead. Does not guarantee
                 freshly fetched content. Cannot be combined with ``max_age_hours``.
             snapshot_as_of (str, optional): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
@@ -4725,8 +4731,11 @@ class AsyncExa(Exa):
             text (TextContentsOptions | True, optional): Options for text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
-                it will be fetched fresh. Special values: 0 = always fetch fresh content,
-                -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
+                it will be fetched fresh. If that fetch fails, the cached copy is currently returned
+                with status "success" and source "cached", the same as a cache hit. Special values:
+                0 = always fetch fresh content (a failed fetch gives that URL status "error" and no
+                result), -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages
+                older than 7 days.
             livecrawl (str, optional): Deprecated. Use ``max_age_hours`` instead. Does not guarantee
                 freshly fetched content. Cannot be combined with ``max_age_hours``.
             snapshot_as_of (str, optional): ISO 8601 datetime. Return the newest stored version at or before this instant instead of live content.
