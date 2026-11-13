@@ -2860,6 +2860,7 @@ class Exa:
         # If user didn't ask for any particular content, default to text with max characters
         if (
             "text" not in options
+            and "highlights" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -3113,6 +3114,7 @@ class Exa:
 
         if (
             "text" not in options
+            and "highlights" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -3547,7 +3549,11 @@ class Exa:
             if v is not None:
                 options[k] = v
         # Default to text with max characters if none specified
-        if "text" not in options and "summary" not in options:
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+        ):
             options["text"] = {"max_characters": DEFAULT_MAX_CHARACTERS}
 
         merged_options = {}
@@ -4529,6 +4535,7 @@ class AsyncExa(Exa):
         # If user didn't ask for any particular content, default to text with max characters
         if (
             "text" not in options
+            and "highlights" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -4782,6 +4789,7 @@ class AsyncExa(Exa):
 
         if (
             "text" not in options
+            and "highlights" not in options
             and "summary" not in options
             and "extras" not in options
         ):
@@ -5185,7 +5193,11 @@ class AsyncExa(Exa):
             if v is not None:
                 options[k] = v
         # Default to text with max characters if none specified
-        if "text" not in options and "summary" not in options:
+        if (
+            "text" not in options
+            and "highlights" not in options
+            and "summary" not in options
+        ):
             options["text"] = {"max_characters": DEFAULT_MAX_CHARACTERS}
 
         merged_options = {}
