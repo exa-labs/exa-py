@@ -9,7 +9,7 @@ from ..types import (
 )
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
-from ...request_options import ExtraRequestOptions, options_for_next_page
+from ...request_options import ExtraRequestOptions, apaginate, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 class WebsetItemsClient(WebsetsBaseClient):
     """Client for managing Webset Items."""
@@ -47,17 +47,12 @@ class WebsetItemsClient(WebsetsBaseClient):
         Yields:
             WebsetItem: Each item in the webset.
         """
-        cursor = None
-        while True:
-            response = self.list(webset_id, cursor=cursor, limit=limit, source_id=source_id, **extra)
-            for item in response.data:
-                yield item
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(
+                webset_id, cursor=cursor, limit=limit, source_id=source_id, **extra
+            ),
+            extra,
+        )
 
     def get_all(self, webset_id: str, *, limit: Optional[int] = None, source_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> List[WebsetItem]:
         """Collect all Items from a Webset into a list.
@@ -138,17 +133,13 @@ class AsyncWebsetItemsClient(WebsetsAsyncBaseClient):
         Yields:
             WebsetItem: Each item in the webset.
         """
-        cursor = None
-        while True:
-            response = await self.list(webset_id, cursor=cursor, limit=limit, source_id=source_id, **extra)
-            for item in response.data:
-                yield item
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for item in apaginate(
+            lambda cursor, extra: self.list(
+                webset_id, cursor=cursor, limit=limit, source_id=source_id, **extra
+            ),
+            extra,
+        ):
+            yield item
 
     async def get_all(self, webset_id: str, *, limit: Optional[int] = None, source_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> List[WebsetItem]:
         """Collect all Items from a Webset into a list.
@@ -162,10 +153,7 @@ class AsyncWebsetItemsClient(WebsetsAsyncBaseClient):
         Returns:
             List[WebsetItem]: All items in the webset.
         """
-        items = []
-        async for item in self.list_all(webset_id, limit=limit, source_id=source_id, **extra):
-            items.append(item)
-        return items
+        return [item async for item in self.list_all(webset_id, limit=limit, source_id=source_id, **extra)]
 
     async def get(self, webset_id: str, id: str, **extra: Unpack[ExtraRequestOptions]) -> WebsetItem:
         """Get an Item by ID.

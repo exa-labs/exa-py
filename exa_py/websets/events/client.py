@@ -33,7 +33,7 @@ from ..types import (  # noqa: F401
 )
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
-from ...request_options import ExtraRequestOptions, options_for_next_page
+from ...request_options import ExtraRequestOptions, apaginate, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 _EVENT_ADAPTER: TypeAdapter[Event] = TypeAdapter(Event)
 """Validates one event. A type this SDK version does not list parses as ``UnknownEvent``."""
@@ -101,17 +101,10 @@ class EventsClient(WebsetsBaseClient):
             for event in exa.websets.events.list_all(types=["webset.item.created"]):
                 print(event.id)
         """
-        cursor = None
-        while True:
-            response = self.list(cursor=cursor, limit=limit, types=types, **extra)
-            for event in response.data:
-                yield event
-
-            if not response.has_more or not response.next_cursor:
-                break
-
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, types=types, **extra),
+            extra,
+        )
 
     def get_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Event]:
         """Collect all Events into a list.
@@ -197,17 +190,11 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
             async for event in exa.websets.events.list_all(types=["webset.item.created"]):
                 print(event.id)
         """
-        cursor = None
-        while True:
-            response = await self.list(cursor=cursor, limit=limit, types=types, **extra)
-            for event in response.data:
-                yield event
-
-            if not response.has_more or not response.next_cursor:
-                break
-
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for event in apaginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, types=types, **extra),
+            extra,
+        ):
+            yield event
 
     async def get_all(self, *, limit: Optional[int] = None, types: Optional[List[EventType]] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Event]:
         """Collect all Events into a list.
@@ -227,7 +214,4 @@ class AsyncEventsClient(WebsetsAsyncBaseClient):
             exa = AsyncExa(os.environ["EXA_API_KEY"])
             events = await exa.websets.events.get_all(types=["webset.item.created"])
         """
-        events = []
-        async for event in self.list_all(limit=limit, types=types, **extra):
-            events.append(event)
-        return events
+        return [event async for event in self.list_all(limit=limit, types=types, **extra)]

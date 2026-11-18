@@ -1,7 +1,8 @@
 """Shared fixtures for integration tests.
 
 The suite runs against the hosted API when ``EXA_API_KEY`` is set and skips
-otherwise. ``EXA_BASE_URL`` points the clients at another server.
+otherwise. ``EXA_BASE_URL`` points the clients at another server, as it does
+for any client created without ``base_url``.
 
 ``pytest tests/integration --fake-api`` runs the suite offline instead: it
 starts the local fake API server (``fake_api.py``) on a loopback port and
@@ -13,7 +14,6 @@ import os
 import pytest
 from exa_py import Exa, AsyncExa
 
-from .environment import client_args
 from .fake_api import FakeExaApi
 
 _FAKE_API = pytest.StashKey[FakeExaApi]()
@@ -68,7 +68,7 @@ def exa():
     api_key = os.getenv("EXA_API_KEY")
     if not api_key:
         pytest.skip("EXA_API_KEY environment variable not set")
-    return Exa(*client_args(api_key))
+    return Exa(api_key)
 
 
 @pytest.fixture
@@ -80,5 +80,5 @@ async def async_exa():
     api_key = os.getenv("EXA_API_KEY")
     if not api_key:
         pytest.skip("EXA_API_KEY environment variable not set")
-    async with AsyncExa(*client_args(api_key)) as exa:
+    async with AsyncExa(api_key) as exa:
         yield exa

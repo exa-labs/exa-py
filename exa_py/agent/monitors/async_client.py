@@ -25,7 +25,7 @@ from .types import (
     ListAgentMonitorEntitiesResponse,
     ListAgentMonitorsResponse,
 )
-from ...request_options import ExtraRequestOptions, options_for_next_page
+from ...request_options import ExtraRequestOptions, apaginate, options_for_next_page  # options_for_next_page: kept importable from here
 
 _DEFAULT_BACKTEST_POLL_INTERVAL_MS = 2000
 _DEFAULT_BACKTEST_POLL_TIMEOUT_MS = 3600000
@@ -151,21 +151,14 @@ class AsyncAgentMonitorEntitiesClient(AsyncAgentMonitorsBaseClient):
             async for view in exa.beta.agent.monitors.entities.list_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(view.entity.name)
         """
-        while True:
-            response = await self.list(
-                monitor_id,
-                betas=betas,
-                cursor=cursor,
-                limit=limit,
-                since=since,
-                **extra,
-            )
-            for entity_view in response.data:
-                yield entity_view
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for entity_view in apaginate(
+            lambda cursor, extra: self.list(
+                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since, **extra
+            ),
+            extra,
+            cursor,
+        ):
+            yield entity_view
 
     async def get_all(
         self,
@@ -291,21 +284,14 @@ class AsyncAgentMonitorChangesClient(AsyncAgentMonitorsBaseClient):
             async for change in exa.beta.agent.monitors.changes.list_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(change.created_at, change.content.value)
         """
-        while True:
-            response = await self.list(
-                monitor_id,
-                betas=betas,
-                cursor=cursor,
-                limit=limit,
-                since=since,
-                **extra,
-            )
-            for change in response.data:
-                yield change
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for change in apaginate(
+            lambda cursor, extra: self.list(
+                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since, **extra
+            ),
+            extra,
+            cursor,
+        ):
+            yield change
 
     async def get_all(
         self,
@@ -723,14 +709,12 @@ class AsyncAgentMonitorsClient(AsyncAgentMonitorsBaseClient):
             async for monitor in exa.beta.agent.monitors.list_all(betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(monitor.id)
         """
-        while True:
-            response = await self.list(betas=betas, cursor=cursor, limit=limit, **extra)
-            for monitor in response.data:
-                yield monitor
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for monitor in apaginate(
+            lambda cursor, extra: self.list(betas=betas, cursor=cursor, limit=limit, **extra),
+            extra,
+            cursor,
+        ):
+            yield monitor
 
     async def get_all(
         self,

@@ -17,7 +17,7 @@ next. So ``stream`` is not taken from `extra_body` or `extra_query`, an extra
 `options_for_next_page` keeps a listing's cursor advancing.
 """
 
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, Iterator, Mapping, Optional, Union
 
 from typing_extensions import TypedDict
 
@@ -163,6 +163,45 @@ def options_for_next_page(extra: ExtraRequestOptions) -> ExtraRequestOptions:
         return extra
     remaining = {key: value for key, value in extra_query.items() if key != "cursor"}
     return {**extra, "extra_query": remaining}
+
+
+def paginate(
+    fetch_page: Callable[[Optional[str], ExtraRequestOptions], Any],
+    extra: ExtraRequestOptions,
+    cursor: Optional[str] = None,
+) -> Iterator[Any]:
+    """Yield every item of a cursor-paginated listing, starting at `cursor`.
+
+    `fetch_page(cursor, extra)` fetches one page. Pages after the first get
+    `options_for_next_page(extra)`. Stops after a page without ``has_more``
+    or without a ``next_cursor``.
+    """
+    while True:
+        response = fetch_page(cursor, extra)
+        # A plain loop, not `yield from`: a value sent to the listing is
+        # ignored, as a generator's own loop ignores it.
+        for item in response.data:
+            yield item
+        if not response.has_more or not response.next_cursor:
+            return
+        cursor = response.next_cursor
+        extra = options_for_next_page(extra)
+
+
+async def apaginate(
+    fetch_page: Callable[[Optional[str], ExtraRequestOptions], Awaitable[Any]],
+    extra: ExtraRequestOptions,
+    cursor: Optional[str] = None,
+) -> AsyncIterator[Any]:
+    """`paginate` for an async page fetch."""
+    while True:
+        response = await fetch_page(cursor, extra)
+        for item in response.data:
+            yield item
+        if not response.has_more or not response.next_cursor:
+            return
+        cursor = response.next_cursor
+        extra = options_for_next_page(extra)
 
 
 def merge_body(

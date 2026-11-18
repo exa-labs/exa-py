@@ -139,7 +139,7 @@ async def call(client: str, base_url: str, method: str, timeout: float = 5.0) ->
         exa = Exa(API_KEY, base_url=base_url, timeout=timeout)
         result = getattr(exa, method)("q", num_results=2)
         return list(result) if method == "stream_search" else result
-    async with AsyncExa(API_KEY, api_base=base_url, timeout=timeout) as async_exa:
+    async with AsyncExa(API_KEY, base_url=base_url, timeout=timeout) as async_exa:
         result = await getattr(async_exa, method)("q", num_results=2)
         return [chunk async for chunk in result] if method == "stream_search" else result
 

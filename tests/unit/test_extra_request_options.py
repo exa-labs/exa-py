@@ -152,7 +152,7 @@ ASYNC_CORE_CALLS = [
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("path,call", ASYNC_CORE_CALLS)
 async def test_async_core_methods_send_the_extras(api, path, call):
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         await call(exa, EXTRA)
     finally:
@@ -197,7 +197,7 @@ def test_sync_request_applies_each_option_where_the_method_can_carry_it(api, met
 @pytest.mark.asyncio
 @pytest.mark.parametrize("method", ["GET", "POST", "PATCH", "DELETE"])
 async def test_async_request_applies_each_option_where_the_method_can_carry_it(api, method):
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         await exa.async_request(
             "/custom", {"a": 1}, method=method, params={"p": "1"}, headers={"X-A": "1"}, **EXTRA
@@ -226,7 +226,7 @@ def test_both_clients_encode_extra_query_values_alike(api):
     Exa("test-key", base_url=api.url).websets.list(limit=5, extra_query=extra_query)
 
     async def run_async():
-        exa = AsyncExa("test-key", api_base=api.url)
+        exa = AsyncExa("test-key", base_url=api.url)
         try:
             await exa.websets.list(limit=5, extra_query=extra_query)
         finally:
@@ -244,7 +244,7 @@ def test_both_clients_encode_list_values_of_extra_query_alike(api):
     Exa("test-key", base_url=api.url).websets.list(extra_query=extra_query)
 
     async def run_async():
-        async with AsyncExa("test-key", api_base=api.url) as exa:
+        async with AsyncExa("test-key", base_url=api.url) as exa:
             await exa.websets.list(extra_query=extra_query)
 
     asyncio.run(run_async())
@@ -268,7 +268,7 @@ def test_sync_extra_header_set_to_none_is_skipped(api):
 
 @pytest.mark.asyncio
 async def test_async_extra_header_set_to_none_is_skipped(api):
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         await exa.search("test", extra_headers={"X-API-KEY": None, "X-Trace": None})
     finally:
@@ -294,7 +294,7 @@ def test_sync_agent_stream_keeps_its_accept_header(api, name):
 @pytest.mark.parametrize("name", ["accept", "Accept"])
 async def test_async_agent_stream_keeps_its_accept_header(api, name):
     api.reply = _events_when_asked
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         stream = await exa.agent.runs.create(
             query="test", stream=True, extra_headers={name: "application/json"}
@@ -329,7 +329,7 @@ def test_sync_extra_headers_replace_client_headers_whatever_their_case(api):
 
 @pytest.mark.asyncio
 async def test_async_extra_headers_replace_client_headers_whatever_their_case(api):
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         await exa.search(
             "test", extra_headers={"X-API-KEY": "other-key", "user-agent": "my-app"}
@@ -367,7 +367,7 @@ def test_create_and_wait_sends_extra_body_with_the_create_request_only(api):
 @pytest.mark.asyncio
 async def test_async_sub_client_sends_the_extras(api):
     api.reply = lambda request: _RUN
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         await exa.agent.runs.create(query="test", **EXTRA)
         await exa.agent.runs.get("agent_run_1", **EXTRA)
@@ -455,7 +455,7 @@ def test_sync_extra_cursor_starts_a_listing_without_pinning_it(api):
 @pytest.mark.asyncio
 async def test_async_extra_cursor_starts_a_listing_without_pinning_it(api):
     api.reply = _two_pages_from_c1(api)
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         runs = await exa.agent.runs.get_all(extra_query={"cursor": "c1", "debug": "1"})
     finally:
@@ -467,7 +467,9 @@ async def test_async_extra_cursor_starts_a_listing_without_pinning_it(api):
 
 
 def test_every_pagination_loop_drops_the_extra_cursor_after_the_first_page():
-    loops = 0
+    # Listings page through paginate/apaginate, whose loops drop the extra
+    # cursor; a hand-written loop elsewhere would have to remember to.
+    loops = []
     for path in Path(exa_py.__file__).parent.rglob("*.py"):
         lines = [line.strip() for line in path.read_text().splitlines()]
         for row, line in enumerate(lines):
@@ -475,8 +477,8 @@ def test_every_pagination_loop_drops_the_extra_cursor_after_the_first_page():
                 assert lines[row + 1] == "extra = options_for_next_page(extra)", (
                     f"{path.name}:{row + 1} advances a cursor that extra_query can still replace"
                 )
-                loops += 1
-    assert loops >= 22
+                loops.append(path.name)
+    assert loops == ["request_options.py", "request_options.py"]
 
 
 def test_options_for_next_page_removes_only_the_cursor():
@@ -510,7 +512,7 @@ def test_sync_agent_stream_streams_when_extra_headers_restate_accept(api, name):
 @pytest.mark.parametrize("name", ["accept", "Accept", "ACCEPT"])
 async def test_async_agent_stream_streams_when_extra_headers_restate_accept(api, name):
     api.reply = _events_when_asked
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         stream = await exa.agent.runs.create(
             query="test", stream=True, extra_headers={name: "text/event-stream"}
@@ -535,7 +537,7 @@ def test_sync_extra_headers_do_not_change_how_the_response_is_read(api):
 @pytest.mark.asyncio
 async def test_async_extra_headers_do_not_change_how_the_response_is_read(api):
     api.reply = lambda request: _RUN
-    exa = AsyncExa("test-key", api_base=api.url)
+    exa = AsyncExa("test-key", base_url=api.url)
     try:
         run = await exa.agent.runs.get(
             "agent_run_1", extra_headers={"Accept": "text/event-stream"}
@@ -564,7 +566,7 @@ def test_sync_extra_header_replaces_every_casing_of_a_header(api):
 
 @pytest.mark.asyncio
 async def test_async_extra_header_replaces_every_casing_of_a_header(api):
-    exa = AsyncExa("default-key", api_base=api.url)
+    exa = AsyncExa("default-key", base_url=api.url)
     try:
         await exa.async_request(
             "/custom", {"a": 1}, headers={"X-API-KEY": "old"}, extra_headers={"X-Api-Key": "new"}
