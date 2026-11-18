@@ -14,7 +14,7 @@ from ..types import (
 )
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
-from ...request_options import ExtraRequestOptions, options_for_next_page
+from ...request_options import ExtraRequestOptions, apaginate, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 class WebhookAttemptsClient(WebsetsBaseClient):
     """Client for managing Webhook Attempts."""
@@ -140,17 +140,10 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         Yields:
             Webhook: Each webhook.
         """
-        cursor = None
-        while True:
-            response = self.list(cursor=cursor, limit=limit, **extra)
-            for webhook in response.data:
-                yield webhook
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        )
 
     def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Webhook]:
         """Collect all Webhooks into a list.
@@ -185,24 +178,12 @@ class WebsetWebhooksClient(WebsetsBaseClient):
         Yields:
             WebhookAttempt: Each webhook attempt.
         """
-        cursor = None
-        while True:
-            response = self.attempts.list(
-                webhook_id, 
-                cursor=cursor, 
-                limit=limit, 
-                event_type=event_type, 
-                successful=successful,
-                **extra,
-            )
-            for attempt in response.data:
-                yield attempt
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.attempts.list(
+                webhook_id, cursor=cursor, limit=limit, event_type=event_type, successful=successful, **extra
+            ),
+            extra,
+        )
 
     def get_all_attempts(
         self, 
@@ -328,17 +309,11 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         Yields:
             Webhook: Each webhook.
         """
-        cursor = None
-        while True:
-            response = await self.list(cursor=cursor, limit=limit, **extra)
-            for webhook in response.data:
-                yield webhook
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for webhook in apaginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        ):
+            yield webhook
 
     async def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Webhook]:
         """Collect all Webhooks into a list.
@@ -350,10 +325,7 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         Returns:
             List[Webhook]: All webhooks.
         """
-        webhooks = []
-        async for webhook in self.list_all(limit=limit, **extra):
-            webhooks.append(webhook)
-        return webhooks
+        return [webhook async for webhook in self.list_all(limit=limit, **extra)]
 
     async def list_all_attempts(
         self, 
@@ -376,24 +348,13 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         Yields:
             WebhookAttempt: Each webhook attempt.
         """
-        cursor = None
-        while True:
-            response = await self.attempts.list(
-                webhook_id, 
-                cursor=cursor, 
-                limit=limit, 
-                event_type=event_type, 
-                successful=successful,
-                **extra,
-            )
-            for attempt in response.data:
-                yield attempt
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for attempt in apaginate(
+            lambda cursor, extra: self.attempts.list(
+                webhook_id, cursor=cursor, limit=limit, event_type=event_type, successful=successful, **extra
+            ),
+            extra,
+        ):
+            yield attempt
 
     async def get_all_attempts(
         self, 
@@ -416,13 +377,9 @@ class AsyncWebsetWebhooksClient(WebsetsAsyncBaseClient):
         Returns:
             List[WebhookAttempt]: All webhook attempts.
         """
-        attempts = []
-        async for attempt in self.list_all_attempts(
-            webhook_id, 
-            limit=limit, 
-            event_type=event_type, 
-            successful=successful,
-            **extra,
-        ):
-            attempts.append(attempt)
-        return attempts
+        return [
+            attempt
+            async for attempt in self.list_all_attempts(
+                webhook_id, limit=limit, event_type=event_type, successful=successful, **extra
+            )
+        ]

@@ -12,7 +12,7 @@ from ..types import (
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
 from .runs import MonitorRunsClient
-from ...request_options import ExtraRequestOptions, options_for_next_page
+from ...request_options import ExtraRequestOptions, apaginate, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 class MonitorsClient(WebsetsBaseClient):
     """Client for managing Monitors."""
@@ -119,17 +119,12 @@ class MonitorsClient(WebsetsBaseClient):
             for monitor in exa.websets.monitors.list_all(webset_id="ws_123"):
                 print(monitor.id)
         """
-        cursor = None
-        while True:
-            response = self.list(cursor=cursor, limit=limit, webset_id=webset_id, **extra)
-            for monitor in response.data:
-                yield monitor
-
-            if not response.has_more or not response.next_cursor:
-                break
-
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(
+                cursor=cursor, limit=limit, webset_id=webset_id, **extra
+            ),
+            extra,
+        )
 
     def get_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Monitor]:
         """Collect all Monitors into a list.
@@ -227,17 +222,13 @@ class AsyncMonitorsClient(WebsetsAsyncBaseClient):
             async for monitor in exa.websets.monitors.list_all(webset_id="ws_123"):
                 print(monitor.id)
         """
-        cursor = None
-        while True:
-            response = await self.list(cursor=cursor, limit=limit, webset_id=webset_id, **extra)
-            for monitor in response.data:
-                yield monitor
-
-            if not response.has_more or not response.next_cursor:
-                break
-
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for monitor in apaginate(
+            lambda cursor, extra: self.list(
+                cursor=cursor, limit=limit, webset_id=webset_id, **extra
+            ),
+            extra,
+        ):
+            yield monitor
 
     async def get_all(self, *, limit: Optional[int] = None, webset_id: Optional[str] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Monitor]:
         """Collect all Monitors into a list.
@@ -257,7 +248,4 @@ class AsyncMonitorsClient(WebsetsAsyncBaseClient):
             exa = AsyncExa(os.environ["EXA_API_KEY"])
             monitors = await exa.websets.monitors.get_all(webset_id="ws_123")
         """
-        monitors = []
-        async for monitor in self.list_all(limit=limit, webset_id=webset_id, **extra):
-            monitors.append(monitor)
-        return monitors
+        return [monitor async for monitor in self.list_all(limit=limit, webset_id=webset_id, **extra)]

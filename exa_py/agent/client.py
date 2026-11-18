@@ -40,7 +40,7 @@ from .types import (
     ListAgentRunsResponse,
 )
 from .utils import stream_agent_events
-from ..request_options import ExtraRequestOptions, options_for_next_page
+from ..request_options import ExtraRequestOptions, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 _DEFAULT_POLL_INTERVAL_MS = 1000
 _DEFAULT_POLL_TIMEOUT_MS = 3600000
@@ -322,15 +322,10 @@ class AgentRunsClient(AgentBaseClient):
             for run in exa.agent.runs.list_all():
                 print(run.id)
         """
-        cursor = None
-        while True:
-            response = self.list(cursor=cursor, limit=limit, **extra)
-            for run in response.data:
-                yield run
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        )
 
     def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> list[AgentRun]:
         """Collect all Agent runs into a list.
@@ -670,15 +665,10 @@ class AgentBetaRunsClient(AgentRunsClient):
         self, *, betas: Optional[Sequence[str]] = None, limit: Optional[int] = None,
         **extra: Unpack[ExtraRequestOptions],
     ) -> Iterator[AgentRun]:
-        cursor = None
-        while True:
-            response = self.list(betas=betas, cursor=cursor, limit=limit, **extra)
-            for run in response.data:
-                yield run
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(betas=betas, cursor=cursor, limit=limit, **extra),
+            extra,
+        )
 
     def get_all(
         self, *, betas: Optional[Sequence[str]] = None, limit: Optional[int] = None,

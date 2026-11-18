@@ -42,7 +42,7 @@ async def sdk(request, monkeypatch):
             return httpx.Response(200, json=reply, request=prepared)
 
         monkeypatch.setattr(httpx.AsyncClient, "send", send)
-        async with AsyncExa("test-key", api_base="https://api.example.com") as exa:
+        async with AsyncExa("test-key", base_url="https://api.example.com") as exa:
             yield exa, captured, reply
 
 

@@ -1,5 +1,5 @@
 from ..types import *
-from .base import WebsetsBaseClient
+from .base import ExaBaseModel, WebsetsBaseClient
 from .async_base import WebsetsAsyncBaseClient
 import sys
 

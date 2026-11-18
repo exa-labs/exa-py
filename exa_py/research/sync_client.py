@@ -16,7 +16,7 @@ from typing import (
 )
 from typing_extensions import Unpack
 
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 
 from .base import ResearchBaseClient, raise_research_retired
 from .models import (
@@ -26,7 +26,8 @@ from .models import (
     KnownResearchModel,
     ResearchModel,  # noqa: F401  re-exported: earlier releases imported it from here
 )
-from .utils import (
+# Kept importable from here: earlier releases exported these names from this module.
+from .utils import (  # noqa: F401
     is_pydantic_model,
     pydantic_to_json_schema,
     stream_sse_events,
@@ -137,20 +138,7 @@ class ResearchClient(ResearchBaseClient):
 
             print(f"Task created with ID: {task.research_id}")
         """
-        payload = {
-            "instructions": instructions,
-            "model": model,
-        }
-
-        if output_schema is not None:
-            if is_pydantic_model(output_schema):
-                payload["outputSchema"] = pydantic_to_json_schema(output_schema)
-            else:
-                payload["outputSchema"] = output_schema
-
-        response = self.request("", method="POST", data=payload, **extra)
-        adapter = TypeAdapter(ResearchDto)
-        return adapter.validate_python(response)
+        raise_research_retired()
 
     @overload
     def get(
@@ -220,42 +208,7 @@ class ResearchClient(ResearchBaseClient):
             if task.status == "completed":
                 print(f"Results: {task.output}")
         """
-        params = {}
-        if not stream:
-            params["stream"] = "false"
-            if events:
-                params["events"] = "true"
-        else:
-            params["stream"] = "true"
-            if events is not None:
-                params["events"] = str(events).lower()
-
-        if stream:
-            response = self.request(
-                f"/{research_id}", method="GET", params=params, stream=True,
-                **extra,
-            )
-            return stream_sse_events(response)
-        else:
-            response = self.request(f"/{research_id}", method="GET", params=params, **extra)
-            adapter = TypeAdapter(ResearchDto)
-            research = adapter.validate_python(response)
-
-            if output_schema and hasattr(research, "output") and research.output:
-                try:
-                    if research.output.parsed:
-                        parsed = output_schema.model_validate(research.output.parsed)
-                    else:
-                        import json
-
-                        parsed_data = json.loads(research.output.content)
-                        parsed = output_schema.model_validate(parsed_data)
-                    return ResearchTyped(research, parsed)
-                except Exception:
-                    # If parsing fails, return the regular research object
-                    return research
-
-            return research
+        raise_research_retired()
 
     def list(
         self,
@@ -284,9 +237,7 @@ class ResearchClient(ResearchBaseClient):
             if response.has_more:
                 next_page = exa.research.list(cursor=response.next_cursor)
         """
-        params = self.build_pagination_params(cursor, limit)
-        response = self.request("", method="GET", params=params, **extra)
-        return ListResearchResponseDto.model_validate(response)
+        raise_research_retired()
 
     @overload
     def poll_until_finished(

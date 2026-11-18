@@ -1788,6 +1788,33 @@ class WebsetSearchRecall(ExaBaseModel):
     """
 
 
+class WebsetSearchCostDollars(ExaBaseModel):
+    """
+    What the search cost, in dollars. Returned once the search has finished, for teams on the pay-as-you-go plan, which is charged for what each search uses. Omitted for teams on other plans. `emails`, `phoneNumbers` and `total` keep growing after the search has finished, as enrichments find contact details for its items. This response value is not an invoice record.
+    """
+
+    total: float
+    """
+    Total cost of the search in dollars, including the emails and phone numbers found for its items.
+    """
+    agent_compute: Annotated[float, Field(alias='agentCompute')]
+    """
+    Cost of the model usage the search needed, in dollars.
+    """
+    search: float
+    """
+    Cost of the Exa searches the search ran, in dollars.
+    """
+    emails: float
+    """
+    Cost of the emails that enrichments found for the items the search added, in dollars.
+    """
+    phone_numbers: Annotated[float, Field(alias='phoneNumbers')]
+    """
+    Cost of the phone numbers that enrichments found for the items the search added, in dollars.
+    """
+
+
 class WebsetSearch(ExaBaseModel):
     id: str
     """
@@ -1846,6 +1873,10 @@ class WebsetSearch(ExaBaseModel):
     recall: Optional[WebsetSearchRecall] = None
     """
     Estimate of total potential matches (if requested)
+    """
+    cost_dollars: Annotated[Optional[WebsetSearchCostDollars], Field(alias='costDollars')] = None
+    """
+    What the search cost, in dollars, for teams on the pay-as-you-go plan. Omitted for teams on other plans.
     """
     metadata: Optional[Dict[str, Any]] = {}
     """

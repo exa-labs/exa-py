@@ -17,7 +17,7 @@ from .types import (
     TriggerSearchMonitorResponse,
     UpdateSearchMonitorParams,
 )
-from ..request_options import ExtraRequestOptions, options_for_next_page
+from ..request_options import ExtraRequestOptions, apaginate, options_for_next_page  # options_for_next_page: kept importable from here
 
 
 class AsyncSearchMonitorRunsClient(SearchMonitorsAsyncBaseClient):
@@ -77,15 +77,11 @@ class AsyncSearchMonitorRunsClient(SearchMonitorsAsyncBaseClient):
         Yields:
             SearchMonitorRun: Each run.
         """
-        cursor = None
-        while True:
-            response = await self.list(monitor_id, cursor=cursor, limit=limit, **extra)
-            for run in response.data:
-                yield run
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for run in apaginate(
+            lambda cursor, extra: self.list(monitor_id, cursor=cursor, limit=limit, **extra),
+            extra,
+        ):
+            yield run
 
     async def get_all(self, monitor_id: str, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[SearchMonitorRun]:
         """Collect all runs for a Search Monitor into a list.
@@ -98,10 +94,7 @@ class AsyncSearchMonitorRunsClient(SearchMonitorsAsyncBaseClient):
         Returns:
             List of all Search Monitor runs.
         """
-        items = []
-        async for run in self.list_all(monitor_id, limit=limit, **extra):
-            items.append(run)
-        return items
+        return [run async for run in self.list_all(monitor_id, limit=limit, **extra)]
 
 
 class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
@@ -213,15 +206,11 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
         Yields:
             SearchMonitor: Each monitor.
         """
-        cursor = None
-        while True:
-            response = await self.list(status=status, cursor=cursor, limit=limit, **extra)
-            for monitor in response.data:
-                yield monitor
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for monitor in apaginate(
+            lambda cursor, extra: self.list(status=status, cursor=cursor, limit=limit, **extra),
+            extra,
+        ):
+            yield monitor
 
     async def get_all(self, *, status: Optional[SearchMonitorStatus] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[SearchMonitor]:
         """Collect all Search Monitors into a list.
@@ -234,10 +223,7 @@ class AsyncSearchMonitorsClient(SearchMonitorsAsyncBaseClient):
         Returns:
             List of all Search Monitors.
         """
-        items = []
-        async for monitor in self.list_all(status=status, limit=limit, **extra):
-            items.append(monitor)
-        return items
+        return [monitor async for monitor in self.list_all(status=status, limit=limit, **extra)]
 
     async def trigger(self, monitor_id: str, **extra: Unpack[ExtraRequestOptions]) -> TriggerSearchMonitorResponse:
         """Trigger a Search Monitor run immediately.

@@ -408,3 +408,35 @@ def test_answer_sends_a_described_nested_schema_fully_inlined(asynchronous):
     child = schema["properties"]["child"]
     assert child["description"] == "Child-specific description"
     assert child["properties"]["name"]["type"] == "string"
+
+
+SNAKE_CASE_SCHEMA = {
+    "type": "object",
+    "properties": {"company_name": {"type": "string"}},
+}
+
+
+@pytest.mark.parametrize("schema", [SNAKE_CASE_SCHEMA, SnakeCaseModel], ids=["dict", "pydantic"])
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+def test_stream_search_sends_a_summary_schema_as_search_does(asynchronous, schema):
+    import asyncio
+    from unittest.mock import Mock
+    from exa_py import Exa, AsyncExa
+
+    contents = {"summary": {"schema": schema}}
+    stream = Mock(status_code=200)
+    if asynchronous:
+        client = AsyncExa("test")
+        client.async_request = AsyncMock(return_value=stream)
+        asyncio.run(client.stream_search("test", contents=contents))
+        request_mock = client.async_request
+    else:
+        client = Exa("test")
+        client.request = Mock(return_value=stream)
+        client.stream_search("test", contents=contents)
+        request_mock = client.request
+
+    sent = request_mock.call_args.args[1]["contents"]["summary"]["schema"]
+    assert isinstance(sent, dict)
+    assert sent["type"] == "object"
+    assert list(sent["properties"]) == ["company_name"]

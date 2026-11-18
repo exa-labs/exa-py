@@ -7,8 +7,6 @@ import pytest
 
 from exa_py import AsyncExa, Exa
 
-from .environment import client_args
-
 
 def require_exa_api_key() -> str:
     api_key = os.getenv("EXA_API_KEY")
@@ -20,7 +18,7 @@ def require_exa_api_key() -> str:
 def test_exa_uses_environment_api_key_for_live_search():
     """Verify Exa() authenticates live requests with EXA_API_KEY."""
     api_key = require_exa_api_key()
-    exa = Exa(*client_args())
+    exa = Exa()
 
     assert hmac.compare_digest(exa.headers["x-api-key"], api_key)
 
@@ -33,7 +31,7 @@ def test_exa_uses_environment_api_key_for_live_search():
 async def test_async_exa_uses_environment_api_key_for_live_search():
     """Verify AsyncExa() authenticates live requests with EXA_API_KEY."""
     api_key = require_exa_api_key()
-    exa = AsyncExa(*client_args())
+    exa = AsyncExa()
 
     assert hmac.compare_digest(exa.headers["x-api-key"], api_key)
 

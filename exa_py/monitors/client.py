@@ -17,7 +17,7 @@ from .types import (
     TriggerSearchMonitorResponse,
     UpdateSearchMonitorParams,
 )
-from ..request_options import ExtraRequestOptions, options_for_next_page
+from ..request_options import ExtraRequestOptions, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 
 class SearchMonitorRunsClient(SearchMonitorsBaseClient):
@@ -95,15 +95,10 @@ class SearchMonitorRunsClient(SearchMonitorsBaseClient):
         Yields:
             SearchMonitorRun: Each run.
         """
-        cursor = None
-        while True:
-            response = self.list(monitor_id, cursor=cursor, limit=limit, **extra)
-            for run in response.data:
-                yield run
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(monitor_id, cursor=cursor, limit=limit, **extra),
+            extra,
+        )
 
     def get_all(self, monitor_id: str, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[SearchMonitorRun]:
         """Collect all runs for a Search Monitor into a list.
@@ -294,15 +289,10 @@ class SearchMonitorsClient(SearchMonitorsBaseClient):
         Yields:
             SearchMonitor: Each monitor.
         """
-        cursor = None
-        while True:
-            response = self.list(status=status, cursor=cursor, limit=limit, **extra)
-            for monitor in response.data:
-                yield monitor
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(status=status, cursor=cursor, limit=limit, **extra),
+            extra,
+        )
 
     def get_all(self, *, status: Optional[SearchMonitorStatus] = None, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[SearchMonitor]:
         """Collect all Search Monitors into a list.

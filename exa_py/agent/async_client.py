@@ -42,7 +42,7 @@ from .types import (
     ListAgentRunsResponse,
 )
 from .utils import async_stream_agent_events
-from ..request_options import ExtraRequestOptions, options_for_next_page
+from ..request_options import ExtraRequestOptions, apaginate, options_for_next_page  # options_for_next_page: kept importable from here
 
 
 class AsyncAgentRunEventsClient(AsyncAgentBaseClient):
@@ -272,15 +272,11 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             async for run in exa.agent.runs.list_all():
                 print(run.id)
         """
-        cursor = None
-        while True:
-            response = await self.list(cursor=cursor, limit=limit, **extra)
-            for run in response.data:
-                yield run
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for run in apaginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        ):
+            yield run
 
     async def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> list[AgentRun]:
         """Collect all Agent runs into a list.
@@ -300,10 +296,7 @@ class AsyncAgentRunsClient(AsyncAgentBaseClient):
             runs = await exa.agent.runs.get_all()
             print(len(runs))
         """
-        runs: list[AgentRun] = []
-        async for run in self.list_all(limit=limit, **extra):
-            runs.append(run)
-        return runs
+        return [run async for run in self.list_all(limit=limit, **extra)]
 
     async def cancel(self, run_id: str, **extra: Unpack[ExtraRequestOptions]) -> AgentRun:
         """Cancel a queued or running Agent run.
@@ -627,24 +620,17 @@ class AsyncAgentBetaRunsClient(AsyncAgentRunsClient):
         limit: Optional[int] = None,
         **extra: Unpack[ExtraRequestOptions],
     ) -> AsyncGenerator[AgentRun, None]:
-        cursor = None
-        while True:
-            response = await self.list(betas=betas, cursor=cursor, limit=limit, **extra)
-            for run in response.data:
-                yield run
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for run in apaginate(
+            lambda cursor, extra: self.list(betas=betas, cursor=cursor, limit=limit, **extra),
+            extra,
+        ):
+            yield run
 
     async def get_all(
         self, *, betas: Optional[Sequence[str]] = None, limit: Optional[int] = None,
         **extra: Unpack[ExtraRequestOptions],
     ) -> list[AgentRun]:
-        runs: list[AgentRun] = []
-        async for run in self.list_all(betas=betas, limit=limit, **extra):
-            runs.append(run)
-        return runs
+        return [run async for run in self.list_all(betas=betas, limit=limit, **extra)]
 
     async def cancel(
         self, run_id: str, *, betas: Optional[Sequence[str]] = None,

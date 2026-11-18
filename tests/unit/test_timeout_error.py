@@ -192,7 +192,7 @@ def test_a_sync_stream_error_response_is_read_under_the_timeout(paced_server):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("connection", ["", "/close"], ids=["keep-alive", "close"])
 async def test_an_async_stream_is_timed_until_it_starts_only(paced_server, connection):
-    async with AsyncExa("test-key", api_base=paced_server + connection, timeout=_TIMEOUT) as exa:
+    async with AsyncExa("test-key", base_url=paced_server + connection, timeout=_TIMEOUT) as exa:
         started = time.monotonic()
         stream = await exa.stream_answer("q")
         assert [chunk.content async for chunk in stream] == ["c0", "c1", "c2"]
@@ -206,7 +206,7 @@ async def test_an_async_stream_is_timed_until_it_starts_only(paced_server, conne
         finally:
             await response.aclose()
 
-    async with AsyncExa("test-key", api_base=paced_server + "/late", timeout=_TIMEOUT) as late:
+    async with AsyncExa("test-key", base_url=paced_server + "/late", timeout=_TIMEOUT) as late:
         with pytest.raises(ExaTimeoutError) as raised:
             await late.stream_answer("q")
         assert isinstance(raised.value, httpx.ReadTimeout)
@@ -214,14 +214,14 @@ async def test_an_async_stream_is_timed_until_it_starts_only(paced_server, conne
 
 @pytest.mark.asyncio
 async def test_an_async_stream_error_response_is_read_under_the_timeout(paced_server):
-    async with AsyncExa("test-key", api_base=paced_server + "/error", timeout=_TIMEOUT) as exa:
+    async with AsyncExa("test-key", base_url=paced_server + "/error", timeout=_TIMEOUT) as exa:
         with pytest.raises(ExaTimeoutError):
             await exa.stream_answer("q")
 
 
 @pytest.mark.asyncio
 async def test_async_timeout_is_typed_and_still_an_httpx_timeout(stalling_server):
-    exa = AsyncExa("test-key", api_base=stalling_server, timeout=0.2)
+    exa = AsyncExa("test-key", base_url=stalling_server, timeout=0.2)
     try:
         with pytest.raises(ExaTimeoutError) as raised:
             await exa.search("slow")

@@ -387,6 +387,47 @@ task.cancel()
 
 When stopping an async search/answer stream early, call `await stream.aclose()` to release its HTTP connection; cancellation while awaiting the next chunk also closes it. The sync client cannot cancel a blocking read from another thread; the timeout bounds each period of network inactivity. Both constructors and per-call overrides require a positive finite timeout when not `None`.
 
+## API key function
+
+Pass a function instead of a string as the API key, for example to read a key that rotates. The client calls the function before each request and sends the string it returns as the API key. It never caches the result.
+
+```python
+from pathlib import Path
+
+from exa_py import Exa
+
+exa = Exa(api_key=lambda: Path("/run/secrets/exa-api-key").read_text().strip())
+```
+
+- The function must return a non-empty string of visible ASCII characters. Anything else raises `TypeError`, and the request is not sent.
+- `AsyncExa` also takes a coroutine function. The request's timeout also bounds the wait for it and raises `ExaTimeoutError` when it runs out. `Exa` refuses a coroutine function. A plain function runs inline, and the timeout does not cover it.
+- A request that sets its own `x-api-key` header, for example in `extra_headers`, does not call the function.
+
+## Base URL
+
+The client sends its requests to `https://api.exa.ai`. To send them to another Exa API, such as the EU API at `https://api.eu.exa.ai`, pass `base_url` or set the `EXA_BASE_URL` environment variable. `EXA_BASE_URL` applies to every client created without `base_url`, and `base_url` wins when both are set.
+
+```python
+from exa_py import Exa
+
+exa = Exa(api_key="your-api-key", base_url="https://api.eu.exa.ai")
+```
+
+Each client keeps its own API key and base URL, so one process can run several clients side by side, for example one per Exa team:
+
+```python
+import os
+
+from exa_py import Exa
+
+us = Exa(api_key=os.environ["EXA_US_API_KEY"], base_url="https://api.exa.ai")
+eu = Exa(api_key=os.environ["EXA_EU_API_KEY"], base_url="https://api.eu.exa.ai")
+```
+
+- Give every client a `base_url`, so `EXA_BASE_URL` reaches none of them.
+- `AsyncExa` takes the same `base_url`. `api_base` is its deprecated name.
+- A trailing slash on the base URL is ignored.
+
 ## Warnings
 
 The API can return `warnings` about a request, such as a field it ignores. At the time of writing, search responses carry them, including `stream_search`. A warning never changes the status code or the results. It is for whoever maintains the code that builds the request. Fix the request, and don't pass the warning to a model. The response keeps them in `warnings`.

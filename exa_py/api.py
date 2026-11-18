@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+import asyncio
 import dataclasses
+import inspect
 import json
 import math
 import os
 import re
 import threading
+import warnings
 from dataclasses import dataclass
 from functools import wraps
 from typing import (
     Any,
     AsyncIterator,
+    Awaitable,
     Callable,
     Dict,
     Generic,
@@ -32,7 +36,8 @@ from typing import (
 from .websets import AsyncWebsetsClient
 import httpx
 import requests
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
+from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat_model import ChatModel
 from types import TracebackType
@@ -54,7 +59,7 @@ from .research import ResearchClient, AsyncResearchClient
 from .agent import AgentNamespace, AsyncAgentNamespace, BetaClient, AsyncBetaClient
 from .agent.betas import headers_for_betas
 from .errors import ExaTimeoutError as ExaTimeoutError
-from .errors import reporting_failover_connect_timeouts, typed_timeouts
+from .errors import _as_exa_timeout, reporting_failover_connect_timeouts, typed_timeouts
 from .request_options import merge_body, merge_headers, merge_query
 from .tools import (
     AsyncAnthropicNamespace,
@@ -75,6 +80,9 @@ DEFAULT_MAX_CHARACTERS = 10_000
 
 # Default HTTP request timeout in seconds
 DEFAULT_REQUEST_TIMEOUT = 600.0
+
+# Base URL of the Exa API when neither ``base_url`` nor EXA_BASE_URL sets one.
+DEFAULT_BASE_URL = "https://api.exa.ai"
 
 # Arguments of the search, contents and answer methods that configure the
 # request instead of describing the API payload.
@@ -99,6 +107,66 @@ def _validate_timeout(timeout: Optional[float]) -> Optional[float]:
     ):
         raise ValueError("timeout must be a positive, finite number of seconds or None")
     return timeout
+
+
+def _resolve_base_url(base_url: Optional[str]) -> str:
+    """Return the base URL a client sends its requests to.
+
+    ``base_url`` wins, then the EXA_BASE_URL environment variable unless it is
+    blank, then ``DEFAULT_BASE_URL``. Trailing slashes are dropped, since every
+    endpoint path the client appends starts with one.
+    """
+    if base_url is None:
+        base_url = os.environ.get("EXA_BASE_URL", "").strip() or DEFAULT_BASE_URL
+    return base_url.rstrip("/")
+
+
+# U+0021 to U+007E, the visible ASCII characters.
+_API_KEY_PATTERN = re.compile(r"[\x21-\x7E]+")
+
+
+def _check_api_key(key: Any) -> str:
+    """Return the key an ``api_key`` function returned, used as it is.
+
+    Raises:
+        TypeError: If the key is not a non-empty string of visible ASCII
+            characters.
+    """
+    if not isinstance(key, str) or _API_KEY_PATTERN.fullmatch(key) is None:
+        raise TypeError("api_key must return a non-empty string of visible ASCII characters")
+    return key
+
+
+def _sets_api_key_header(headers: Mapping[str, str]) -> bool:
+    """Return whether ``headers`` carry an ``x-api-key`` header, in any letter case."""
+    return any(name.lower() == "x-api-key" for name in headers)
+
+
+async def _await_api_key(awaitable: Awaitable[Any], timeout: Optional[float]) -> Any:
+    """Return what an awaitable an ``api_key`` function returned resolves to.
+
+    The wait lasts at most ``timeout`` seconds, or without limit when it is
+    None. An exception the awaitable raises propagates unchanged, a
+    ``TimeoutError`` included.
+
+    Raises:
+        ExaTimeoutError: If ``timeout`` runs out first, which also cancels the
+            awaitable. It is also an ``httpx.TimeoutException``, as the error
+            a request that timed out raises in ``AsyncExa`` is.
+    """
+    task = asyncio.ensure_future(awaitable)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=timeout)
+    except BaseException:
+        task.cancel()
+        raise
+    if not done:
+        task.cancel()
+        error = httpx.TimeoutException(
+            f"api_key did not return within the timeout ({timeout} seconds)"
+        )
+        raise _as_exa_timeout(error) from error
+    return task.result()
 
 
 # Longest snippet of a non-JSON response body to include in an error message.
@@ -882,7 +950,8 @@ class ContentsOptions(TypedDict, total=False):
         summary (SummaryContentsOptions | True): Options for summary generation, or True for defaults.
         context (ContextContentsOptions | True): Deprecated. Use ``highlights`` or ``text``.
         max_age_hours (int): Maximum age of cached content in hours. If content is older, it will be
-            fetched fresh. Special values: 0 = always fetch fresh content,
+            fetched fresh. A failed fetch may return the latest cached copy instead.
+            Special values: 0 = return live content, fetched within the last 60 seconds,
             -1 = never fetch fresh (use cached content only). Example: 168 = fetch fresh for pages older than 7 days.
         livecrawl (str): Deprecated. Use ``max_age_hours`` instead. Does not guarantee freshly fetched
             content. Cannot be combined with ``max_age_hours``.
@@ -1686,10 +1755,34 @@ def _stream_cost_dollars(payload: Any) -> Optional[CostDollars]:
     return parse_cost_dollars(payload["costDollars"])
 
 
+def _stream_error(payload: Any) -> Optional[ValueError]:
+    """The error to raise for a stream event that says the request failed, else None.
+
+    A failed /search stream ends with ``{"type": "error", "error": {...}}`` and a
+    failed /answer stream with ``{"tag": "ERROR", "payload": {"error": {...}}}``.
+    The message gives the API's error message, its tag or code, and the request ID.
+    """
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("type") == "error":
+        error, request_id = payload.get("error"), payload.get("requestId")
+    elif payload.get("tag") == "ERROR":
+        body = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
+        error, request_id = body.get("error"), body.get("requestId")
+    else:
+        return None
+    error = error if isinstance(error, dict) else {"message": error}
+    fields = [("tag", error.get("tag")), ("code", error.get("code")), ("request ID", request_id)]
+    details = ", ".join(f"{name}: {value}" for name, value in fields if value is not None)
+    message = f"Stream failed: {error.get('message') or 'the API reported an error'}"
+    return ValueError(f"{message} ({details})" if details else message)
+
+
 class StreamAnswerResponse:
     """A streaming answer response.
 
     Iterating yields StreamChunk objects with partial text and citations.
+    Iterating raises ValueError if the API reports partway through that the request failed.
 
     Attributes:
         cost_dollars (CostDollars, optional): The cost breakdown for this request.
@@ -1728,6 +1821,11 @@ class StreamAnswerResponse:
                 continue
 
             self._record_cost(chunk)
+            error = _stream_error(chunk)
+            if error is not None:
+                # Only [DONE] follows the error event: release the connection now.
+                self.close()
+                raise error
             content = None
             citations = None
 
@@ -1777,6 +1875,7 @@ class AsyncStreamAnswerResponse:
 
     Iterating with ``async for`` yields StreamChunk objects with partial text
     and citations.
+    Iterating raises ValueError if the API reports partway through that the request failed.
 
     Attributes:
         cost_dollars (CostDollars, optional): The cost breakdown for this request.
@@ -1817,6 +1916,9 @@ class AsyncStreamAnswerResponse:
                         continue
 
                     self._record_cost(chunk)
+                    error = _stream_error(chunk)
+                    if error is not None:
+                        raise error
                     content = None
                     citations = None
 
@@ -1913,6 +2015,7 @@ class StreamSearchResponse(StreamAnswerResponse):
 
     Iterating yields SearchStreamChunk objects with partial text and citations,
     and one chunk with the request's warnings when the API returns any.
+    Iterating raises ValueError if the API reports partway through that the request failed.
     A search without ``output_schema`` has no text to stream. Its stream yields
     one chunk with the results as ``citations``, then the warnings chunk when
     the API returns warnings.
@@ -1966,6 +2069,7 @@ class AsyncStreamSearchResponse(AsyncStreamAnswerResponse):
 
     Iterating yields SearchStreamChunk objects with partial text and citations,
     and one chunk with the request's warnings when the API returns any.
+    Iterating raises ValueError if the API reports partway through that the request failed.
     A search without ``output_schema`` has no text to stream. Its stream yields
     one chunk with the results as ``citations``, then the warnings chunk when
     the API returns warnings.
@@ -2212,6 +2316,76 @@ def parse_deep_search_output(raw: Any) -> Optional[DeepSearchOutput]:
     return DeepSearchOutput(content=content, grounding=grounding)
 
 
+def _parse_result(raw: Dict[str, Any]) -> Result:
+    """Build a Result from one entry of a response's `results`."""
+    snake_result = to_snake_case(raw)
+    return Result(
+        url=snake_result.get("url"),
+        id=snake_result.get("id"),
+        title=snake_result.get("title"),
+        score=snake_result.get("score"),
+        published_date=snake_result.get("published_date"),
+        author=snake_result.get("author"),
+        image=snake_result.get("image"),
+        favicon=snake_result.get("favicon"),
+        subpages=snake_result.get("subpages"),
+        extras=snake_result.get("extras"),
+        crawl_date=snake_result.get("crawl_date"),
+        snapshot_at=snake_result.get("snapshot_at"),
+        text=snake_result.get("text"),
+        summary=snake_result.get("summary"),
+        highlights=snake_result.get("highlights"),
+        highlight_scores=snake_result.get("highlight_scores"),
+        entities=_parse_entities(raw.get("entities")),
+    )
+
+
+def _parse_search_response(data: Dict[str, Any]) -> SearchResponse[Result]:
+    """Build the SearchResponse of a /search response."""
+    return SearchResponse(
+        [_parse_result(result) for result in data["results"]],
+        data.get("resolvedSearchType"),
+        data.get("autoDate"),
+        context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
+        output=parse_deep_search_output(data.get("output")),
+        cost_dollars=parse_cost_dollars(data.get("costDollars")),
+        search_time=data.get("searchTime"),
+        warnings=parse_search_warnings(data.get("warnings")),
+        notices=parse_search_notices(data.get("notices")),
+    )
+
+
+def _parse_contents_response(data: Dict[str, Any]) -> SearchResponse[Result]:
+    """Build the SearchResponse of a /contents response."""
+    return SearchResponse(
+        [_parse_result(result) for result in data["results"]],
+        data.get("resolvedSearchType"),
+        data.get("autoDate"),
+        context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
+        cost_dollars=parse_cost_dollars(data.get("costDollars")),
+        statuses=[_parse_content_status(status) for status in data.get("statuses", [])],
+        search_time=data.get("searchTime"),
+    )
+
+
+def _parse_find_similar_response(
+    data: Dict[str, Any], *, context: bool = False
+) -> SearchResponse[Result]:
+    """Build the SearchResponse of a /findSimilar response.
+
+    find_similar_and_contents keeps the response's `context`; find_similar does not.
+    """
+    return SearchResponse(
+        [_parse_result(result) for result in data["results"]],
+        data.get("resolvedSearchType"),
+        data.get("autoDate"),
+        context=data.get("context") if context else None,  # DEPRECATED FIELD: legacy context response.
+        cost_dollars=parse_cost_dollars(data.get("costDollars")),
+        search_time=data.get("searchTime"),
+    )
+
+
+
 def nest_fields(original_dict: Dict, fields_to_nest: List[str], new_key: str):
     # Create a new dictionary to store the nested fields
     nested_dict = {}
@@ -2295,26 +2469,78 @@ async def _started_async_stream(response: httpx.Response) -> httpx.Response:
     return response
 
 
+def _answer_kwargs(create_kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """The create arguments for the call that answers with the search results:
+    it must answer, since a search it asked for would go unanswered."""
+    return {**create_kwargs, "tool_choice": "none"}
+
+
+def _openai_search_tools() -> List[Dict[str, Any]]:
+    """The tools a wrapped OpenAI client offers the model: a web search through Exa."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "search",
+                "description": "Search the web for relevant information.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The query to search for.",
+                        },
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+    ]
+
+
 class Exa:
     """A client for interacting with Exa API."""
 
+    # Whether the client takes a coroutine function as ``api_key``. Only
+    # AsyncExa can await what one returns.
+    _accepts_async_api_key = False
+    # Called before each request for its key when ``api_key`` is a function.
+    _api_key_source: Optional[Callable[[], Union[str, Awaitable[str]]]]
+
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: str = "https://api.exa.ai",
+        api_key: Optional[Union[str, Callable[[], str]]] = None,
+        base_url: Optional[str] = None,
         user_agent: Optional[str] = None,
         timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT,
     ):
         """Initialize the Exa client with the provided API key and optional base URL and user agent.
 
         Args:
-            api_key (str, optional): The API key for authenticating with the Exa API.
-                Defaults to the EXA_API_KEY environment variable.
-            base_url (str, optional): The base URL for the Exa API. Defaults to "https://api.exa.ai".
+            api_key (Union[str, Callable[[], str]], optional): The API key for
+                authenticating with the Exa API, or a function that returns it.
+                Defaults to the EXA_API_KEY environment variable. The client
+                calls the function before each request and sends the string it
+                returns as the API key. It never caches the result, so the
+                function can return a key that rotates. It must return a
+                non-empty string of visible ASCII characters. Anything else
+                raises ``TypeError``, and the request is not sent. The function
+                runs inline, and the request's timeout does not cover it. A
+                request that sets its own ``x-api-key`` header does not call
+                the function.
+            base_url (str, optional): The base URL of the Exa API, for example
+                "https://api.eu.exa.ai" for the EU API. Defaults to the
+                EXA_BASE_URL environment variable, or "https://api.exa.ai" when it
+                is not set. Each client keeps its own base URL and API key, so
+                clients for different Exa APIs can run in one process.
             user_agent (str, optional): Custom user agent. Defaults to "exa-py {version}".
             timeout (float, optional): Default timeout in seconds for API requests.
                 Defaults to 600. Pass ``None`` to disable. Methods that accept
                 ``timeout`` can override this per call.
+
+        Raises:
+            ValueError: If neither ``api_key`` nor ``EXA_API_KEY`` is given.
+            TypeError: If ``api_key`` is a coroutine function. Use ``AsyncExa`` for one.
         """
         if api_key is None:
             api_key = os.environ.get("EXA_API_KEY")
@@ -2322,18 +2548,32 @@ class Exa:
                 raise ValueError(
                     "API key must be provided as an argument or in EXA_API_KEY environment variable"
                 )
+        if inspect.iscoroutinefunction(api_key) and not self._accepts_async_api_key:
+            raise TypeError(
+                "api_key is a coroutine function, which Exa cannot await. "
+                "Use AsyncExa for an async api_key."
+            )
 
         # Set default user agent with dynamic version if not provided
         if user_agent is None:
             user_agent = f"exa-py/{_get_package_version()}"
 
-        self.base_url = base_url
+        self.base_url = _resolve_base_url(base_url)
         self.timeout = _validate_timeout(timeout)
-        self.headers = {
-            "x-api-key": api_key,
-            "User-Agent": user_agent,
-            "Content-Type": "application/json",
-        }
+        if callable(api_key):
+            # Each request sends the key the function returns, so the headers carry none.
+            self._api_key_source = api_key
+            self.headers = {
+                "User-Agent": user_agent,
+                "Content-Type": "application/json",
+            }
+        else:
+            self._api_key_source = None
+            self.headers = {
+                "x-api-key": api_key,
+                "User-Agent": user_agent,
+                "Content-Type": "application/json",
+            }
         self.websets = WebsetsClient(self)
         # Research tasks client (new, mirrors Websets design)
         self.research = ResearchClient(self)
@@ -2347,7 +2587,37 @@ class Exa:
         self.openai = OpenAINamespace(self, self._tool_registry)
         self.anthropic = AnthropicNamespace(self, self._tool_registry)
 
-    @typed_timeouts
+    def _with_api_key(self, request_headers: Dict[str, str]) -> Dict[str, str]:
+        """Return ``request_headers`` with the key the ``api_key`` function returns
+        as ``x-api-key``.
+
+        The function is not called, and the headers are returned unchanged, when
+        the client has a static API key or the caller set ``x-api-key`` itself.
+
+        Raises:
+            TypeError: If the function returns an awaitable, which a synchronous
+                request cannot await, or a value that is not a key.
+        """
+        api_key = self._api_key_source
+        if api_key is None or _sets_api_key_header(request_headers):
+            return request_headers
+        key = api_key()
+        if inspect.isawaitable(key):
+            # Closing a coroutine that will never run avoids a "never awaited" warning.
+            close = getattr(key, "close", None)
+            if close is not None:
+                close()
+            if self._accepts_async_api_key:
+                raise TypeError(
+                    "api_key returned an awaitable, which the synchronous request "
+                    "method cannot await. Use async_request."
+                )
+            raise TypeError(
+                "api_key returned an awaitable, which Exa cannot await. "
+                "Use AsyncExa for an async api_key."
+            )
+        return {**request_headers, "x-api-key": _check_api_key(key)}
+
     def request(
         self,
         endpoint: str,
@@ -2438,7 +2708,37 @@ class Exa:
         request_headers = merge_headers(request_headers, extra_headers)
 
         request_timeout = _validate_timeout(timeout) if timeout is not None else self.timeout
+        request_headers = self._with_api_key(request_headers)
+        return self._exchange(
+            endpoint,
+            method,
+            json_data=json_data,
+            params=params,
+            query_kwargs=query_kwargs,
+            request_headers=request_headers,
+            request_timeout=request_timeout,
+            needs_streaming=bool(needs_streaming),
+        )
 
+    @typed_timeouts
+    def _exchange(
+        self,
+        endpoint: str,
+        method: str,
+        *,
+        json_data: Optional[str],
+        params: Optional[Dict[str, Any]],
+        query_kwargs: Dict[str, Any],
+        request_headers: Dict[str, str],
+        request_timeout: Optional[float],
+        needs_streaming: bool,
+    ) -> Union[Dict[str, Any], requests.Response]:
+        """Send the request ``request`` prepared and return what ``request`` returns.
+
+        Only this exchange with the Exa API is under ``typed_timeouts``.
+        ``request`` resolves the API key before calling it, so an exception an
+        ``api_key`` function raises reaches the caller unchanged.
+        """
         with reporting_failover_connect_timeouts(request_timeout):
             if method.upper() == "GET":
                 if needs_streaming:
@@ -2669,42 +2969,7 @@ class Exa:
             extra_query=extra_query,
         )
 
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data["resolvedSearchType"] if "resolvedSearchType" in data else None,
-            data["autoDate"] if "autoDate" in data else None,
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            output=parse_deep_search_output(data.get("output")),
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-            warnings=parse_search_warnings(data.get("warnings")),
-            notices=parse_search_notices(data.get("notices")),
-        )
+        return _parse_search_response(data)
 
     def stream_search(
         self,
@@ -2812,8 +3077,9 @@ class Exa:
         elif contents is not None:
             options["contents"] = contents
 
+        _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
         options = _merge_search_body(options, extra_body, streaming=True)
         raw_response = self.request(
             "/search",
@@ -2889,42 +3155,7 @@ class Exa:
             extra_query=extra_query,
         )
 
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            output=parse_deep_search_output(data.get("output")),
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-            warnings=parse_search_warnings(data.get("warnings")),
-            notices=parse_search_notices(data.get("notices")),
-        )
+        return _parse_search_response(data)
 
     @overload
     def get_contents(
@@ -3056,7 +3287,8 @@ class Exa:
             text (TextContentsOptions | True, optional): Options for text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
-                it will be fetched fresh. Special values: 0 = always fetch fresh content,
+                it will be fetched fresh. A failed fetch may return the latest cached copy instead.
+                Special values: 0 = return live content, fetched within the last 60 seconds,
                 -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
             livecrawl (str, optional): Deprecated. Use ``max_age_hours`` instead. Does not guarantee
                 freshly fetched content. Cannot be combined with ``max_age_hours``.
@@ -3140,41 +3372,7 @@ class Exa:
             extra_query=extra_query,
             extra_body=extra_body,
         )
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        statuses = [_parse_content_status(status) for status in data.get("statuses", [])]
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            cost_dollars=cost_dollars,
-            statuses=statuses,
-            search_time=data.get("searchTime"),
-        )
+        return _parse_contents_response(data)
 
     @deprecated("find_similar()/findSimilar is deprecated. Use search() instead.")
     def find_similar(
@@ -3268,38 +3466,7 @@ class Exa:
             extra_query=extra_query,
             extra_body=extra_body,
         )
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-        )
+        return _parse_find_similar_response(data)
 
     @overload
     @deprecated(
@@ -3573,46 +3740,16 @@ class Exa:
             extra_query=extra_query,
             extra_body=extra_body,
         )
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-        )
+        return _parse_find_similar_response(data, context=True)
 
     def wrap(self, client: OpenAI):
         """Wrap an OpenAI client with Exa functionality.
 
         After wrapping, any call to `client.chat.completions.create` will be intercepted
         and enhanced with Exa RAG functionality. To disable Exa for a specific call,
-        set `use_exa="none"` in the `create` method.
+        set `use_exa="none"` in the `create` method; `use_exa="required"` makes
+        the model search once before it answers. To wrap an `AsyncOpenAI`
+        client, use `AsyncExa.wrap`.
 
         Args:
             client (OpenAI): The OpenAI client to wrap.
@@ -3663,6 +3800,10 @@ class Exa:
 
             create_kwargs = {"model": model}
             create_kwargs.update(openai_kwargs)
+            if use_exa in ("none", "required"):
+                create_kwargs["tool_choice"] = use_exa
+            if use_exa == "required":
+                create_kwargs["parallel_tool_calls"] = False
 
             return self._create_with_tool(
                 create_fn=func,
@@ -3679,33 +3820,13 @@ class Exa:
 
     def _create_with_tool(
         self,
-        create_fn: Callable,
+        create_fn: Callable[..., ChatCompletion],
         messages: List[ChatCompletionMessageParam],
-        max_len,
-        create_kwargs,
-        exa_kwargs,
+        max_len: int,
+        create_kwargs: Dict[str, Any],
+        exa_kwargs: Dict[str, Any],
     ) -> ExaOpenAICompletion:
-        tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "search",
-                    "description": "Search the web for relevant information.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The query to search for.",
-                            },
-                        },
-                        "required": ["query"],
-                    },
-                },
-            }
-        ]
-
-        create_kwargs["tools"] = tools
+        create_kwargs["tools"] = _openai_search_tools()
 
         completion = create_fn(messages=messages, **create_kwargs)
 
@@ -3734,7 +3855,7 @@ class Exa:
         )
         exa_str = format_exa_result(exa_result, max_len=max_len)
         new_messages = add_message_to_messages(completion, messages, exa_str)
-        completion = create_fn(messages=new_messages, **create_kwargs)
+        completion = create_fn(messages=new_messages, **_answer_kwargs(create_kwargs))
 
         exa_completion = ExaOpenAICompletion.from_completion(
             completion=completion, exa_result=exa_result
@@ -3952,29 +4073,63 @@ class AsyncExa(Exa):
     openai: AsyncOpenAINamespace
     anthropic: AsyncAnthropicNamespace
     _client: Optional[httpx.AsyncClient]
+    _accepts_async_api_key = True
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_base: str = "https://api.exa.ai",
+        api_key: Optional[Union[str, Callable[[], Union[str, Awaitable[str]]]]] = None,
+        base_url: Optional[str] = None,
         timeout: Optional[float] = DEFAULT_REQUEST_TIMEOUT,
+        *,
+        api_base: Optional[str] = None,
     ):
         """Initialize the asynchronous Exa client.
 
         Args:
-            api_key (str, optional): The API key for authenticating with the Exa API.
-                Defaults to the EXA_API_KEY environment variable.
-            api_base (str, optional): The base URL for the Exa API. Defaults to "https://api.exa.ai".
+            api_key (Union[str, Callable[[], Union[str, Awaitable[str]]]], optional):
+                The API key for authenticating with the Exa API, or a function or
+                coroutine function that returns it. Defaults to the EXA_API_KEY
+                environment variable. The client calls the function before each
+                request and sends the string it returns as the API key. It never
+                caches the result, so the function can return a key that rotates.
+                It must return a non-empty string of visible ASCII characters.
+                Anything else raises ``TypeError``, and the request is not sent.
+                The request's timeout also bounds the wait for a coroutine
+                function and raises ``ExaTimeoutError`` when it runs out. A plain
+                function runs inline, and the timeout does not cover it.
+                A request that sets its own ``x-api-key`` header does not call the
+                function.
+            base_url (str, optional): The base URL of the Exa API, for example
+                "https://api.eu.exa.ai" for the EU API. Defaults to the
+                EXA_BASE_URL environment variable, or "https://api.exa.ai" when it
+                is not set. Each client keeps its own base URL and API key, so
+                clients for different Exa APIs can run in one process.
             timeout (float, optional): Default timeout in seconds for API requests.
                 Defaults to 600. Pass ``None`` to disable. Methods that accept
                 ``timeout`` can override this per call. Cancel in-flight requests
                 by cancelling the awaiting asyncio task.
+            api_base (str, optional): Deprecated. Use ``base_url``.
+
+        Raises:
+            TypeError: If both ``base_url`` and ``api_base`` are given.
 
         Examples:
             >>> async with AsyncExa(api_key="your-api-key") as exa:
             ...     results = await exa.search("latest AI research papers")
         """
-        super().__init__(api_key, api_base, timeout=timeout)
+        if api_base is not None:
+            if base_url is not None:
+                raise TypeError("Pass base_url alone. api_base is its deprecated name.")
+            warnings.warn(
+                "AsyncExa's api_base is deprecated. Use base_url.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            base_url = api_base
+        # async_request awaits what a coroutine function api_key returns.
+        super().__init__(
+            cast(Optional[Union[str, Callable[[], str]]], api_key), base_url, timeout=timeout
+        )
         # Override the synchronous ResearchClient with its async counterpart.
         self.research = AsyncResearchClient(self)
         # Override the synchronous WebsetsClient with its async counterpart.
@@ -4028,7 +4183,32 @@ class AsyncExa(Exa):
     ) -> None:
         await self.aclose()
 
-    @typed_timeouts
+    async def _with_api_key_async(
+        self, request_headers: Dict[str, str], timeout: Optional[float]
+    ) -> Dict[str, str]:
+        """Return ``request_headers`` with the key the ``api_key`` function or
+        coroutine function returns as ``x-api-key``.
+
+        The function is not called, and the headers are returned unchanged, when
+        the client has a static API key or the caller set ``x-api-key`` itself.
+
+        Args:
+            request_headers (Dict[str, str]): The headers the request sends.
+            timeout (float, optional): The request's timeout in seconds, which
+                also bounds the wait for an awaitable the function returns.
+
+        Raises:
+            ExaTimeoutError: If the awaitable outlives ``timeout``.
+            TypeError: If the function returns a value that is not a key.
+        """
+        api_key = self._api_key_source
+        if api_key is None or _sets_api_key_header(request_headers):
+            return request_headers
+        key = api_key()
+        if inspect.isawaitable(key):
+            key = await _await_api_key(key, timeout)
+        return {**request_headers, "x-api-key": _check_api_key(key)}
+
     async def async_request(
         self,
         endpoint: str,
@@ -4111,7 +4291,39 @@ class AsyncExa(Exa):
         timeout_kwargs: Dict[str, Any] = {}
         if timeout is not None:
             timeout_kwargs["timeout"] = _validate_timeout(timeout)
+        request_headers = await self._with_api_key_async(
+            request_headers, timeout_kwargs.get("timeout", self.timeout)
+        )
+        return await self._async_exchange(
+            endpoint,
+            method,
+            data=data,
+            params=params,
+            query_kwargs=query_kwargs,
+            request_headers=request_headers,
+            timeout_kwargs=timeout_kwargs,
+            needs_streaming=bool(needs_streaming),
+        )
 
+    @typed_timeouts
+    async def _async_exchange(
+        self,
+        endpoint: str,
+        method: str,
+        *,
+        data: Any,
+        params: Optional[Dict[str, Any]],
+        query_kwargs: Dict[str, Any],
+        request_headers: Dict[str, str],
+        timeout_kwargs: Dict[str, Any],
+        needs_streaming: bool,
+    ) -> Union[Dict[str, Any], httpx.Response]:
+        """Send the request ``async_request`` prepared and return what ``async_request`` returns.
+
+        Only this exchange with the Exa API is under ``typed_timeouts``.
+        ``async_request`` resolves the API key before calling it, so an
+        exception an ``api_key`` function raises reaches the caller unchanged.
+        """
         if method.upper() == "GET":
             if needs_streaming:
                 request = self.client.build_request(
@@ -4339,42 +4551,7 @@ class AsyncExa(Exa):
             extra_query=extra_query,
         )
 
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            output=parse_deep_search_output(data.get("output")),
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-            warnings=parse_search_warnings(data.get("warnings")),
-            notices=parse_search_notices(data.get("notices")),
-        )
+        return _parse_search_response(data)
 
     async def stream_search(
         self,
@@ -4481,8 +4658,9 @@ class AsyncExa(Exa):
         elif contents is not None:
             options["contents"] = contents
 
+        _convert_contents_summary_schema(options)
         validate_search_options(options, SEARCH_OPTIONS_TYPES)
-        options = to_camel_case(options, skip_keys=["output_schema"])
+        options = to_camel_case(options, skip_keys=["output_schema", "schema"])
         options = _merge_search_body(options, extra_body, streaming=True)
         raw_response = await self.async_request(
             "/search",
@@ -4558,42 +4736,7 @@ class AsyncExa(Exa):
             extra_query=extra_query,
         )
 
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            output=parse_deep_search_output(data.get("output")),
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-            warnings=parse_search_warnings(data.get("warnings")),
-            notices=parse_search_notices(data.get("notices")),
-        )
+        return _parse_search_response(data)
 
     @overload
     async def get_contents(
@@ -4725,7 +4868,8 @@ class AsyncExa(Exa):
             text (TextContentsOptions | True, optional): Options for text extraction.
             summary (SummaryContentsOptions | True, optional): Options for summary generation.
             max_age_hours (int, optional): Maximum age of cached content in hours. If content is older,
-                it will be fetched fresh. Special values: 0 = always fetch fresh content,
+                it will be fetched fresh. A failed fetch may return the latest cached copy instead.
+                Special values: 0 = return live content, fetched within the last 60 seconds,
                 -1 = never fetch fresh (cache only). Example: 168 = fetch fresh for pages older than 7 days.
             livecrawl (str, optional): Deprecated. Use ``max_age_hours`` instead. Does not guarantee
                 freshly fetched content. Cannot be combined with ``max_age_hours``.
@@ -4809,41 +4953,7 @@ class AsyncExa(Exa):
             extra_query=extra_query,
             extra_body=extra_body,
         )
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        statuses = [_parse_content_status(status) for status in data.get("statuses", [])]
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            cost_dollars=cost_dollars,
-            statuses=statuses,
-            search_time=data.get("searchTime"),
-        )
+        return _parse_contents_response(data)
 
     @deprecated("find_similar()/findSimilar is deprecated. Use search() instead.")
     async def find_similar(
@@ -4943,38 +5053,7 @@ class AsyncExa(Exa):
             extra_query=extra_query,
             extra_body=extra_body,
         )
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-        )
+        return _parse_find_similar_response(data)
 
     @overload
     @deprecated(
@@ -5211,39 +5290,51 @@ class AsyncExa(Exa):
             extra_query=extra_query,
             extra_body=extra_body,
         )
-        cost_dollars = parse_cost_dollars(data.get("costDollars"))
-        results = []
-        for result in data["results"]:
-            snake_result = to_snake_case(result)
-            results.append(
-                Result(
-                    url=snake_result.get("url"),
-                    id=snake_result.get("id"),
-                    title=snake_result.get("title"),
-                    score=snake_result.get("score"),
-                    published_date=snake_result.get("published_date"),
-                    author=snake_result.get("author"),
-                    image=snake_result.get("image"),
-                    favicon=snake_result.get("favicon"),
-                    subpages=snake_result.get("subpages"),
-                    extras=snake_result.get("extras"),
-                    crawl_date=snake_result.get("crawl_date"),
-                    snapshot_at=snake_result.get("snapshot_at"),
-                    text=snake_result.get("text"),
-                    summary=snake_result.get("summary"),
-                    highlights=snake_result.get("highlights"),
-                    highlight_scores=snake_result.get("highlight_scores"),
-                    entities=_parse_entities(result.get("entities")),
-                )
-            )
-        return SearchResponse(
-            results,
-            data.get("resolvedSearchType"),
-            data.get("autoDate"),
-            context=data.get("context"),  # DEPRECATED FIELD: legacy context response.
-            cost_dollars=cost_dollars,
-            search_time=data.get("searchTime"),
-        )
+        return _parse_find_similar_response(data, context=True)
+
+    def wrap(self, client: Union[OpenAI, AsyncOpenAI]):
+        """`Exa.wrap`, for an `OpenAI` or an `AsyncOpenAI` client."""
+        return super().wrap(client)  # type: ignore[arg-type]
+
+    def _create_with_tool(
+        self,
+        create_fn: Callable[..., Any],
+        messages: List[ChatCompletionMessageParam],
+        max_len: int,
+        create_kwargs: Dict[str, Any],
+        exa_kwargs: Dict[str, Any],
+    ) -> Union[ExaOpenAICompletion, Awaitable[ExaOpenAICompletion]]:
+        """Answer a chat completion through the OpenAI client `wrap` took, sync or async.
+
+        With an async client, the wrapped `create` returns a coroutine that runs
+        the steps awaiting each call. With a sync client, it runs `Exa`'s steps.
+        openai wraps its `create` methods in a sync function, so `create_fn` is
+        unwrapped before it is checked.
+        """
+        if inspect.iscoroutinefunction(inspect.unwrap(create_fn)):
+            return self._async_create_with_tool(create_fn, messages, max_len, create_kwargs, exa_kwargs)
+        return super()._create_with_tool(create_fn, messages, max_len, create_kwargs, exa_kwargs)
+
+    async def _async_create_with_tool(
+        self,
+        create_fn: Callable[..., Awaitable[ChatCompletion]],
+        messages: List[ChatCompletionMessageParam],
+        max_len: int,
+        create_kwargs: Dict[str, Any],
+        exa_kwargs: Dict[str, Any],
+    ) -> ExaOpenAICompletion:
+        """`Exa._create_with_tool`'s steps, awaiting the OpenAI client and the Exa search."""
+        create_kwargs["tools"] = _openai_search_tools()
+        completion = await create_fn(messages=messages, **create_kwargs)
+        query = maybe_get_query(completion)
+        if not query:
+            return ExaOpenAICompletion.from_completion(completion=completion, exa_result=None)
+
+        exa_result = await self.search_and_contents(query=query, **exa_kwargs)
+        exa_str = format_exa_result(exa_result, max_len=max_len)
+        new_messages = add_message_to_messages(completion, messages, exa_str)
+        completion = await create_fn(messages=new_messages, **_answer_kwargs(create_kwargs))
+        return ExaOpenAICompletion.from_completion(completion=completion, exa_result=exa_result)
 
     async def answer(
         self,

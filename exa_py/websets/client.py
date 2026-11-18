@@ -25,7 +25,7 @@ from .webhooks import WebsetWebhooksClient, AsyncWebsetWebhooksClient
 from .monitors import MonitorsClient, AsyncMonitorsClient
 from .imports import ImportsClient, AsyncImportsClient
 from .events import EventsClient, AsyncEventsClient
-from ..request_options import ExtraRequestOptions, merge_query, options_for_next_page
+from ..request_options import ExtraRequestOptions, apaginate, merge_query, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 class WebsetsClient(WebsetsBaseClient):
     """Client for managing Websets."""
@@ -163,17 +163,10 @@ class WebsetsClient(WebsetsBaseClient):
         Yields:
             Webset: Each webset.
         """
-        cursor = None
-        while True:
-            response = self.list(cursor=cursor, limit=limit, **extra)
-            for webset in response.data:
-                yield webset
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        )
 
     def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Webset]:
         """Collect all Websets into a list.
@@ -362,17 +355,11 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         Yields:
             Webset: Each webset.
         """
-        cursor = None
-        while True:
-            response = await self.list(cursor=cursor, limit=limit, **extra)
-            for webset in response.data:
-                yield webset
-            
-            if not response.has_more or not response.next_cursor:
-                break
-                
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for webset in apaginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        ):
+            yield webset
 
     async def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Webset]:
         """Collect all Websets into a list.
@@ -384,10 +371,7 @@ class AsyncWebsetsClient(WebsetsAsyncBaseClient):
         Returns:
             List[Webset]: All websets.
         """
-        websets = []
-        async for webset in self.list_all(limit=limit, **extra):
-            websets.append(webset)
-        return websets
+        return [webset async for webset in self.list_all(limit=limit, **extra)]
 
     async def wait_until_idle(
         self, 

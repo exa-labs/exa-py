@@ -16,7 +16,7 @@ from typing import (
 )
 from typing_extensions import Unpack
 
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 
 from .base import AsyncResearchBaseClient, raise_research_retired
 from .models import (
@@ -26,7 +26,8 @@ from .models import (
     KnownResearchModel,
     ResearchModel,  # noqa: F401  re-exported: earlier releases imported it from here
 )
-from .utils import (
+# Kept importable from here: earlier releases exported these names from this module.
+from .utils import (  # noqa: F401
     async_stream_sse_events,
     is_pydantic_model,
     pydantic_to_json_schema,
@@ -114,20 +115,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         Returns:
             The created research object.
         """
-        payload = {
-            "instructions": instructions,
-            "model": model,
-        }
-
-        if output_schema is not None:
-            if is_pydantic_model(output_schema):
-                payload["outputSchema"] = pydantic_to_json_schema(output_schema)
-            else:
-                payload["outputSchema"] = output_schema
-
-        response = await self.request("", method="POST", data=payload, **extra)
-        adapter = TypeAdapter(ResearchDto)
-        return adapter.validate_python(response)
+        raise_research_retired()
 
     @overload
     async def get(
@@ -188,45 +176,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         Returns:
             Research object, typed research, or async event generator.
         """
-        params = {}
-        if not stream:
-            params["stream"] = "false"
-            if events:
-                params["events"] = "true"
-        else:
-            params["stream"] = "true"
-            if events is not None:
-                params["events"] = str(events).lower()
-
-        if stream:
-            response = await self.request(
-                f"/{research_id}", method="GET", params=params, stream=True,
-                **extra,
-            )
-            return async_stream_sse_events(response)
-        else:
-            response = await self.request(
-                f"/{research_id}", method="GET", params=params,
-                **extra,
-            )
-            adapter = TypeAdapter(ResearchDto)
-            research = adapter.validate_python(response)
-
-            if output_schema and hasattr(research, "output") and research.output:
-                try:
-                    if research.output.parsed:
-                        parsed = output_schema.model_validate(research.output.parsed)
-                    else:
-                        import json
-
-                        parsed_data = json.loads(research.output.content)
-                        parsed = output_schema.model_validate(parsed_data)
-                    return AsyncResearchTyped(research, parsed)
-                except Exception:
-                    # If parsing fails, return the regular research object
-                    return research
-
-            return research
+        raise_research_retired()
 
     async def list(
         self,
@@ -245,9 +195,7 @@ class AsyncResearchClient(AsyncResearchBaseClient):
         Returns:
             List of research objects with pagination info.
         """
-        params = self.build_pagination_params(cursor, limit)
-        response = await self.request("", method="GET", params=params, **extra)
-        return ListResearchResponseDto.model_validate(response)
+        raise_research_retired()
 
     @overload
     async def poll_until_finished(

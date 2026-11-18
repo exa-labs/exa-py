@@ -21,7 +21,42 @@ from ..types import (
 from ...errors import reporting_failover_connect_timeouts, typed_timeouts
 from ..core.base import WebsetsBaseClient
 from ..core.async_base import WebsetsAsyncBaseClient
-from ...request_options import ExtraRequestOptions, options_for_next_page
+from ...request_options import ExtraRequestOptions, apaginate, options_for_next_page, paginate  # options_for_next_page: kept importable from here
+
+
+@typed_timeouts
+def _upload_csv(upload_url: str, csv_content: str, timeout: Optional[float]) -> None:
+    """Upload ``csv_content`` to the presigned ``upload_url`` of an import.
+
+    Only the upload is under ``typed_timeouts``. The requests to the Exa API
+    around it type their own timeouts after resolving the API key, so an
+    exception an ``api_key`` function raises reaches the caller unchanged.
+    """
+    with reporting_failover_connect_timeouts(timeout):
+        upload_response = requests.put(
+            upload_url,
+            data=csv_content,
+            headers={'Content-Type': 'text/csv'},
+            timeout=timeout,
+        )
+    upload_response.raise_for_status()
+
+
+@typed_timeouts
+async def _async_upload_csv(upload_url: str, csv_content: str, timeout: Optional[float]) -> None:
+    """Upload ``csv_content`` to the presigned ``upload_url`` of an import.
+
+    Only the upload is under ``typed_timeouts``, as in ``_upload_csv``.
+    """
+    # Use a separate client so the presigned upload URL does not receive Exa's API key.
+    async with httpx.AsyncClient(timeout=timeout) as http_client:
+        upload_response = await http_client.put(
+            upload_url,
+            content=csv_content,
+            headers={'Content-Type': 'text/csv'}
+        )
+        upload_response.raise_for_status()
+
 
 class ImportsClient(WebsetsBaseClient):
     """Client for managing Imports."""
@@ -29,7 +64,6 @@ class ImportsClient(WebsetsBaseClient):
     def __init__(self, client):
         super().__init__(client)
 
-    @typed_timeouts
     def create(
         self, 
         params: Union[Dict[str, Any], CreateImportParameters], 
@@ -93,14 +127,7 @@ class ImportsClient(WebsetsBaseClient):
         if csv_data is None:
             return import_response
         
-        with reporting_failover_connect_timeouts(self._client.timeout):
-            upload_response = requests.put(
-                import_response.upload_url,
-                data=csv_content,
-                headers={'Content-Type': 'text/csv'},
-                timeout=self._client.timeout,
-            )
-        upload_response.raise_for_status()
+        _upload_csv(import_response.upload_url, csv_content, self._client.timeout)
         
         return self.get(import_response.id, **extra)
 
@@ -210,17 +237,10 @@ class ImportsClient(WebsetsBaseClient):
             for import_obj in exa.websets.imports.list_all():
                 print(import_obj.id)
         """
-        cursor = None
-        while True:
-            response = self.list(cursor=cursor, limit=limit, **extra)
-            for import_obj in response.data:
-                yield import_obj
-
-            if not response.has_more or not response.next_cursor:
-                break
-
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        )
 
     def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Import]:
         """Collect all Imports into a list.
@@ -248,7 +268,6 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
     def __init__(self, client):
         super().__init__(client)
 
-    @typed_timeouts
     async def create(
         self, 
         params: Union[Dict[str, Any], CreateImportParameters], 
@@ -313,14 +332,7 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
         if csv_data is None:
             return import_response
         
-        # Use a separate client so the presigned upload URL does not receive Exa's API key.
-        async with httpx.AsyncClient(timeout=self._client.timeout) as http_client:
-            upload_response = await http_client.put(
-                import_response.upload_url,
-                content=csv_content,
-                headers={'Content-Type': 'text/csv'}
-            )
-            upload_response.raise_for_status()
+        await _async_upload_csv(import_response.upload_url, csv_content, self._client.timeout)
         
         return await self.get(import_response.id, **extra)
 
@@ -430,17 +442,11 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
             async for import_obj in exa.websets.imports.list_all():
                 print(import_obj.id)
         """
-        cursor = None
-        while True:
-            response = await self.list(cursor=cursor, limit=limit, **extra)
-            for import_obj in response.data:
-                yield import_obj
-
-            if not response.has_more or not response.next_cursor:
-                break
-
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        async for import_obj in apaginate(
+            lambda cursor, extra: self.list(cursor=cursor, limit=limit, **extra),
+            extra,
+        ):
+            yield import_obj
 
     async def get_all(self, *, limit: Optional[int] = None, **extra: Unpack[ExtraRequestOptions]) -> List[Import]:
         """Collect all Imports into a list.
@@ -459,7 +465,4 @@ class AsyncImportsClient(WebsetsAsyncBaseClient):
             exa = AsyncExa(os.environ["EXA_API_KEY"])
             imports = await exa.websets.imports.get_all()
         """
-        imports = []
-        async for import_obj in self.list_all(limit=limit, **extra):
-            imports.append(import_obj)
-        return imports
+        return [import_obj async for import_obj in self.list_all(limit=limit, **extra)]

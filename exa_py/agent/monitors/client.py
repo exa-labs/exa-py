@@ -20,7 +20,7 @@ from .types import (
     ListAgentMonitorEntitiesResponse,
     ListAgentMonitorsResponse,
 )
-from ...request_options import ExtraRequestOptions, options_for_next_page
+from ...request_options import ExtraRequestOptions, options_for_next_page, paginate  # options_for_next_page: kept importable from here
 
 _DEFAULT_BACKTEST_POLL_INTERVAL_MS = 2000
 _DEFAULT_BACKTEST_POLL_TIMEOUT_MS = 3600000
@@ -173,21 +173,13 @@ class AgentMonitorEntitiesClient(AgentMonitorsBaseClient):
             for view in exa.beta.agent.monitors.entities.list_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(view.entity.name)
         """
-        while True:
-            response = self.list(
-                monitor_id,
-                betas=betas,
-                cursor=cursor,
-                limit=limit,
-                since=since,
-                **extra,
-            )
-            for entity_view in response.data:
-                yield entity_view
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(
+                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since, **extra
+            ),
+            extra,
+            cursor,
+        )
 
     def get_all(
         self,
@@ -312,21 +304,13 @@ class AgentMonitorChangesClient(AgentMonitorsBaseClient):
             for change in exa.beta.agent.monitors.changes.list_all("agentmon_123", betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(change.created_at, change.content.value)
         """
-        while True:
-            response = self.list(
-                monitor_id,
-                betas=betas,
-                cursor=cursor,
-                limit=limit,
-                since=since,
-                **extra,
-            )
-            for change in response.data:
-                yield change
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(
+                monitor_id, betas=betas, cursor=cursor, limit=limit, since=since, **extra
+            ),
+            extra,
+            cursor,
+        )
 
     def get_all(
         self,
@@ -732,14 +716,11 @@ class AgentMonitorsClient(AgentMonitorsBaseClient):
             for monitor in exa.beta.agent.monitors.list_all(betas=[AGENT_MONITORS_BETA_HEADER]):
                 print(monitor.id)
         """
-        while True:
-            response = self.list(betas=betas, cursor=cursor, limit=limit, **extra)
-            for monitor in response.data:
-                yield monitor
-            if not response.has_more or not response.next_cursor:
-                break
-            cursor = response.next_cursor
-            extra = options_for_next_page(extra)
+        yield from paginate(
+            lambda cursor, extra: self.list(betas=betas, cursor=cursor, limit=limit, **extra),
+            extra,
+            cursor,
+        )
 
     def get_all(
         self,
