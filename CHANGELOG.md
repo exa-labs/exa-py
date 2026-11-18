@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.29.0](https://github.com/exa-labs/exa-py/compare/v2.28.0...v2.29.0) (2026-11-18)
+
+
+### Features
+
+* add `base_url` configuration and deprecate `AsyncExa.api_base` ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* add `cost_dollars` to `WebsetSearch` responses ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* add `ExaBaseModel` to `exa_py.websets.core` exports ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* add `use_exa="required"` and async OpenAI support to `wrap` ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+
+
+### Bug Fixes
+
+* fix `AsyncExa.wrap` handling for asynchronous OpenAI clients ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* fix async Websets iterators to yield events, imports, and monitors ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* fix callable `api_key` validation and async timeout handling ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* fix summary schema conversion in `stream_search` ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* raise `ValueError` for API errors during streamed answers and searches ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+
+
+### Documentation
+
+* document cached fallback behavior for `max_age_hours` ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+* document live content behavior for `max_age_hours=0` ([43ab08f](https://github.com/exa-labs/exa-py/commit/43ab08f480c4a6998c89e3e8e47c0d5b4f31b7ad))
+
 ## [2.28.0](https://github.com/exa-labs/exa-py/compare/v2.27.0...v2.28.0) (2026-11-06)
 
 
